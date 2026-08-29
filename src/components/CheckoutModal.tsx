@@ -23,6 +23,7 @@ import {
   cleanRawText, 
   securityRateLimiter 
 } from '../utils/security';
+import { PaymentModal } from './PaymentModal';
 
 export const CheckoutModal: React.FC = () => {
   const {
@@ -61,6 +62,8 @@ export const CheckoutModal: React.FC = () => {
   const [cutleryCount, setCutleryCount] = useState(2);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOnlinePayOpen, setIsOnlinePayOpen] = useState(false);
+  const [pendingOrderDetails, setPendingOrderDetails] = useState<OrderDetails | null>(null);
 
   const handleSubmitOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,10 +103,34 @@ export const CheckoutModal: React.FC = () => {
     const sanitizedComment = cleanRawText(comment, 300);
     const sanitizedChange = cleanRawText(cashChangeFrom, 50);
 
-    if (orderType === 'delivery' && (!sanitizedStreet || !sanitizedHouse)) {
-      showToast('Вкажіть вулицю та номер будинку для доставки', undefined, 'error');
-      return;
-    }
+    const completeOrder = (order: OrderDetails) => {
+      // Confetti celebration
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#E11D48', '#F59E0B', '#10B981', '#FFFFFF']
+        });
+      } catch {
+        // ignore
+      }
+
+      setCurrentOrder(order);
+      clearCart();
+      setIsSubmitting(false);
+      setIsCheckoutOpen(false);
+      setIsOrderTrackerOpen(true);
+      showToast(`🎉 Замовлення #${order.orderNumber} успішно прийнято!`, undefined, 'success');
+    };
+
+    const handleOnlinePaymentSuccess = (paymentId: string) => {
+      if (pendingOrderDetails) {
+        completeOrder(pendingOrderDetails);
+        setIsOnlinePayOpen(false);
+        setPendingOrderDetails(null);
+      }
+    };
 
     setIsSubmitting(true);
 
@@ -141,25 +168,14 @@ export const CheckoutModal: React.FC = () => {
         status: 'received'
       };
 
-      // Confetti celebration
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#E11D48', '#F59E0B', '#10B981', '#FFFFFF']
-        });
-      } catch {
-        // ignore
+      if (paymentMethod === 'card_online') {
+        setPendingOrderDetails(newOrder);
+        setIsSubmitting(false);
+        setIsOnlinePayOpen(true);
+      } else {
+        completeOrder(newOrder);
       }
-
-      setCurrentOrder(newOrder);
-      clearCart();
-      setIsSubmitting(false);
-      setIsCheckoutOpen(false);
-      setIsOrderTrackerOpen(true);
-      showToast(`🎉 Замовлення #${orderNumber} успішно прийнято!`, undefined, 'success');
-    }, 900);
+    }, 700);
   };
 
   return (
@@ -586,6 +602,39 @@ export const CheckoutModal: React.FC = () => {
           </motion.div>
         </div>
       )}
+
+      {/* Online Payment Modal (Monobank / Apple Pay / Cards) */}
+      <PaymentModal
+        isOpen={isOnlinePayOpen}
+        onClose={() => setIsOnlinePayOpen(false)}
+        onSuccess={(paymentId) => {
+          if (pendingOrderDetails) {
+            const finalOrder: OrderDetails = {
+              ...pendingOrderDetails,
+              status: 'received'
+            };
+            // Confetti
+            try {
+              confetti({
+                particleCount: 90,
+                spread: 75,
+                origin: { y: 0.55 },
+                colors: ['#10B981', '#F59E0B', '#E11D48', '#FFFFFF']
+              });
+            } catch {
+              // ignore
+            }
+            setCurrentOrder(finalOrder);
+            clearCart();
+            setIsOnlinePayOpen(false);
+            setIsCheckoutOpen(false);
+            setIsOrderTrackerOpen(true);
+            showToast(`💳 Оплата успішна! Замовлення #${finalOrder.orderNumber} прийнято!`, undefined, 'success');
+          }
+        }}
+        amount={total}
+        orderNumber={pendingOrderDetails?.orderNumber || '0000'}
+      />
     </AnimatePresence>
   );
 };
