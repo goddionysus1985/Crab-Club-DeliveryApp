@@ -41,11 +41,11 @@ export const FloatingContacts: React.FC = () => {
   }, []);
 
   const scrollToMenu = () => {
-    const menuEl = document.getElementById('menu-nav');
-    if (menuEl) {
+    const anchor = document.getElementById('menu-top-anchor') || document.getElementById('menu-nav');
+    if (anchor) {
       const headerEl = document.querySelector('header');
       const headerH = headerEl ? headerEl.offsetHeight : 55;
-      const targetY = menuEl.getBoundingClientRect().top + window.scrollY - headerH - 5;
+      const targetY = anchor.getBoundingClientRect().top + window.scrollY - headerH;
       window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' });

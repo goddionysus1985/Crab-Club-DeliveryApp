@@ -45,11 +45,11 @@ export const App: React.FC = () => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         if (slug === 'all') {
-          const menuEl = document.getElementById('menu-nav');
-          if (menuEl) {
+          const anchor = document.getElementById('menu-top-anchor');
+          if (anchor) {
             const headerEl = document.querySelector('header');
-            const headerH = headerEl ? headerEl.offsetHeight : 65;
-            const targetY = menuEl.getBoundingClientRect().top + window.scrollY - headerH - 10;
+            const headerH = headerEl ? headerEl.offsetHeight : 55;
+            const targetY = anchor.getBoundingClientRect().top + window.scrollY - headerH;
             window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
           } else {
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -186,6 +186,9 @@ export const App: React.FC = () => {
 
       {/* Main Hero Slider */}
       <Hero />
+
+      {/* Anchor for scrolling back to menu */}
+      <div id="menu-top-anchor" className="scroll-mt-16" />
 
       {/* Category Navigation Bar */}
       <CategoryNav
