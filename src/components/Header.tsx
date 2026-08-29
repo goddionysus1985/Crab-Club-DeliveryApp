@@ -12,7 +12,8 @@ import {
   Sparkles,
   Compass,
   RotateCcw,
-  Moon
+  Moon,
+  User
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { RESTAURANT_INFO } from '../data/menuData';
@@ -28,7 +29,8 @@ export const Header: React.FC = () => {
     currentOrder, 
     setIsOrderTrackerOpen,
     orderHistory,
-    setIsOrderHistoryOpen
+    userProfile,
+    setIsProfileOpen
   } = useCart();
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -193,14 +195,17 @@ export const Header: React.FC = () => {
               </kbd>
             </button>
 
-            {/* Order History (Re-order) Icon */}
+            {/* Personal Account / Profile Button */}
             <button
-              onClick={() => setIsOrderHistoryOpen(true)}
-              className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-amber-400 transition-all"
-              aria-label="Історія замовлень"
-              title="Історія замовлень та повтор у 1 клік"
+              onClick={() => setIsProfileOpen(true)}
+              className="relative p-2 sm:px-3 sm:py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-amber-400 transition-all flex items-center gap-1.5"
+              aria-label="Особистий кабінет"
+              title="Особистий кабінет та історія замовлень"
             >
-              <RotateCcw className="w-4 h-4" />
+              <User className="w-4 h-4 text-amber-400" />
+              <span className="hidden xl:inline text-xs font-medium text-zinc-300 hover:text-white max-w-[85px] truncate">
+                {userProfile.name || 'Кабінет'}
+              </span>
               {orderHistory.length > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold flex items-center justify-center ring-2 ring-[#0B0B0F]">
                   {orderHistory.length}
@@ -276,6 +281,30 @@ export const Header: React.FC = () => {
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-white/10 bg-[#08080C] px-4 py-4 space-y-3 animate-in fade-in slide-in-from-top-4 duration-200">
             <nav className="flex flex-col space-y-2 text-sm font-medium">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setIsProfileOpen(true);
+                }}
+                className="px-3.5 py-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 flex items-center justify-between text-left border border-amber-500/25"
+              >
+                <div className="flex items-center gap-2.5">
+                  <User className="w-4 h-4 text-amber-400" />
+                  <div>
+                    <span className="font-bold block text-white text-sm">Особистий кабінет</span>
+                    <span className="text-[11px] text-amber-300/80 font-normal">
+                      {userProfile.name ? `Гість: ${userProfile.name}` : 'Історія замовлень та мої дані'}
+                    </span>
+                  </div>
+                </div>
+                {orderHistory.length > 0 && (
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black">
+                    {orderHistory.length}
+                  </span>
+                )}
+              </button>
+
               <a
                 href="#menu"
                 onClick={() => setMobileMenuOpen(false)}
@@ -284,21 +313,7 @@ export const Header: React.FC = () => {
                 <span>🍽️ Меню страв</span>
                 <span className="text-xs text-amber-400 font-bold">200+ позицій</span>
               </a>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setIsOrderHistoryOpen(true);
-                }}
-                className="px-3 py-2.5 rounded-2xl hover:bg-white/5 text-zinc-300 flex items-center justify-between text-left"
-              >
-                <span>🔄 Повторити минуле замовлення</span>
-                {orderHistory.length > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-bold">
-                    {orderHistory.length}
-                  </span>
-                )}
-              </button>
+
               <a
                 href="#delivery"
                 onClick={() => setMobileMenuOpen(false)}

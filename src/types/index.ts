@@ -148,3 +148,14 @@ export interface OrderDetails {
   promoCode?: string;
   status: 'received' | 'cooking' | 'delivering' | 'completed';
 }
+
+export interface UserProfile {
+  name: string;
+  phone: string;
+  city: string;
+  street: string;
+  house: string;
+  apartment?: string;
+  floor?: string;
+  doorphone?: string;
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -42,21 +42,31 @@ export const CheckoutModal: React.FC = () => {
     promoCode,
     setCurrentOrder,
     setIsOrderTrackerOpen,
+    userProfile,
     showToast
   } = useCart();
 
   const scheduleStatus = getRestaurantScheduleStatus();
 
-  const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [customerName, setCustomerName] = useState(userProfile.name || '');
+  const [phone, setPhone] = useState(userProfile.phone || '');
   
   // Delivery address fields
-  const [city, setCity] = useState('смт. Овідіополь');
-  const [street, setStreet] = useState('');
-  const [house, setHouse] = useState('');
-  const [apartment, setApartment] = useState('');
-  const [floor, setFloor] = useState('');
-  const [doorphone, setDoorphone] = useState('');
+  const [city, setCity] = useState(userProfile.city || 'смт. Овідіополь');
+  const [street, setStreet] = useState(userProfile.street || '');
+  const [house, setHouse] = useState(userProfile.house || '');
+  const [apartment, setApartment] = useState(userProfile.apartment || '');
+  const [floor, setFloor] = useState(userProfile.floor || '');
+  const [doorphone, setDoorphone] = useState(userProfile.doorphone || '');
+
+  // Keep fields synced with userProfile if modified in profile modal
+  useEffect(() => {
+    if (userProfile.name && !customerName) setCustomerName(userProfile.name);
+    if (userProfile.phone && !phone) setPhone(userProfile.phone);
+    if (userProfile.street && !street) setStreet(userProfile.street);
+    if (userProfile.house && !house) setHouse(userProfile.house);
+    if (userProfile.apartment && !apartment) setApartment(userProfile.apartment);
+  }, [userProfile]);
 
   // Time & payment: if restaurant closed, default to scheduled
   const [deliveryTimeType, setDeliveryTimeType] = useState<'asap' | 'scheduled'>(scheduleStatus.isOpen ? 'asap' : 'scheduled');

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { CartItem, Product, OrderDetails } from '../types';
+import { CartItem, Product, OrderDetails, UserProfile } from '../types';
 import { RESTAURANT_INFO, PROMO_CODES, PRODUCTS } from '../data/menuData';
 import { 
   verifyAndSanitizeCart, 
@@ -21,6 +21,7 @@ interface CartContextType {
   removeFromCart: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
+  addOrderItemsToCart: (order: OrderDetails) => void;
   
   // Totals & Calculations
   subtotal: number;
@@ -53,16 +54,19 @@ interface CartContextType {
   setIsSearchOpen: (open: boolean) => void;
   isOrderTrackerOpen: boolean;
   setIsOrderTrackerOpen: (open: boolean) => void;
-  isOrderHistoryOpen: boolean;
-  setIsOrderHistoryOpen: (open: boolean) => void;
+  isProfileOpen: boolean;
+  setIsProfileOpen: (open: boolean) => void;
   activeProductModal: Product | null;
   setActiveProductModal: (p: Product | null) => void;
+
+  // User Profile & Account
+  userProfile: UserProfile;
+  updateUserProfile: (profile: Partial<UserProfile>) => void;
 
   // Current Active Order & History
   currentOrder: OrderDetails | null;
   setCurrentOrder: (order: OrderDetails | null) => void;
   orderHistory: OrderDetails[];
-  repeatOrder: (historicOrder: OrderDetails) => void;
 
   // Wishlist
   favorites: number[];
@@ -79,6 +83,17 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
+
+const DEFAULT_PROFILE: UserProfile = {
+  name: '',
+  phone: '',
+  city: 'смт. Овідіополь',
+  street: '',
+  house: '',
+  apartment: '',
+  floor: '',
+  doorphone: ''
+};
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load from localStorage with cryptographic-level integrity validation
@@ -111,6 +126,25 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    try {
+      const saved = localStorage.getItem('crabclub_user_profile');
+      return saved ? { ...DEFAULT_PROFILE, ...JSON.parse(saved) } : DEFAULT_PROFILE;
+    } catch {
+      return DEFAULT_PROFILE;
+    }
+  });
+
+  const updateUserProfile = (updated: Partial<UserProfile>) => {
+    setUserProfile(prev => {
+      const newProfile = { ...prev, ...updated };
+      try {
+        localStorage.setItem('crabclub_user_profile', JSON.stringify(newProfile));
+      } catch {}
+      return newProfile;
+    });
+  };
+
   const [currentOrder, setCurrentOrderState] = useState<OrderDetails | null>(() => {
     try {
       const saved = localStorage.getItem('crabclub_last_order');
@@ -134,14 +168,26 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (order) {
       localStorage.setItem('crabclub_last_order', JSON.stringify(order));
       setOrderHistory(prev => {
-        const updated = [order, ...prev.filter(o => o.orderId !== order.orderId)].slice(0, 10);
+        const updated = [order, ...prev.filter(o => o.orderId !== order.orderId)].slice(0, 15);
         localStorage.setItem('crabclub_order_history', JSON.stringify(updated));
         return updated;
+      });
+
+      // Auto-save user profile fields if not saved yet
+      updateUserProfile({
+        name: order.customerName || userProfile.name,
+        phone: order.phone || userProfile.phone,
+        city: order.address?.city || userProfile.city,
+        street: order.address?.street || userProfile.street,
+        house: order.address?.house || userProfile.house,
+        apartment: order.address?.apartment || userProfile.apartment,
+        floor: order.address?.floor || userProfile.floor,
+        doorphone: order.address?.doorphone || userProfile.doorphone
       });
     }
   };
 
-  const repeatOrder = (historicOrder: OrderDetails) => {
+  const addOrderItemsToCart = (historicOrder: OrderDetails) => {
     if (!historicOrder.items || historicOrder.items.length === 0) return;
 
     setCart(prev => {
@@ -167,9 +213,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return merged;
     });
 
-    setIsOrderHistoryOpen(false);
-    setIsCartOpen(true);
-    showToast(`Замовлення #${historicOrder.orderNumber} додано у ваш кошик!`, undefined, 'success');
+    showToast(`Страви з замовлення #${historicOrder.orderNumber} додано до кошика!`, undefined, 'success');
   };
 
   const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('delivery');
@@ -182,7 +226,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isOrderTrackerOpen, setIsOrderTrackerOpen] = useState<boolean>(false);
-  const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState<boolean>(false);
+  const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
   const [activeProductModal, setActiveProductModal] = useState<Product | null>(null);
 
   const [toast, setToast] = useState<Toast | null>(null);
@@ -401,6 +445,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         removeFromCart,
         updateQuantity,
         clearCart,
+        addOrderItemsToCart,
         subtotal,
         discount,
         deliveryFee,
@@ -425,14 +470,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsSearchOpen,
         isOrderTrackerOpen,
         setIsOrderTrackerOpen,
-        isOrderHistoryOpen,
-        setIsOrderHistoryOpen,
+        isProfileOpen,
+        setIsProfileOpen,
         activeProductModal,
         setActiveProductModal,
+        userProfile,
+        updateUserProfile,
         currentOrder,
         setCurrentOrder,
         orderHistory,
-        repeatOrder,
         favorites,
         toggleFavorite,
         isFavorite,
