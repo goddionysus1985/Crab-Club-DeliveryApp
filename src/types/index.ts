@@ -91,6 +91,7 @@ export interface RestaurantInfo {
   }[];
   socials: {
     instagram: string;
+    tiktok?: string;
     telegram: string;
     viber: string;
   };

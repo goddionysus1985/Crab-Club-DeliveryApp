@@ -57,6 +57,7 @@ export const RESTAURANT_INFO: RestaurantInfo = {
   ],
   "socials": {
     "instagram": "https://www.instagram.com/crab_club.ovi/",
+    "tiktok": "https://www.tiktok.com/@crab_club.ovi",
     "telegram": "https://t.me/crabclub_delivery",
     "viber": "viber://chat?number=%2B380686921378"
   },
