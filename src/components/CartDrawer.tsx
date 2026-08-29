@@ -42,6 +42,7 @@ export const CartDrawer: React.FC = () => {
   } = useCart();
 
   const [inputPromo, setInputPromo] = useState('');
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Find drinks and desserts for upsell
   const upsellProducts = PRODUCTS.filter(p => 
@@ -82,7 +83,7 @@ export const CartDrawer: React.FC = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="w-screen max-w-md bg-[#0F0F17] border-l border-white/10 shadow-2xl flex flex-col"
+              className="w-screen max-w-md bg-[#0F0F17] border-l border-white/10 shadow-2xl flex flex-col relative"
             >
               {/* Header */}
               <div className="p-4 sm:p-5 border-b border-white/[0.08] flex items-center justify-between bg-[#12121D]/80 backdrop-blur-xl">
@@ -102,7 +103,7 @@ export const CartDrawer: React.FC = () => {
                   {cart.length > 0 && (
                     <motion.button
                       whileTap={{ scale: 0.9 }}
-                      onClick={clearCart}
+                      onClick={() => setShowClearConfirm(true)}
                       className="p-2 text-zinc-400 hover:text-red-400 hover:bg-white/5 rounded-2xl transition-colors"
                       title="Очистити кошик"
                     >
@@ -405,6 +406,57 @@ export const CartDrawer: React.FC = () => {
                   </motion.button>
                 </div>
               )}
+
+              {/* Clear Cart Confirmation Dialog */}
+              <AnimatePresence>
+                {showClearConfirm && (
+                  <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                      transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+                      className="w-full max-w-xs bg-[#161622] border border-white/[0.12] rounded-3xl p-5 shadow-2xl text-center space-y-4"
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto shadow-md">
+                        <Trash2 className="w-6 h-6" />
+                      </div>
+
+                      <div>
+                        <h3 className="text-base font-bold text-white mb-1">
+                          Очистити кошик?
+                        </h3>
+                        <p className="text-xs text-zinc-400 leading-relaxed font-light">
+                          Всі вибрані страви будуть видалені з вашого замовлення.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          type="button"
+                          onClick={() => setShowClearConfirm(false)}
+                          className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-semibold border border-white/10"
+                        >
+                          Скасувати
+                        </motion.button>
+
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          type="button"
+                          onClick={() => {
+                            clearCart();
+                            setShowClearConfirm(false);
+                          }}
+                          className="py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/30"
+                        >
+                          Очистити
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
 
             </motion.div>
           </div>
