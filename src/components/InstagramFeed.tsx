@@ -11,41 +11,43 @@ export const InstagramIcon: React.FC<{ className?: string }> = ({ className = "w
   </svg>
 );
 
+const FALLBACK_IMG = 'https://img.postershop.me/21253/9bda5f7a-ec24-4f25-8d03-a2fe71732418_image.png';
+
 export const InstagramFeed: React.FC = () => {
   const posts = [
     {
-      img: 'https://img.postershop.me/21253/a038f8cf-e48f-4318-8f83-e18e0ba53123_image.png',
-      title: 'Філадельфія Мікс Сет з норвезьким лососем',
+      img: 'https://img.postershop.me/21253/9bda5f7a-ec24-4f25-8d03-a2fe71732418_image.png',
+      title: 'Філадельфія MIX — норвезький лосось, вугор та авокадо',
       likes: 184,
       comments: 24
     },
     {
-      img: 'https://img.postershop.me/21253/5666f7f6-da5d-4f18-a6d1-4475cb39a1d1_image.png',
-      title: 'Неаполітанська піца 4 Сири з печі',
+      img: 'https://img.postershop.me/21253/23a7dcb8-c6a4-4ad0-8618-46c5ffcfd09e_image.png',
+      title: 'Ебі Філадельфія з хрусткою креветкою темпура',
       likes: 142,
       comments: 19
     },
     {
-      img: 'https://img.postershop.me/21253/a87beee2-cfa9-4a00-b6f7-41808605ee88_image.png',
-      title: 'Фірмовий Сет Запечений Дракон',
+      img: 'https://img.postershop.me/21253/b4355320-a1b9-4308-859d-4414ec2a9d46_image.png',
+      title: 'Salmon Luxe — преміальна форель, чедер та тобіко',
       likes: 215,
       comments: 31
     },
     {
-      img: 'https://img.postershop.me/21253/6315ee51-872f-4ee9-b4cb-7eeffb9f9ff4_image.png',
-      title: 'Хрусткий суші-бургер з тигровою креветкою',
+      img: 'https://img.postershop.me/21253/7077bc48-31e1-4d0e-b32f-dbd4bedfca63_image.jpeg',
+      title: 'Форель De Luxe зі сніжним крабом та спайсі',
       likes: 167,
       comments: 22
     },
     {
-      img: 'https://img.postershop.me/21253/c2805fe1-c917-43cf-be6a-05dd6052be14_image.png',
-      title: 'Преміум Бургер Crab Club з соковитою яловичиною',
+      img: 'https://img.postershop.me/21253/765ccb73-e553-42a8-b842-fbd9aff5b1c1_image.png',
+      title: 'Smile Roll — запечений фірмовий рол від шефа',
       likes: 198,
       comments: 28
     },
     {
-      img: 'https://img.postershop.me/21253/0baefd0e-26f5-47e1-8848-00569768652c_image.png',
-      title: 'WOK-локшина удон з дарами моря',
+      img: 'https://img.postershop.me/21253/2677aae7-6181-4b58-9a09-145ee40d14ad_image.jpeg',
+      title: 'WOK-локшина удон з тигровими креветками та лососем',
       likes: 153,
       comments: 16
     }
@@ -99,6 +101,10 @@ export const InstagramFeed: React.FC = () => {
                 src={post.img}
                 alt={post.title}
                 loading="lazy"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = FALLBACK_IMG;
+                }}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
               />
 
