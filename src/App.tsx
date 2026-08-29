@@ -40,49 +40,67 @@ export const App: React.FC = () => {
       window.clearTimeout(scrollTimeoutRef.current);
     }
 
-    if (slug === 'all') {
-      const menuEl = document.getElementById('menu-nav');
-      if (menuEl) {
-        const headerEl = document.querySelector('header');
-        const headerH = headerEl ? headerEl.offsetHeight : 65;
-        const targetY = menuEl.getBoundingClientRect().top + window.scrollY - headerH - 10;
-        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } else {
-      const targetSection = document.getElementById(`category-${slug}`);
-      if (targetSection) {
-        const headerEl = document.querySelector('header');
-        const navEl = document.getElementById('menu-nav');
-        const headerH = headerEl ? headerEl.offsetHeight : 65;
-        const navH = navEl ? navEl.offsetHeight : 70;
-        const totalOffset = headerH + navH + 12;
+    // Wait for React commit and DOM reflow so sticky nav height is final
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (slug === 'all') {
+          const menuEl = document.getElementById('menu-nav');
+          if (menuEl) {
+            const headerEl = document.querySelector('header');
+            const headerH = headerEl ? headerEl.offsetHeight : 65;
+            const targetY = menuEl.getBoundingClientRect().top + window.scrollY - headerH - 10;
+            window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+          } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        } else {
+          const targetSection = document.getElementById(`category-${slug}`);
+          if (targetSection) {
+            const headerEl = document.querySelector('header');
+            const navEl = document.getElementById('menu-nav');
+            const headerH = headerEl ? headerEl.offsetHeight : 65;
+            const navH = navEl ? navEl.offsetHeight : 70;
+            const totalOffset = headerH + navH + 15;
 
-        const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
-        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-      }
-    }
+            const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
+            window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+          }
+        }
 
-    scrollTimeoutRef.current = window.setTimeout(() => {
-      isScrollingProgrammatically.current = false;
-    }, 850);
+        scrollTimeoutRef.current = window.setTimeout(() => {
+          isScrollingProgrammatically.current = false;
+        }, 900);
+      });
+    });
   };
 
   const handleSelectSubcategory = (subSlug: string) => {
     setActiveSubcategory(subSlug);
     if (activeCategory !== 'all') {
-      const targetSection = document.getElementById(`category-${activeCategory}`);
-      if (targetSection) {
-        const headerEl = document.querySelector('header');
-        const navEl = document.getElementById('menu-nav');
-        const headerH = headerEl ? headerEl.offsetHeight : 65;
-        const navH = navEl ? navEl.offsetHeight : 70;
-        const totalOffset = headerH + navH + 12;
-
-        const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
-        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      isScrollingProgrammatically.current = true;
+      if (scrollTimeoutRef.current) {
+        window.clearTimeout(scrollTimeoutRef.current);
       }
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const targetSection = document.getElementById(`category-${activeCategory}`);
+          if (targetSection) {
+            const headerEl = document.querySelector('header');
+            const navEl = document.getElementById('menu-nav');
+            const headerH = headerEl ? headerEl.offsetHeight : 65;
+            const navH = navEl ? navEl.offsetHeight : 70;
+            const totalOffset = headerH + navH + 15;
+
+            const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
+            window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+          }
+
+          scrollTimeoutRef.current = window.setTimeout(() => {
+            isScrollingProgrammatically.current = false;
+          }, 900);
+        });
+      });
     }
   };
 
