@@ -75,7 +75,7 @@ export const CartDrawer: React.FC = () => {
             className="fixed inset-0 bg-black/75 backdrop-blur-md"
           />
 
-          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
             {/* Apple Spring Slide-Over Panel */}
             <motion.div
               initial={{ x: '100%' }}

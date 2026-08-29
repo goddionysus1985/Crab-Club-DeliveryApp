@@ -258,10 +258,13 @@ export const ProductModal: React.FC = () => {
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={handleAddToCart}
-                className="flex-1 py-3.5 px-6 rounded-2xl apple-button-primary text-white font-bold text-sm sm:text-base flex items-center justify-between gap-2 shadow-xl shadow-crab-600/30"
+                className="flex-1 py-3 sm:py-3.5 px-4 sm:px-6 rounded-2xl apple-button-primary text-white font-bold text-xs sm:text-base flex items-center justify-between gap-2 shadow-xl shadow-crab-600/30 shrink-0"
               >
-                <span>Додати до замовлення</span>
-                <span className="font-display font-black text-amber-300">
+                <span className="truncate">
+                  <span>Додати</span>
+                  <span className="hidden xs:inline"> до замовлення</span>
+                </span>
+                <span className="font-display font-black text-amber-300 shrink-0">
                   {totalPrice} ₴
                 </span>
               </motion.button>
