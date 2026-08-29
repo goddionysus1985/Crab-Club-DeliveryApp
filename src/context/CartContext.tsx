@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem, Product, OrderDetails } from '../types';
-import { RESTAURANT_INFO, PROMO_CODES } from '../data/menuData';
+import { RESTAURANT_INFO, PROMO_CODES, PRODUCTS } from '../data/menuData';
+import { 
+  verifyAndSanitizeCart, 
+  sanitizePromoCode, 
+  cleanRawText, 
+  securityRateLimiter 
+} from '../utils/security';
 
 interface Toast {
   id: string;
@@ -71,11 +77,15 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load from localStorage if available
+  // Load from localStorage with cryptographic-level integrity validation
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('crabclub_cart');
-      return saved ? JSON.parse(saved) : [];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return verifyAndSanitizeCart(parsed);
+      }
+      return [];
     } catch {
       return [];
     }
@@ -84,7 +94,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [favorites, setFavorites] = useState<number[]>(() => {
     try {
       const saved = localStorage.getItem('crabclub_favorites');
-      return saved ? JSON.parse(saved) : [];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Filter to only existing valid product IDs
+          const validIds = new Set(PRODUCTS.map(p => p.id));
+          return parsed.filter(id => typeof id === 'number' && validIds.has(id));
+        }
+      }
+      return [];
     } catch {
       return [];
     }
@@ -143,7 +161,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const showToast = (text: string, image?: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToast({
       id: Date.now().toString(),
-      text,
+      text: cleanRawText(text, 150),
       image,
       type
     });
@@ -155,6 +173,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const hideToast = () => setToast(null);
 
   const toggleFavorite = (productId: number) => {
+    // Verify product exists in catalog
+    const productExists = PRODUCTS.some(p => p.id === productId);
+    if (!productExists) return;
+
     setFavorites(prev => {
       const exists = prev.includes(productId);
       if (exists) {
@@ -181,15 +203,41 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     selectedOptions: { group_name: string; option_name: string; price: number }[] = [],
     comment = ''
   ) => {
-    const extraPrice = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
-    const unitPrice = product.price + extraPrice;
-    const cartItemId = generateCartItemId(product.id, selectedOptions);
+    // Authoritative lookup
+    const authoritative = PRODUCTS.find(p => p.id === product.id);
+    if (!authoritative) return;
+
+    const safeQty = Math.max(1, Math.min(99, Math.floor(quantity)));
+    const safeComment = cleanRawText(comment, 200);
+
+    // Verify option prices against database
+    const verifiedOptions = selectedOptions.map(opt => {
+      let truePrice = 0;
+      if (authoritative.modifications) {
+        for (const grp of authoritative.modifications) {
+          const matched = grp.options.find(o => o.name === opt.option_name);
+          if (matched) {
+            truePrice = Math.max(0, matched.price);
+            break;
+          }
+        }
+      }
+      return {
+        group_name: cleanRawText(opt.group_name, 50),
+        option_name: cleanRawText(opt.option_name, 50),
+        price: truePrice
+      };
+    });
+
+    const extraPrice = verifiedOptions.reduce((sum, opt) => sum + opt.price, 0);
+    const unitPrice = authoritative.price + extraPrice;
+    const cartItemId = generateCartItemId(authoritative.id, verifiedOptions);
 
     setCart(prevCart => {
       const existingIndex = prevCart.findIndex(item => item.id === cartItemId);
       if (existingIndex > -1) {
         const updated = [...prevCart];
-        const newQty = updated[existingIndex].quantity + quantity;
+        const newQty = Math.min(99, updated[existingIndex].quantity + safeQty);
         updated[existingIndex] = {
           ...updated[existingIndex],
           quantity: newQty,
@@ -201,17 +249,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...prevCart,
           {
             id: cartItemId,
-            product,
-            quantity,
-            selectedOptions,
-            totalPrice: quantity * unitPrice,
-            comment
+            product: authoritative,
+            quantity: safeQty,
+            selectedOptions: verifiedOptions,
+            totalPrice: safeQty * unitPrice,
+            comment: safeComment
           }
         ];
       }
     });
 
-    showToast(`Додано до кошика: ${product.name}`, product.image, 'success');
+    showToast(`Додано до кошика: ${authoritative.name}`, authoritative.image, 'success');
   };
 
   const removeFromCart = (cartItemId: string) => {
@@ -223,6 +271,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeFromCart(cartItemId);
       return;
     }
+    const safeQty = Math.min(99, Math.floor(quantity));
     setCart(prev =>
       prev.map(item => {
         if (item.id === cartItemId) {
@@ -230,8 +279,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const unitPrice = item.product.price + extraPrice;
           return {
             ...item,
-            quantity,
-            totalPrice: quantity * unitPrice
+            quantity: safeQty,
+            totalPrice: safeQty * unitPrice
           };
         }
         return item;
@@ -249,11 +298,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .reduce((sum, item) => sum + item.quantity, 0);
   };
 
-  const applyPromoCode = (code: string): boolean => {
-    const upperCode = code.trim().toUpperCase();
-    if (PROMO_CODES[upperCode]) {
-      const promo = PROMO_CODES[upperCode];
-      setPromoCode(upperCode);
+  const applyPromoCode = (rawCode: string): boolean => {
+    const cleanCode = sanitizePromoCode(rawCode);
+
+    // Anti-Bruteforce Rate Limiting (Max 5 attempts per minute)
+    if (!securityRateLimiter.isAllowed('promo_check', 5, 60000)) {
+      const cooldown = securityRateLimiter.getRemainingCooldownSeconds('promo_check', 60000);
+      showToast(`Забагато спроб. Зачекайте ${cooldown} сек.`, undefined, 'error');
+      return false;
+    }
+
+    if (PROMO_CODES[cleanCode]) {
+      const promo = PROMO_CODES[cleanCode];
+      setPromoCode(cleanCode);
       setPromoDiscountPercent(promo.discountPercent || 0);
       setPromoDiscountFixed(promo.discountFixed || 0);
       setPromoMessage(promo.description);
@@ -272,16 +329,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPromoMessage('');
   };
 
-  // Calculations
-  const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+  // Safe Calculations
+  const subtotal = cart.reduce((sum, item) => sum + Math.max(0, item.totalPrice), 0);
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Takeaway gives 10% discount by default
+  // Takeaway gives 10% discount
   const takeawayDiscount = orderType === 'takeaway' ? Math.round(subtotal * 0.1) : 0;
   const promoPercentDiscount = promoDiscountPercent > 0 ? Math.round((subtotal - takeawayDiscount) * (promoDiscountPercent / 100)) : 0;
-  const discount = takeawayDiscount + promoPercentDiscount + promoDiscountFixed;
+  const discount = Math.min(subtotal, takeawayDiscount + promoPercentDiscount + promoDiscountFixed);
 
-  const freeDeliveryThreshold = RESTAURANT_INFO.free_delivery_from; // 700 грн
+  const freeDeliveryThreshold = RESTAURANT_INFO.free_delivery_from;
   const amountNeededForFreeDelivery = Math.max(0, freeDeliveryThreshold - subtotal);
   const freeDeliveryProgress = Math.min(100, Math.round((subtotal / freeDeliveryThreshold) * 100));
 

@@ -17,6 +17,12 @@ import {
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
 import { OrderDetails } from '../types';
+import { 
+  validateCustomerName, 
+  validateAndFormatPhone, 
+  cleanRawText, 
+  securityRateLimiter 
+} from '../utils/security';
 
 export const CheckoutModal: React.FC = () => {
   const {
@@ -59,17 +65,42 @@ export const CheckoutModal: React.FC = () => {
   const handleSubmitOrder = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!customerName.trim()) {
-      showToast('Будь ласка, вкажіть ваше ім\'я', undefined, 'error');
+    if (cart.length === 0) {
+      showToast('Кошик порожній', undefined, 'error');
       return;
     }
 
-    if (!phone.trim() || phone.length < 10) {
-      showToast('Вкажіть коректний номер телефону', undefined, 'error');
+    // Rate limiting: prevent rapid double-clicks or bot spam (max 3 orders per 2 minutes)
+    if (!securityRateLimiter.isAllowed('submit_order', 3, 120000)) {
+      const cooldown = securityRateLimiter.getRemainingCooldownSeconds('submit_order', 120000);
+      showToast(`Зачекайте ${cooldown} сек перед наступним замовленням`, undefined, 'error');
       return;
     }
 
-    if (orderType === 'delivery' && (!street.trim() || !house.trim())) {
+    // Strict Name Validation
+    const nameValidation = validateCustomerName(customerName);
+    if (!nameValidation.isValid) {
+      showToast(nameValidation.error || 'Вкажіть коректне ім\'я', undefined, 'error');
+      return;
+    }
+
+    // Strict Phone Validation
+    const phoneValidation = validateAndFormatPhone(phone);
+    if (!phoneValidation.isValid) {
+      showToast('Вкажіть дійсний номер телефону (наприклад: 068 692 13 78)', undefined, 'error');
+      return;
+    }
+
+    // Address Sanitization
+    const sanitizedStreet = cleanRawText(street, 100);
+    const sanitizedHouse = cleanRawText(house, 20);
+    const sanitizedApartment = cleanRawText(apartment, 10);
+    const sanitizedFloor = cleanRawText(floor, 10);
+    const sanitizedDoorphone = cleanRawText(doorphone, 10);
+    const sanitizedComment = cleanRawText(comment, 300);
+    const sanitizedChange = cleanRawText(cashChangeFrom, 50);
+
+    if (orderType === 'delivery' && (!sanitizedStreet || !sanitizedHouse)) {
       showToast('Вкажіть вулицю та номер будинку для доставки', undefined, 'error');
       return;
     }
@@ -84,23 +115,23 @@ export const CheckoutModal: React.FC = () => {
         orderId,
         orderNumber,
         date: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }),
-        customerName,
-        phone,
+        customerName: nameValidation.sanitized,
+        phone: phoneValidation.formatted,
         orderType,
         address: orderType === 'delivery' ? {
-          city,
-          street,
-          house,
-          apartment,
-          floor,
-          doorphone
+          city: cleanRawText(city, 50),
+          street: sanitizedStreet,
+          house: sanitizedHouse,
+          apartment: sanitizedApartment || undefined,
+          floor: sanitizedFloor || undefined,
+          doorphone: sanitizedDoorphone || undefined
         } : undefined,
         deliveryTimeType,
         scheduledTime: deliveryTimeType === 'scheduled' ? scheduledTime : undefined,
         paymentMethod,
-        cashChangeFrom: paymentMethod === 'cash' ? cashChangeFrom : undefined,
-        cutleryCount,
-        comment,
+        cashChangeFrom: paymentMethod === 'cash' ? sanitizedChange || undefined : undefined,
+        cutleryCount: Math.max(1, Math.min(10, cutleryCount)),
+        comment: sanitizedComment || undefined,
         items: [...cart],
         subtotal,
         discount,
@@ -128,7 +159,7 @@ export const CheckoutModal: React.FC = () => {
       setIsCheckoutOpen(false);
       setIsOrderTrackerOpen(true);
       showToast(`🎉 Замовлення #${orderNumber} успішно прийнято!`, undefined, 'success');
-    }, 1000);
+    }, 900);
   };
 
   return (
@@ -241,6 +272,7 @@ export const CheckoutModal: React.FC = () => {
                     <input
                       type="text"
                       required
+                      maxLength={50}
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       placeholder="Олександр"
@@ -253,6 +285,7 @@ export const CheckoutModal: React.FC = () => {
                     <input
                       type="tel"
                       required
+                      maxLength={20}
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+380 (__) ___ __ __"
@@ -292,6 +325,7 @@ export const CheckoutModal: React.FC = () => {
                         <input
                           type="text"
                           required
+                          maxLength={100}
                           value={street}
                           onChange={(e) => setStreet(e.target.value)}
                           placeholder="вул. Шевченка"
@@ -304,6 +338,7 @@ export const CheckoutModal: React.FC = () => {
                         <input
                           type="text"
                           required
+                          maxLength={20}
                           value={house}
                           onChange={(e) => setHouse(e.target.value)}
                           placeholder="12/A"
@@ -317,6 +352,7 @@ export const CheckoutModal: React.FC = () => {
                         <label className="text-[11px] text-zinc-400">Квартира</label>
                         <input
                           type="text"
+                          maxLength={10}
                           value={apartment}
                           onChange={(e) => setApartment(e.target.value)}
                           placeholder="45"
@@ -328,6 +364,7 @@ export const CheckoutModal: React.FC = () => {
                         <label className="text-[11px] text-zinc-400">Поверх</label>
                         <input
                           type="text"
+                          maxLength={10}
                           value={floor}
                           onChange={(e) => setFloor(e.target.value)}
                           placeholder="3"
@@ -339,6 +376,7 @@ export const CheckoutModal: React.FC = () => {
                         <label className="text-[11px] text-zinc-400">Домофон</label>
                         <input
                           type="text"
+                          maxLength={10}
                           value={doorphone}
                           onChange={(e) => setDoorphone(e.target.value)}
                           placeholder="45"
@@ -456,6 +494,7 @@ export const CheckoutModal: React.FC = () => {
                     <label className="text-[11px] text-zinc-400">Потрібна решта з купюри:</label>
                     <input
                       type="text"
+                      maxLength={50}
                       value={cashChangeFrom}
                       onChange={(e) => setCashChangeFrom(e.target.value)}
                       placeholder="Наприклад: з 1000 грн або без решти"
@@ -495,6 +534,7 @@ export const CheckoutModal: React.FC = () => {
                   <label className="text-xs font-medium text-zinc-400">Коментар до замовлення:</label>
                   <input
                     type="text"
+                    maxLength={250}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     placeholder="Код дверей, передзвонити за 5 хв..."
