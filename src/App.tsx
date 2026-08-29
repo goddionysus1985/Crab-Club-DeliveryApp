@@ -28,31 +28,45 @@ export const App: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>('default');
 
   const isScrollingProgrammatically = useRef(false);
+  const scrollTimeoutRef = useRef<number | null>(null);
 
-  // Smooth scroll handler with offset for sticky bars
+  // Smooth scroll handler with offset for sticky header & nav
   const handleSelectCategory = (slug: string) => {
     setActiveCategory(slug);
     setActiveSubcategory('all');
 
+    isScrollingProgrammatically.current = true;
+    if (scrollTimeoutRef.current) {
+      window.clearTimeout(scrollTimeoutRef.current);
+    }
+
     if (slug === 'all') {
       const menuEl = document.getElementById('menu-nav');
       if (menuEl) {
-        const y = menuEl.getBoundingClientRect().top + window.pageYOffset - 10;
-        isScrollingProgrammatically.current = true;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-        setTimeout(() => { isScrollingProgrammatically.current = false; }, 800);
+        const headerEl = document.querySelector('header');
+        const headerH = headerEl ? headerEl.offsetHeight : 65;
+        const targetY = menuEl.getBoundingClientRect().top + window.scrollY - headerH - 10;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
-      return;
+    } else {
+      const targetSection = document.getElementById(`category-${slug}`);
+      if (targetSection) {
+        const headerEl = document.querySelector('header');
+        const navEl = document.getElementById('menu-nav');
+        const headerH = headerEl ? headerEl.offsetHeight : 65;
+        const navH = navEl ? navEl.offsetHeight : 70;
+        const totalOffset = headerH + navH + 12;
+
+        const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      }
     }
 
-    const targetSection = document.getElementById(`category-${slug}`);
-    if (targetSection) {
-      const yOffset = -140; // Height of header + sticky category bar
-      const y = targetSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      isScrollingProgrammatically.current = true;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-      setTimeout(() => { isScrollingProgrammatically.current = false; }, 800);
-    }
+    scrollTimeoutRef.current = window.setTimeout(() => {
+      isScrollingProgrammatically.current = false;
+    }, 850);
   };
 
   const handleSelectSubcategory = (subSlug: string) => {
@@ -60,36 +74,49 @@ export const App: React.FC = () => {
     if (activeCategory !== 'all') {
       const targetSection = document.getElementById(`category-${activeCategory}`);
       if (targetSection) {
-        const yOffset = -140;
-        const y = targetSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        window.scrollTo({ top: y, behavior: 'smooth' });
+        const headerEl = document.querySelector('header');
+        const navEl = document.getElementById('menu-nav');
+        const headerH = headerEl ? headerEl.offsetHeight : 65;
+        const navH = navEl ? navEl.offsetHeight : 70;
+        const totalOffset = headerH + navH + 12;
+
+        const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
       }
     }
   };
 
-  // ScrollSpy to automatically update active category while scrolling
+  // ScrollSpy based on real viewport bounding boxes
   useEffect(() => {
     const handleScroll = () => {
       if (isScrollingProgrammatically.current) return;
 
-      const scrollPos = window.scrollY + 180;
+      const headerEl = document.querySelector('header');
+      const navEl = document.getElementById('menu-nav');
+      const headerH = headerEl ? headerEl.offsetHeight : 65;
+      const navH = navEl ? navEl.offsetHeight : 70;
+      const triggerThreshold = headerH + navH + 50;
+
       let currentSlug = 'all';
 
+      // Check if user is above the menu
+      if (navEl && navEl.getBoundingClientRect().top > triggerThreshold) {
+        if (activeCategory !== 'all') {
+          setActiveCategory('all');
+        }
+        return;
+      }
+
+      // Check categories from bottom to top or by distance
       for (const cat of CATEGORIES) {
         const el = document.getElementById(`category-${cat.slug}`);
         if (el) {
-          const top = el.offsetTop;
-          const height = el.offsetHeight;
-          if (scrollPos >= top && scrollPos < top + height) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= triggerThreshold + 60 && rect.bottom > triggerThreshold - 40) {
             currentSlug = cat.slug;
             break;
           }
         }
-      }
-
-      const menuNav = document.getElementById('menu-nav');
-      if (menuNav && window.scrollY < menuNav.offsetTop - 100) {
-        currentSlug = 'all';
       }
 
       if (currentSlug !== activeCategory) {

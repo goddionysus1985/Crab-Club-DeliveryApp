@@ -52,7 +52,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <motion.div
-      layout
       whileTap={{ scale: 0.985 }}
       transition={{ type: 'spring', damping: 25, stiffness: 350 }}
       onClick={() => setActiveProductModal(product)}
