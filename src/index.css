@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply bg-[#0B0B0F] text-slate-100 antialiased overflow-x-hidden;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom luxury scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0B0B0F;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2A2A38;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #E11D48;
+  }
+}
+
+@layer utilities {
+  .glass-header {
+    background: rgba(11, 11, 15, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .glass-card {
+    background: linear-gradient(135deg, rgba(26, 26, 36, 0.7) 0%, rgba(17, 17, 24, 0.9) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-card-hover:hover {
+    transform: translateY(-4px);
+    border-color: rgba(225, 29, 72, 0.35);
+    box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.6), 0 0 20px -4px rgba(225, 29, 72, 0.15);
+  }
+
+  .glass-modal {
+    background: rgba(14, 14, 20, 0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .gold-gradient-text {
+    background: linear-gradient(135deg, #FFF7ED 0%, #FDE68A 30%, #F59E0B 70%, #D97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .ruby-gradient-text {
+    background: linear-gradient(135deg, #FFFFFF 0%, #FECDD3 30%, #E11D48 70%, #9F1239 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .luxury-button-gold {
+    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    transition: all 0.25s ease;
+  }
+
+  .luxury-button-gold:hover {
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+    transform: translateY(-1px);
+  }
+
+  .luxury-button-ruby {
+    background: linear-gradient(135deg, #E11D48 0%, #BE123C 100%);
+    box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3);
+    transition: all 0.25s ease;
+  }
+
+  .luxury-button-ruby:hover {
+    background: linear-gradient(135deg, #F43F5E 0%, #E11D48 100%);
+    box-shadow: 0 6px 22px rgba(225, 29, 72, 0.45);
+    transform: translateY(-1px);
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
