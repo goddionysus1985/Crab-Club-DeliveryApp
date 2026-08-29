@@ -148,6 +148,8 @@ export interface OrderDetails {
   deliveryFee: number;
   total: number;
   promoCode?: string;
+  bonusUsed?: number;
+  bonusEarned?: number;
   status: 'received' | 'cooking' | 'delivering' | 'completed';
 }
 
@@ -160,4 +162,6 @@ export interface UserProfile {
   apartment?: string;
   floor?: string;
   doorphone?: string;
+  bonusBalance: number; // Cashback balance in UAH
+  totalSpent: number; // Total spent in UAH
 }

@@ -28,10 +28,18 @@ interface CartContextType {
   discount: number;
   deliveryFee: number;
   total: number;
+  minOrderAmount: number;
+  isMinOrderReached: boolean;
+  minOrderRemaining: number;
   freeDeliveryThreshold: number;
   amountNeededForFreeDelivery: number;
   freeDeliveryProgress: number; // 0 to 100%
   totalItemsCount: number;
+
+  // Cashback & Loyalty (5% Cashback)
+  cashbackEarned: number;
+  bonusToUse: number;
+  setBonusToUse: (amount: number) => void;
 
   // Order type
   orderType: 'delivery' | 'takeaway';
@@ -87,12 +95,14 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 const DEFAULT_PROFILE: UserProfile = {
   name: '',
   phone: '',
-  city: 'смт. Овідіополь',
+  city: 'смт. Овідіополь (Центр)',
   street: '',
   house: '',
   apartment: '',
   floor: '',
-  doorphone: ''
+  doorphone: '',
+  bonusBalance: 50, // Welcome gift of 50 bonus points for first-time guests
+  totalSpent: 0
 };
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -163,6 +173,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
+  const [bonusToUse, setBonusToUse] = useState<number>(0);
+
   const setCurrentOrder = (order: OrderDetails | null) => {
     setCurrentOrderState(order);
     if (order) {
@@ -173,7 +185,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return updated;
       });
 
-      // Auto-save user profile fields if not saved yet
+      // Update cashback and bonus balance
+      const newBonusBalance = Math.max(0, userProfile.bonusBalance - (order.bonusUsed || 0) + (order.bonusEarned || 0));
+      const newTotalSpent = (userProfile.totalSpent || 0) + order.total;
+
       updateUserProfile({
         name: order.customerName || userProfile.name,
         phone: order.phone || userProfile.phone,
@@ -182,8 +197,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         house: order.address?.house || userProfile.house,
         apartment: order.address?.apartment || userProfile.apartment,
         floor: order.address?.floor || userProfile.floor,
-        doorphone: order.address?.doorphone || userProfile.doorphone
+        doorphone: order.address?.doorphone || userProfile.doorphone,
+        bonusBalance: newBonusBalance,
+        totalSpent: newTotalSpent
       });
+
+      setBonusToUse(0);
     }
   };
 
@@ -422,20 +441,27 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Safe Calculations
+  const minOrderAmount = 300;
   const subtotal = cart.reduce((sum, item) => sum + Math.max(0, item.totalPrice), 0);
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const isMinOrderReached = subtotal >= minOrderAmount || cart.length === 0;
+  const minOrderRemaining = Math.max(0, minOrderAmount - subtotal);
 
   // Takeaway gives 10% discount
   const takeawayDiscount = orderType === 'takeaway' ? Math.round(subtotal * 0.1) : 0;
   const promoPercentDiscount = promoDiscountPercent > 0 ? Math.round((subtotal - takeawayDiscount) * (promoDiscountPercent / 100)) : 0;
   const discount = Math.min(subtotal, takeawayDiscount + promoPercentDiscount + promoDiscountFixed);
 
+  // 5% Cashback calculation from net order subtotal
+  const cashbackEarned = Math.round(Math.max(0, subtotal - discount) * 0.05);
+
   const freeDeliveryThreshold = RESTAURANT_INFO.free_delivery_from;
   const amountNeededForFreeDelivery = Math.max(0, freeDeliveryThreshold - subtotal);
   const freeDeliveryProgress = Math.min(100, Math.round((subtotal / freeDeliveryThreshold) * 100));
 
-  const deliveryFee = orderType === 'takeaway' || subtotal >= freeDeliveryThreshold || subtotal === 0 ? 0 : 70;
-  const total = Math.max(0, subtotal - discount + deliveryFee);
+  const deliveryFee = orderType === 'takeaway' || subtotal >= freeDeliveryThreshold || subtotal === 0 ? 0 : 50;
+  const total = Math.max(0, subtotal - discount + deliveryFee - bonusToUse);
 
   return (
     <CartContext.Provider
@@ -450,6 +476,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         discount,
         deliveryFee,
         total,
+        minOrderAmount,
+        isMinOrderReached,
+        minOrderRemaining,
+        cashbackEarned,
+        bonusToUse,
+        setBonusToUse,
         freeDeliveryThreshold,
         amountNeededForFreeDelivery,
         freeDeliveryProgress,

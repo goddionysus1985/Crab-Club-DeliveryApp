@@ -123,6 +123,30 @@ export const ProfileModal: React.FC = () => {
                 </motion.button>
               </div>
 
+              {/* Luxury Bonus Balance & Cashback Card */}
+              <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-[#1E1724] to-crab-950/30 border border-amber-500/25 flex items-center justify-between shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] uppercase tracking-wider text-amber-300/80 font-bold block">
+                      Бонусний баланс (Кешбек 5%)
+                    </span>
+                    <div className="font-display font-black text-2xl text-white tracking-tight">
+                      {userProfile.bonusBalance || 0} <span className="text-amber-400 text-sm font-bold">₴</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs border border-amber-500/30 inline-block">
+                    1 бонус = 1 ₴
+                  </span>
+                  <p className="text-[10px] text-zinc-400 mt-1">Списуйте при замовленні</p>
+                </div>
+              </div>
+
               {/* Apple Segmented Bar Tabs */}
               <div className="grid grid-cols-3 gap-1 bg-[#0A0A10] p-1 rounded-2xl border border-white/[0.06] mt-4">
                 <button

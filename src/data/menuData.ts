@@ -11,7 +11,7 @@ export const RESTAURANT_INFO: RestaurantInfo = {
   "phone_raw": "+380686921378",
   "work_hours": "Щодня з 10:00 до 22:00",
   "delivery_time": "45–60 хв",
-  "min_order": 200,
+  "min_order": 300,
   "free_delivery_from": 500,
   "delivery_zones": [
     {

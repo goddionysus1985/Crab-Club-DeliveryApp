@@ -36,6 +36,7 @@ export const CheckoutModal: React.FC = () => {
     clearCart,
     subtotal,
     discount,
+    cashbackEarned,
     orderType,
     setOrderType,
     promoCode,
@@ -66,6 +67,11 @@ export const CheckoutModal: React.FC = () => {
     if (userProfile.house && !house) setHouse(userProfile.house);
     if (userProfile.apartment && !apartment) setApartment(userProfile.apartment);
   }, [userProfile]);
+
+  // Bonus Points & Cashback
+  const [useBonuses, setUseBonuses] = useState(false);
+  const availableBonuses = userProfile.bonusBalance || 0;
+  const bonusDeductible = useBonuses ? Math.min(availableBonuses, Math.max(0, subtotal - discount)) : 0;
 
   // Time & payment: if restaurant closed, default to scheduled
   const [deliveryTimeType, setDeliveryTimeType] = useState<'asap' | 'scheduled'>(scheduleStatus.isOpen ? 'asap' : 'scheduled');
@@ -106,13 +112,18 @@ export const CheckoutModal: React.FC = () => {
 
   const zoneDetails = getZoneDeliveryDetails(city, subtotal);
   const finalDeliveryFee = zoneDetails.fee;
-  const finalTotal = Math.max(0, subtotal - discount + finalDeliveryFee);
+  const finalTotal = Math.max(0, subtotal - discount - bonusDeductible + finalDeliveryFee);
 
   const handleSubmitOrder = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (cart.length === 0) {
       showToast('Кошик порожній', undefined, 'error');
+      return;
+    }
+
+    if (subtotal < 300) {
+      showToast('Мінімальна сума замовлення — 300 грн', undefined, 'error');
       return;
     }
 
@@ -211,6 +222,8 @@ export const CheckoutModal: React.FC = () => {
         deliveryFee: finalDeliveryFee,
         total: finalTotal,
         promoCode: promoCode || undefined,
+        bonusUsed: useBonuses ? bonusDeductible : 0,
+        bonusEarned: cashbackEarned,
         status: 'received'
       };
 
@@ -607,6 +620,38 @@ export const CheckoutModal: React.FC = () => {
                 </div>
               </div>
 
+              {/* Bonus / Cashback Points Section */}
+              {availableBonuses > 0 && (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <span>Бонусний рахунок:</span>
+                        <span className="text-amber-400 font-extrabold">{availableBonuses} ₴</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400">
+                        {useBonuses ? `Списано ${bonusDeductible} ₴ на це замовлення` : 'Ви можете списати бонуси для оплати'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setUseBonuses(!useBonuses)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      useBonuses
+                        ? 'bg-amber-500 text-slate-950 shadow-md'
+                        : 'bg-white/10 text-zinc-300 hover:text-white border border-white/10'
+                    }`}
+                  >
+                    {useBonuses ? 'Списано ✓' : 'Списати'}
+                  </button>
+                </div>
+              )}
+
               {/* Order Breakdown Summary */}
               <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2 text-xs text-zinc-400">
                 <div className="flex justify-between">
@@ -619,6 +664,12 @@ export const CheckoutModal: React.FC = () => {
                     <span className="font-bold">-{discount} ₴</span>
                   </div>
                 )}
+                {bonusDeductible > 0 && (
+                  <div className="flex justify-between text-amber-400 font-semibold">
+                    <span>Списано бонусів:</span>
+                    <span>-{bonusDeductible} ₴</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
                   <span>Доставка ({zoneDetails.zoneName}):</span>
                   <span className="font-semibold text-white">
@@ -628,6 +679,13 @@ export const CheckoutModal: React.FC = () => {
                       `${finalDeliveryFee} ₴`
                     )}
                   </span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-white/[0.06] text-amber-300/90 text-[11px]">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Кешбек за це замовлення (+5%):</span>
+                  </span>
+                  <span className="font-bold text-amber-400">+{cashbackEarned} ₴</span>
                 </div>
               </div>
 

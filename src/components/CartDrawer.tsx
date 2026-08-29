@@ -39,6 +39,9 @@ export const CartDrawer: React.FC = () => {
     applyPromoCode,
     removePromoCode,
     addToCart,
+    cashbackEarned,
+    isMinOrderReached,
+    minOrderRemaining
   } = useCart();
 
   const [inputPromo, setInputPromo] = useState('');
@@ -362,6 +365,15 @@ export const CartDrawer: React.FC = () => {
                     </form>
                   )}
 
+                  {/* Cashback Earned Badge */}
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-300">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Кешбек 5% на ваш бонусний рахунок:</span>
+                    </span>
+                    <span className="font-bold text-amber-400">+{cashbackEarned} ₴</span>
+                  </div>
+
                   {/* Price Details */}
                   <div className="space-y-1.5 text-xs text-zinc-300 border-t border-white/[0.06] pt-3">
                     <div className="flex justify-between">
@@ -395,13 +407,22 @@ export const CartDrawer: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Minimum Order Warning if subtotal < 300 */}
+                  {!isMinOrderReached && (
+                    <div className="p-3 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center justify-between">
+                      <span>Мінімальне замовлення — 300 ₴:</span>
+                      <span className="font-bold text-white">додайте ще на {minOrderRemaining} ₴</span>
+                    </div>
+                  )}
+
                   {/* Primary CTA */}
                   <motion.button
                     whileTap={{ scale: 0.97 }}
+                    disabled={!isMinOrderReached}
                     onClick={handleProceedToCheckout}
-                    className="w-full py-3.5 px-6 rounded-2xl apple-button-primary text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-crab-600/30"
+                    className="w-full py-3.5 px-6 rounded-2xl apple-button-primary text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-crab-600/30 disabled:opacity-40 disabled:pointer-events-none"
                   >
-                    <span>Оформити замовлення</span>
+                    <span>{isMinOrderReached ? 'Оформити замовлення' : `Додайте ще на ${minOrderRemaining} ₴`}</span>
                     <ArrowRight className="w-4 h-4" />
                   </motion.button>
                 </div>
