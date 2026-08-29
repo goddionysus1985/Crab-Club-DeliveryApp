@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { 
   Coffee, 
   Sparkles, 
@@ -41,6 +41,26 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
   sortBy,
   onSelectSort,
 }) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const activeBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Auto-scroll active pill into view in the horizontal scroll container
+  useEffect(() => {
+    if (activeBtnRef.current && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const btn = activeBtnRef.current;
+      const btnLeft = btn.offsetLeft;
+      const btnWidth = btn.offsetWidth;
+      const containerWidth = container.offsetWidth;
+      const scrollTarget = btnLeft - (containerWidth / 2) + (btnWidth / 2);
+
+      container.scrollTo({
+        left: Math.max(0, scrollTarget),
+        behavior: 'smooth'
+      });
+    }
+  }, [activeCategory]);
+
   const getCategoryIcon = (iconName?: string) => {
     switch (iconName) {
       case 'Coffee': return <Coffee className="w-4 h-4" />;
@@ -61,19 +81,23 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
   const subcategories = currentCategoryObj?.subcategories || [];
 
   return (
-    <div id="menu" className="sticky top-[69px] z-30 bg-[#0B0B0F]/95 backdrop-blur-xl border-b border-white/10 pt-3 pb-3 shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
+    <div id="menu-nav" className="sticky top-[61px] sm:top-[69px] z-30 bg-[#0B0B0F]/95 backdrop-blur-xl border-b border-white/10 pt-2.5 pb-2.5 shadow-xl">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2.5">
         
         {/* Main Categories Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar py-1">
+        <div 
+          ref={scrollContainerRef}
+          className="flex items-center gap-2 overflow-x-auto hide-scrollbar py-1 scroll-smooth"
+        >
           <button
+            ref={activeCategory === 'all' ? activeBtnRef : null}
             onClick={() => {
               onSelectCategory('all');
               onSelectSubcategory('all');
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
               activeCategory === 'all'
-                ? 'bg-crab-600 text-white shadow-lg shadow-crab-600/30'
+                ? 'bg-crab-600 text-white shadow-lg shadow-crab-600/30 scale-[1.02]'
                 : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5'
             }`}
           >
@@ -86,11 +110,12 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
             return (
               <button
                 key={cat.id}
+                ref={isActive ? activeBtnRef : null}
                 onClick={() => {
                   onSelectCategory(cat.slug);
                   onSelectSubcategory('all');
                 }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
+                className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
                   isActive
                     ? 'bg-crab-600 text-white shadow-lg shadow-crab-600/30 scale-[1.02]'
                     : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5'
@@ -113,11 +138,11 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
               onClick={() => onSelectSubcategory('all')}
               className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
                 activeSubcategory === 'all'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
-              Всі в категорії
+              Всі в розділі
             </button>
             {subcategories.map((sub) => {
               const isSubActive = activeSubcategory === sub.slug;
@@ -127,7 +152,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
                   onClick={() => onSelectSubcategory(sub.slug)}
                   className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
                     isSubActive
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
                   }`}
                 >
@@ -139,7 +164,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
         )}
 
         {/* Preference Filters & Sort Row */}
-        <div className="flex items-center justify-between gap-3 overflow-x-auto hide-scrollbar pt-1">
+        <div className="flex items-center justify-between gap-3 overflow-x-auto hide-scrollbar pt-0.5">
           {/* Quick Filters */}
           <div className="flex items-center gap-2 shrink-0">
             <button

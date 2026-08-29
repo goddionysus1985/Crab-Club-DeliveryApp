@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { CategoryNav } from './components/CategoryNav';
@@ -18,7 +18,7 @@ import { NotificationToast } from './components/NotificationToast';
 import { CATEGORIES, PRODUCTS } from './data/menuData';
 import { useCart } from './context/CartContext';
 import { Product } from './types';
-import { Sparkles, Heart, Flame, Layers } from 'lucide-react';
+import { Heart, Sparkles } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { favorites } = useCart();
@@ -26,6 +26,80 @@ export const App: React.FC = () => {
   const [activeSubcategory, setActiveSubcategory] = useState<string>('all');
   const [activeFilter, setActiveFilter] = useState<string>('none');
   const [sortBy, setSortBy] = useState<string>('default');
+
+  const isScrollingProgrammatically = useRef(false);
+
+  // Smooth scroll handler with offset for sticky bars
+  const handleSelectCategory = (slug: string) => {
+    setActiveCategory(slug);
+    setActiveSubcategory('all');
+
+    if (slug === 'all') {
+      const menuEl = document.getElementById('menu-nav');
+      if (menuEl) {
+        const y = menuEl.getBoundingClientRect().top + window.pageYOffset - 10;
+        isScrollingProgrammatically.current = true;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+        setTimeout(() => { isScrollingProgrammatically.current = false; }, 800);
+      }
+      return;
+    }
+
+    const targetSection = document.getElementById(`category-${slug}`);
+    if (targetSection) {
+      const yOffset = -140; // Height of header + sticky category bar
+      const y = targetSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      isScrollingProgrammatically.current = true;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+      setTimeout(() => { isScrollingProgrammatically.current = false; }, 800);
+    }
+  };
+
+  const handleSelectSubcategory = (subSlug: string) => {
+    setActiveSubcategory(subSlug);
+    if (activeCategory !== 'all') {
+      const targetSection = document.getElementById(`category-${activeCategory}`);
+      if (targetSection) {
+        const yOffset = -140;
+        const y = targetSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }
+  };
+
+  // ScrollSpy to automatically update active category while scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isScrollingProgrammatically.current) return;
+
+      const scrollPos = window.scrollY + 180;
+      let currentSlug = 'all';
+
+      for (const cat of CATEGORIES) {
+        const el = document.getElementById(`category-${cat.slug}`);
+        if (el) {
+          const top = el.offsetTop;
+          const height = el.offsetHeight;
+          if (scrollPos >= top && scrollPos < top + height) {
+            currentSlug = cat.slug;
+            break;
+          }
+        }
+      }
+
+      const menuNav = document.getElementById('menu-nav');
+      if (menuNav && window.scrollY < menuNav.offsetTop - 100) {
+        currentSlug = 'all';
+      }
+
+      if (currentSlug !== activeCategory) {
+        setActiveCategory(currentSlug);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [activeCategory]);
 
   // Filter & Sort helper
   const processProductsList = (list: Product[]) => {
@@ -70,9 +144,9 @@ export const App: React.FC = () => {
       {/* Category Navigation Bar */}
       <CategoryNav
         activeCategory={activeCategory}
-        onSelectCategory={setActiveCategory}
+        onSelectCategory={handleSelectCategory}
         activeSubcategory={activeSubcategory}
-        onSelectSubcategory={setActiveSubcategory}
+        onSelectSubcategory={handleSelectSubcategory}
         activeFilter={activeFilter}
         onSelectFilter={setActiveFilter}
         sortBy={sortBy}
@@ -80,11 +154,11 @@ export const App: React.FC = () => {
       />
 
       {/* Main Menu Catalog Section */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-16">
+      <main id="menu" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-16">
         
         {/* Favorites Section (if any saved) */}
-        {favoriteProducts.length > 0 && activeCategory === 'all' && (
-          <section id="favorites" className="p-6 rounded-3xl bg-gradient-to-r from-crab-950/40 via-[#13131D] to-[#13131D] border border-crab-500/20">
+        {favoriteProducts.length > 0 && (
+          <section id="favorites" className="p-6 rounded-3xl bg-gradient-to-r from-crab-950/40 via-[#13131D] to-[#13131D] border border-crab-500/20 scroll-mt-44">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-crab-600/20 text-crab-400">
@@ -107,114 +181,58 @@ export const App: React.FC = () => {
           </section>
         )}
 
-        {/* View Mode 1: Specific Category Selected */}
-        {activeCategory !== 'all' ? (
-          <section className="space-y-6">
-            {(() => {
-              const currentCat = CATEGORIES.find(c => c.slug === activeCategory);
-              if (!currentCat) return null;
+        {/* All Categories Rendered Continuously */}
+        <div className="space-y-16">
+          {CATEGORIES.map(category => {
+            let catProducts = PRODUCTS.filter(p => 
+              p.category_url === category.slug || 
+              p.parent_category_url === category.slug || 
+              category.subcategories.some(s => s.slug === p.category_url)
+            );
 
-              let catProducts = PRODUCTS.filter(p => {
-                const matchesCat = p.category_url === currentCat.slug || 
-                  p.parent_category_url === currentCat.slug || 
-                  currentCat.subcategories.some(s => s.slug === p.category_url);
+            // If subcategory is selected within this active category
+            if (activeCategory === category.slug && activeSubcategory !== 'all') {
+              catProducts = catProducts.filter(p => p.category_url === activeSubcategory);
+            }
 
-                if (!matchesCat) return false;
+            const filtered = processProductsList(catProducts);
+            if (filtered.length === 0) return null;
 
-                if (activeSubcategory !== 'all') {
-                  return p.category_url === activeSubcategory;
-                }
-                return true;
-              });
-
-              const filtered = processProductsList(catProducts);
-
-              return (
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full bg-crab-600"></span>
-                        <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white">
-                          {currentCat.name}
-                        </h2>
-                      </div>
-                      <p className="text-xs sm:text-sm text-slate-400 mt-1">
-                        Знайдено: {filtered.length} страв
-                      </p>
+            return (
+              <section
+                key={category.id}
+                id={`category-${category.slug}`}
+                className="scroll-mt-44"
+              >
+                {/* Category Header */}
+                <div className="flex items-end justify-between border-b border-white/10 pb-4 mb-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-crab-600"></span>
+                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                        Розділ меню
+                      </span>
                     </div>
+                    <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white">
+                      {category.name}
+                    </h2>
                   </div>
 
-                  {filtered.length === 0 ? (
-                    <div className="text-center py-16 bg-white/[0.02] rounded-3xl border border-white/5">
-                      <p className="text-slate-400 text-sm">У цьому розділі немає страв за обраними фільтрами</p>
-                      <button
-                        onClick={() => { setActiveFilter('none'); setActiveSubcategory('all'); }}
-                        className="mt-3 text-xs text-amber-400 underline font-semibold"
-                      >
-                        Скинути фільтри
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                      {filtered.map(product => (
-                        <ProductCard key={product.id} product={product} />
-                      ))}
-                    </div>
-                  )}
+                  <span className="text-xs text-slate-400 font-medium">
+                    {filtered.length} позицій
+                  </span>
                 </div>
-              );
-            })()}
-          </section>
-        ) : (
-          /* View Mode 2: All Categories Stacked with Sections */
-          <div className="space-y-16">
-            {CATEGORIES.map(category => {
-              const catProducts = PRODUCTS.filter(p => 
-                p.category_url === category.slug || 
-                p.parent_category_url === category.slug || 
-                category.subcategories.some(s => s.slug === p.category_url)
-              );
 
-              const filtered = processProductsList(catProducts);
-              if (filtered.length === 0) return null;
-
-              return (
-                <section
-                  key={category.id}
-                  id={`category-${category.slug}`}
-                  className="scroll-mt-36"
-                >
-                  {/* Category Header */}
-                  <div className="flex items-end justify-between border-b border-white/10 pb-4 mb-6">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="w-2.5 h-2.5 rounded-full bg-crab-600"></span>
-                        <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-                          Розділ меню
-                        </span>
-                      </div>
-                      <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white">
-                        {category.name}
-                      </h2>
-                    </div>
-
-                    <span className="text-xs text-slate-400 font-medium">
-                      {filtered.length} позицій
-                    </span>
-                  </div>
-
-                  {/* Products Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                    {filtered.map(product => (
-                      <ProductCard key={product.id} product={product} />
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-        )}
+                {/* Products Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                  {filtered.map(product => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
 
       </main>
 
