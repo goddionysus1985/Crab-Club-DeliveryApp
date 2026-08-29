@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Coffee, 
@@ -16,7 +16,9 @@ import {
   FlameKindling,
   Crown,
   Leaf,
-  Layers
+  Layers,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Category } from '../types';
 import { CATEGORIES } from '../data/menuData';
@@ -44,6 +46,30 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const activeBtnRef = useRef<HTMLButtonElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  // Check scroll position to show/hide arrows and fade gradients
+  const updateScrollArrows = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    updateScrollArrows();
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', updateScrollArrows, { passive: true });
+      window.addEventListener('resize', updateScrollArrows, { passive: true });
+      return () => {
+        container.removeEventListener('scroll', updateScrollArrows);
+        window.removeEventListener('resize', updateScrollArrows);
+      };
+    }
+  }, []);
 
   // Auto-scroll active pill into view in horizontal container
   useEffect(() => {
@@ -59,8 +85,23 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
         left: Math.max(0, scrollTarget),
         behavior: 'smooth'
       });
+      setTimeout(updateScrollArrows, 350);
     }
   }, [activeCategory]);
+
+  const handleArrowScroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const amount = direction === 'left' ? -260 : 260;
+      scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
+
+  // Enable mouse wheel horizontal scrolling over category bar
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (scrollContainerRef.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      scrollContainerRef.current.scrollLeft += e.deltaY;
+    }
+  };
 
   const getCategoryIcon = (iconName?: string) => {
     switch (iconName) {
@@ -85,62 +126,94 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
     <div id="menu-nav" className="sticky top-[58px] sm:top-[66px] z-30 apple-glass-nav py-2.5 shadow-2xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2.5">
         
-        {/* Main Categories Bar with Apple-style Fluid Capsule Slider */}
-        <div 
-          ref={scrollContainerRef}
-          className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-1 scroll-smooth"
-        >
-          {/* All items pill */}
-          <motion.button
-            ref={activeCategory === 'all' ? activeBtnRef : null}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              onSelectCategory('all');
-              onSelectSubcategory('all');
-            }}
-            className={`relative flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
-              activeCategory === 'all' ? 'text-white' : 'text-zinc-400 hover:text-zinc-100'
-            }`}
-          >
-            {activeCategory === 'all' && (
-              <motion.div
-                layoutId="activeCategoryPill"
-                className="absolute inset-0 bg-gradient-to-r from-crab-600 to-crab-700 rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_4px_16px_rgba(225,29,72,0.35)] -z-10"
-                transition={{ type: 'spring', damping: 25, stiffness: 320 }}
-              />
-            )}
-            <Layers className="w-4 h-4" />
-            <span>Всі страви</span>
-          </motion.button>
-
-          {/* Categories pills */}
-          {CATEGORIES.map((cat) => {
-            const isActive = activeCategory === cat.slug;
-            return (
+        {/* Main Categories Row with Left/Right Navigation Arrows */}
+        <div className="relative flex items-center">
+          {/* Left Arrow Button */}
+          {canScrollLeft && (
+            <div className="absolute left-0 z-20 flex items-center pr-4 bg-gradient-to-r from-[#08080C] via-[#08080C]/90 to-transparent h-full">
               <motion.button
-                key={cat.id}
-                ref={isActive ? activeBtnRef : null}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  onSelectCategory(cat.slug);
-                  onSelectSubcategory('all');
-                }}
-                className={`relative flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
-                  isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]'
-                }`}
+                whileTap={{ scale: 0.88 }}
+                onClick={() => handleArrowScroll('left')}
+                aria-label="Прокрутити ліворуч"
+                className="w-8 h-8 rounded-full bg-[#181824] hover:bg-[#222234] border border-white/15 text-white flex items-center justify-center shadow-lg transition-colors"
               >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeCategoryPill"
-                    className="absolute inset-0 bg-gradient-to-r from-crab-600 to-crab-700 rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_4px_16px_rgba(225,29,72,0.35)] -z-10"
-                    transition={{ type: 'spring', damping: 25, stiffness: 320 }}
-                  />
-                )}
-                {getCategoryIcon(cat.icon)}
-                <span>{cat.name}</span>
+                <ChevronLeft className="w-4 h-4" />
               </motion.button>
-            );
-          })}
+            </div>
+          )}
+
+          {/* Main Horizontal Categories Bar */}
+          <div 
+            ref={scrollContainerRef}
+            onWheel={handleWheel}
+            className="flex-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-1 scroll-smooth cursor-grab active:cursor-grabbing"
+          >
+            {/* All items pill */}
+            <motion.button
+              ref={activeCategory === 'all' ? activeBtnRef : null}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                onSelectCategory('all');
+                onSelectSubcategory('all');
+              }}
+              className={`relative flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
+                activeCategory === 'all' ? 'text-white' : 'text-zinc-400 hover:text-zinc-100'
+              }`}
+            >
+              {activeCategory === 'all' && (
+                <motion.div
+                  layoutId="activeCategoryPill"
+                  className="absolute inset-0 bg-gradient-to-r from-crab-600 to-crab-700 rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_4px_16px_rgba(225,29,72,0.35)] -z-10"
+                  transition={{ type: 'spring', damping: 25, stiffness: 320 }}
+                />
+              )}
+              <Layers className="w-4 h-4" />
+              <span>Всі страви</span>
+            </motion.button>
+
+            {/* Categories pills */}
+            {CATEGORIES.map((cat) => {
+              const isActive = activeCategory === cat.slug;
+              return (
+                <motion.button
+                  key={cat.id}
+                  ref={isActive ? activeBtnRef : null}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    onSelectCategory(cat.slug);
+                    onSelectSubcategory('all');
+                  }}
+                  className={`relative flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
+                    isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeCategoryPill"
+                      className="absolute inset-0 bg-gradient-to-r from-crab-600 to-crab-700 rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_4px_16px_rgba(225,29,72,0.35)] -z-10"
+                      transition={{ type: 'spring', damping: 25, stiffness: 320 }}
+                    />
+                  )}
+                  {getCategoryIcon(cat.icon)}
+                  <span>{cat.name}</span>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Right Arrow Button */}
+          {canScrollRight && (
+            <div className="absolute right-0 z-20 flex items-center pl-4 bg-gradient-to-l from-[#08080C] via-[#08080C]/90 to-transparent h-full">
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => handleArrowScroll('right')}
+                aria-label="Прокрутити праворуч"
+                className="w-8 h-8 rounded-full bg-[#181824] hover:bg-[#222234] border border-white/15 text-white flex items-center justify-center shadow-lg transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </motion.button>
+            </div>
+          )}
         </div>
 
         {/* Subcategories (if current category has any) */}
