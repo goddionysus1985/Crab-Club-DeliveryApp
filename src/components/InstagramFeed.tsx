@@ -1,5 +1,6 @@
 import React from 'react';
-import { Sparkles, ArrowUpRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowUpRight, Heart, MessageCircle } from 'lucide-react';
 import { RESTAURANT_INFO } from '../data/menuData';
 
 export const InstagramIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
@@ -13,78 +14,119 @@ export const InstagramIcon: React.FC<{ className?: string }> = ({ className = "w
 export const InstagramFeed: React.FC = () => {
   const posts = [
     {
-      img: 'https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=600&q=80',
-      title: 'Преміум Філадельфія Сет'
+      img: 'https://img.postershop.me/21253/a038f8cf-e48f-4318-8f83-e18e0ba53123_image.png',
+      title: 'Філадельфія Мікс Сет з норвезьким лососем',
+      likes: 184,
+      comments: 24
     },
     {
-      img: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80',
-      title: 'Неаполітанська піца з печі'
+      img: 'https://img.postershop.me/21253/5666f7f6-da5d-4f18-a6d1-4475cb39a1d1_image.png',
+      title: 'Неаполітанська піца 4 Сири з печі',
+      likes: 142,
+      comments: 19
     },
     {
-      img: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80',
-      title: 'Суші-бургер з креветкою'
+      img: 'https://img.postershop.me/21253/a87beee2-cfa9-4a00-b6f7-41808605ee88_image.png',
+      title: 'Фірмовий Сет Запечений Дракон',
+      likes: 215,
+      comments: 31
     },
     {
-      img: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80',
-      title: 'Атмосфера та естетика Crab Club'
+      img: 'https://img.postershop.me/21253/6315ee51-872f-4ee9-b4cb-7eeffb9f9ff4_image.png',
+      title: 'Хрусткий суші-бургер з тигровою креветкою',
+      likes: 167,
+      comments: 22
     },
     {
-      img: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=600&q=80',
-      title: 'Запечені роли з сирною шапочкою'
+      img: 'https://img.postershop.me/21253/c2805fe1-c917-43cf-be6a-05dd6052be14_image.png',
+      title: 'Преміум Бургер Crab Club з соковитою яловичиною',
+      likes: 198,
+      comments: 28
     },
     {
-      img: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=600&q=80',
-      title: 'Хрустка 4 Сири'
+      img: 'https://img.postershop.me/21253/0baefd0e-26f5-47e1-8848-00569768652c_image.png',
+      title: 'WOK-локшина удон з дарами моря',
+      likes: 153,
+      comments: 16
     }
   ];
 
   return (
-    <section className="py-14 sm:py-20 relative overflow-hidden bg-[#0A0A0E]">
+    <section className="py-14 sm:py-20 relative overflow-hidden bg-[#0A0A0E] border-t border-white/[0.06]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-crab-600/10 border border-crab-500/25 text-crab-300 text-xs font-bold uppercase tracking-widest mb-2">
-              <InstagramIcon className="w-3.5 h-3.5 text-crab-400" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-amber-500/10 border border-pink-500/30 text-pink-300 text-xs font-bold uppercase tracking-widest mb-2">
+              <InstagramIcon className="w-3.5 h-3.5 text-pink-400" />
               <span>@crab_club.ovi</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white">
+            <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white tracking-tight">
               Слідкуйте за нами в Instagram
             </h2>
+            <p className="text-xs sm:text-sm text-zinc-400 mt-1 font-light">
+              Реальні фото страв, ексклюзивні акції та новинки ресторану в Овідіополі
+            </p>
           </div>
 
-          <a
+          <motion.a
+            whileTap={{ scale: 0.95 }}
             href={RESTAURANT_INFO.socials.instagram}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-pink-600/20 hover:opacity-90 transition-opacity"
+            className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-pink-600/20 hover:opacity-95 transition-opacity shrink-0"
           >
             <InstagramIcon className="w-4 h-4" />
-            <span>Підписатися</span>
+            <span>@crab_club.ovi</span>
             <ArrowUpRight className="w-4 h-4" />
-          </a>
+          </motion.a>
         </div>
 
-        {/* Gallery Grid */}
+        {/* Real Instagram Posts Gallery Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {posts.map((post, idx) => (
-            <a
+            <motion.a
               key={idx}
+              whileHover={{ y: -3, scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
               href={RESTAURANT_INFO.socials.instagram}
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative aspect-square rounded-2xl overflow-hidden bg-[#161622] border border-white/5"
+              className="group relative aspect-square rounded-3xl overflow-hidden bg-[#161622] border border-white/[0.08] shadow-lg"
             >
               <img
                 src={post.img}
                 alt={post.title}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                loading="lazy"
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
               />
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-3 text-center">
-                <InstagramIcon className="w-6 h-6 text-white" />
+
+              {/* Instagram Hover Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-3.5 text-center">
+                <div className="flex justify-end">
+                  <div className="p-1.5 rounded-full bg-white/20 backdrop-blur-md text-white">
+                    <InstagramIcon className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[11px] font-semibold text-white line-clamp-2 mb-2 leading-tight">
+                    {post.title}
+                  </p>
+                  <div className="flex items-center justify-center gap-3 text-xs font-bold text-pink-300">
+                    <span className="flex items-center gap-1">
+                      <Heart className="w-3.5 h-3.5 fill-pink-500 text-pink-500" />
+                      {post.likes}
+                    </span>
+                    <span className="flex items-center gap-1 text-zinc-200">
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      {post.comments}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </a>
+            </motion.a>
           ))}
         </div>
 
