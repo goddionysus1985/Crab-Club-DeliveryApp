@@ -69,7 +69,7 @@ export const App: React.FC = () => {
 
         scrollTimeoutRef.current = window.setTimeout(() => {
           isScrollingProgrammatically.current = false;
-        }, 900);
+        }, 1400);
       });
     });
   };
@@ -88,9 +88,9 @@ export const App: React.FC = () => {
           if (targetSection) {
             const headerEl = document.querySelector('header');
             const navEl = document.getElementById('menu-nav');
-            const headerH = headerEl ? headerEl.offsetHeight : 65;
-            const navH = navEl ? navEl.offsetHeight : 70;
-            const totalOffset = headerH + navH + 15;
+            const headerH = headerEl ? headerEl.offsetHeight : 55;
+            const navH = navEl ? navEl.offsetHeight : 65;
+            const totalOffset = headerH + navH + 12;
 
             const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
             window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
@@ -98,7 +98,7 @@ export const App: React.FC = () => {
 
           scrollTimeoutRef.current = window.setTimeout(() => {
             isScrollingProgrammatically.current = false;
-          }, 900);
+          }, 1400);
         });
       });
     }

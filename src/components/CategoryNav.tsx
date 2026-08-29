@@ -45,7 +45,6 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
   onSelectSort,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const activeBtnRef = useRef<HTMLButtonElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
@@ -71,27 +70,30 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
     }
   }, []);
 
-  // Auto-scroll active pill into view in horizontal container
+  // Precise Auto-scroll active pill into center view using getBoundingClientRect
   useEffect(() => {
-    if (activeBtnRef.current && scrollContainerRef.current) {
+    if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      const btn = activeBtnRef.current;
-      const btnLeft = btn.offsetLeft;
-      const btnWidth = btn.offsetWidth;
-      const containerWidth = container.offsetWidth;
-      const scrollTarget = btnLeft - (containerWidth / 2) + (btnWidth / 2);
+      const activeEl = container.querySelector(`[data-category-slug="${activeCategory}"]`) as HTMLElement;
+      if (activeEl) {
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeEl.getBoundingClientRect();
+        const currentScroll = container.scrollLeft;
+        const relativeLeft = activeRect.left - containerRect.left + currentScroll;
+        const targetScroll = relativeLeft - (containerRect.width / 2) + (activeRect.width / 2);
 
-      container.scrollTo({
-        left: Math.max(0, scrollTarget),
-        behavior: 'smooth'
-      });
-      setTimeout(updateScrollArrows, 350);
+        container.scrollTo({
+          left: Math.max(0, targetScroll),
+          behavior: 'smooth'
+        });
+        setTimeout(updateScrollArrows, 400);
+      }
     }
   }, [activeCategory]);
 
   const handleArrowScroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
-      const amount = direction === 'left' ? -260 : 260;
+      const amount = direction === 'left' ? -240 : 240;
       scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
     }
   };
@@ -123,14 +125,14 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
   const subcategories = currentCategoryObj?.subcategories || [];
 
   return (
-    <div id="menu-nav" className="sticky top-[58px] sm:top-[66px] z-30 apple-glass-nav py-2.5 shadow-2xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2.5">
+    <div id="menu-nav" className="sticky top-[52px] sm:top-[66px] z-30 bg-[#08080C] sm:bg-[#08080C]/95 sm:backdrop-blur-xl py-2 sm:py-2.5 shadow-2xl border-b border-white/[0.08]">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-2 sm:space-y-2.5">
         
         {/* Main Categories Row with Left/Right Navigation Arrows */}
         <div className="relative flex items-center">
           {/* Left Arrow Button */}
           {canScrollLeft && (
-            <div className="absolute left-0 z-20 flex items-center pr-4 bg-gradient-to-r from-[#08080C] via-[#08080C]/90 to-transparent h-full">
+            <div className="hidden sm:flex absolute left-0 z-20 items-center pr-4 bg-gradient-to-r from-[#08080C] via-[#08080C]/90 to-transparent h-full">
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => handleArrowScroll('left')}
@@ -146,18 +148,18 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
           <div 
             ref={scrollContainerRef}
             onWheel={handleWheel}
-            className="flex-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-1 scroll-smooth cursor-grab active:cursor-grabbing"
+            className="flex-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-1 scroll-smooth"
           >
             {/* All items pill */}
             <motion.button
-              ref={activeCategory === 'all' ? activeBtnRef : null}
+              data-category-slug="all"
               whileTap={{ scale: 0.95 }}
               onClick={() => {
                 onSelectCategory('all');
                 onSelectSubcategory('all');
               }}
-              className={`relative flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
-                activeCategory === 'all' ? 'text-white' : 'text-zinc-400 hover:text-zinc-100'
+              className={`relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
+                activeCategory === 'all' ? 'text-white' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]'
               }`}
             >
               {activeCategory === 'all' && (
@@ -177,13 +179,13 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
               return (
                 <motion.button
                   key={cat.id}
-                  ref={isActive ? activeBtnRef : null}
+                  data-category-slug={cat.slug}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     onSelectCategory(cat.slug);
                     onSelectSubcategory('all');
                   }}
-                  className={`relative flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
+                  className={`relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
                     isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]'
                   }`}
                 >
@@ -203,7 +205,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
 
           {/* Right Arrow Button */}
           {canScrollRight && (
-            <div className="absolute right-0 z-20 flex items-center pl-4 bg-gradient-to-l from-[#08080C] via-[#08080C]/90 to-transparent h-full">
+            <div className="hidden sm:flex absolute right-0 z-20 items-center pl-4 bg-gradient-to-l from-[#08080C] via-[#08080C]/90 to-transparent h-full">
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => handleArrowScroll('right')}
@@ -254,13 +256,13 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
         )}
 
         {/* Preference Filters & Sort Row */}
-        <div className="flex items-center justify-between gap-3 overflow-x-auto hide-scrollbar pt-0.5">
+        <div className="flex items-center justify-between gap-2 overflow-x-auto hide-scrollbar pt-0.5">
           {/* Quick Filters */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <motion.button
               whileTap={{ scale: 0.93 }}
               onClick={() => onSelectFilter(activeFilter === 'popular' ? 'none' : 'popular')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-medium transition-all ${
                 activeFilter === 'popular'
                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold'
                   : 'bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
@@ -273,20 +275,20 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
             <motion.button
               whileTap={{ scale: 0.93 }}
               onClick={() => onSelectFilter(activeFilter === 'chef' ? 'none' : 'chef')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-medium transition-all ${
                 activeFilter === 'chef'
                   ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold'
                   : 'bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
               }`}
             >
               <Crown className="w-3.5 h-3.5 text-purple-400" />
-              <span>Шеф рекомендує 👑</span>
+              <span>Шеф 👑</span>
             </motion.button>
 
             <motion.button
               whileTap={{ scale: 0.93 }}
               onClick={() => onSelectFilter(activeFilter === 'spicy' ? 'none' : 'spicy')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-medium transition-all ${
                 activeFilter === 'spicy'
                   ? 'bg-red-500/20 text-red-300 border border-red-500/40 font-bold'
                   : 'bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
@@ -298,7 +300,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
             <motion.button
               whileTap={{ scale: 0.93 }}
               onClick={() => onSelectFilter(activeFilter === 'veg' ? 'none' : 'veg')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-medium transition-all ${
                 activeFilter === 'veg'
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
                   : 'bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
@@ -315,7 +317,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
             <select
               value={sortBy}
               onChange={(e) => onSelectSort(e.target.value)}
-              className="bg-[#12121A] border border-white/10 text-zinc-300 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-400 cursor-pointer shadow-inner"
+              className="bg-[#12121A] border border-white/10 text-zinc-300 rounded-xl px-2 py-1.5 text-[11px] sm:text-xs focus:outline-none focus:border-amber-400 cursor-pointer shadow-inner"
             >
               <option value="default">За замовчуванням</option>
               <option value="price_asc">Спочатку дешевші</option>
