@@ -80,7 +80,7 @@ export const BANNERS: Banner[] = [
     "title": "ХРУСТКА НЕАПОЛІТАНСЬКА ПІЦА",
     "subtitle": "Ферментоване тісто з 48-годинною витримкою, томати San Marzano та витяжна моцарела fior di latte.",
     "badge": "СПРАВЖНІЙ СМАК ІТАЛІЇ",
-    "image": "https://img.postershop.me/21253/b0968e20-d466-4176-84f6-0ef34a34e42f_image.png",
+    "image": "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1600&q=85",
     "link": "#category-pica",
     "ctaText": "Замовити піцу"
   },
