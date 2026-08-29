@@ -5,13 +5,49 @@
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="icon" type="image/png" href="https://img.postershop.me/21253/48ff3a5a-f1f0-4892-8331-602d1b6620bb_image.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="apple-touch-icon" href="https://img.postershop.me/21253/48ff3a5a-f1f0-4892-8331-602d1b6620bb_image.png" />
+    <link rel="manifest" href="./manifest.json" />
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CRAB CLUB" />
+    <meta name="theme-color" content="#08080C" />
+
     <title>CRAB CLUB — Ресторан & Преміум Доставка | Суші, Піца, WOK</title>
     <meta name="description" content="CRAB CLUB — Преміум доставка їжі в смт. Овідіополь та регіоні. Найкращі роли зі свіжим лососем та крабом, авторська неаполітанська піца, wok-локшина, боули та десерти." />
-    <meta name="theme-color" content="#08080C" />
+
+    <!-- Open Graph / Facebook / Telegram / Viber -->
+    <meta property="og:type" content="restaurant.restaurant" />
+    <meta property="og:title" content="CRAB CLUB — Преміум Доставка & Ресторан" />
+    <meta property="og:description" content="Висока кухня у вас вдома. Свіжі морепродукти, преміальні роли, неаполітанська піца та авторські страви в смт. Овідіополь." />
+    <meta property="og:image" content="https://img.postershop.me/21253/a2ad5789-181c-46f0-a85a-c6b265a3eb9e_image.png" />
+    <meta property="og:site_name" content="CRAB CLUB" />
+
+    <!-- Google Fonts Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Schema.org JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      "name": "CRAB CLUB",
+      "image": "https://img.postershop.me/21253/a2ad5789-181c-46f0-a85a-c6b265a3eb9e_image.png",
+      "telephone": "+380686921378",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "смт. Овідіополь",
+        "addressRegion": "Одеська область",
+        "addressCountry": "UA"
+      },
+      "servesCuisine": ["Japanese", "Italian", "Asian", "Sushi", "Pizza"],
+      "priceRange": "₴₴",
+      "openingHours": "Mo-Su 10:00-22:00"
+    }
+    </script>
   </head>
   <body class="bg-[#08080C] text-zinc-100 font-sans antialiased selection:bg-crab-600 selection:text-white overflow-x-hidden">
     <div id="root"></div>

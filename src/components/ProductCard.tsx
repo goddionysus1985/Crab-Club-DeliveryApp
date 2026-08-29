@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Minus, Heart, Flame, Crown, Leaf, Eye } from 'lucide-react';
 import { Product } from '../types';
@@ -8,7 +8,7 @@ interface ProductCardProps {
   product: Product;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+const ProductCardComponent: React.FC<ProductCardProps> = ({ product }) => {
   const { 
     addToCart, 
     updateQuantity, 
@@ -55,7 +55,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       whileTap={{ scale: 0.985 }}
       transition={{ type: 'spring', damping: 25, stiffness: 350 }}
       onClick={() => setActiveProductModal(product)}
-      className="apple-card apple-card-hover rounded-3xl overflow-hidden flex flex-col justify-between cursor-pointer group relative"
+      className="apple-card apple-card-hover rounded-3xl overflow-hidden flex flex-col justify-between cursor-pointer group relative cv-auto"
     >
       {/* Image Container with Badges */}
       <div className="relative aspect-square w-full overflow-hidden bg-[#14141E]">
@@ -63,6 +63,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           src={product.image}
           alt={product.name}
           loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = 'https://img.postershop.me/21253/9bda5f7a-ec24-4f25-8d03-a2fe71732418_image.png';
+          }}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
         />
 
@@ -203,3 +208,5 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     </motion.div>
   );
 };
+
+export const ProductCard = memo(ProductCardComponent);

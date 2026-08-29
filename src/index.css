@@ -106,4 +106,10 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* 120 FPS Rendering Performance for large lists */
+  .cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 340px;
+  }
 }

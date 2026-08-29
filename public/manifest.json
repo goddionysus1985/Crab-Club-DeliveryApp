@@ -1,0 +1,24 @@
+{
+  "name": "CRAB CLUB — Преміум Доставка & Ресторан",
+  "short_name": "CRAB CLUB",
+  "description": "Преміум доставка суші, піци, wok-локшини та авторських страв в смт. Овідіополь.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#08080C",
+  "theme_color": "#08080C",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://img.postershop.me/21253/48ff3a5a-f1f0-4892-8331-602d1b6620bb_image.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://img.postershop.me/21253/48ff3a5a-f1f0-4892-8331-602d1b6620bb_image.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
