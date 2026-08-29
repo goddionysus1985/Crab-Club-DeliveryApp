@@ -18,11 +18,11 @@ export const DeliveryZones: React.FC = () => {
   const faqs = [
     {
       q: 'Який середній час доставки замовлення?',
-      a: 'По смт. Овідіополь доставка зазвичай займає 35-45 хвилин. У прилеглі населені пункти (Роксолани, Калаглія) — 45-60 хвилин залежно від завантаження кухні та погодних умов.'
+      a: 'По центру Овідіополя доставка зазвичай займає 30-45 хвилин. У прилеглі села та райони — 40-60 хвилин залежно від завантаження кухні та погодних умов.'
     },
     {
       q: 'Як отримати безкоштовну доставку?',
-      a: `Для смт. Овідіополь безкоштовна доставка діє при замовленні від ${RESTAURANT_INFO.free_delivery_from} грн. Також діє постійна знижка 10% на всі замовлення у разі самовивозу!`
+      a: 'Безкоштовна доставка активується автоматично в залежності від вашої зони (по Центру — від 500 грн, по Овідіополю — від 1000 грн, по селах — від 2700 грн). Також діє постійна знижка 10% на всі замовлення у разі самовивозу!'
     },
     {
       q: 'Як зберігається температура гарячих та холодних страв?',
@@ -30,7 +30,7 @@ export const DeliveryZones: React.FC = () => {
     },
     {
       q: 'Які способи оплати доступні?',
-      a: 'Ви можете сплатити замовлення онлайн на сайті банківською карткою через Apple Pay / Google Pay, готівкою кур\'єру при отриманні або банківською карткою через термінал кур\'єра.'
+      a: 'Ви можете сплатити замовлення онлайн на сайті банківською карткою через Apple Pay / Google Pay / Monobank, готівкою кур\'єру при отриманні або банківською карткою через термінал кур\'єра.'
     }
   ];
 
@@ -40,57 +40,63 @@ export const DeliveryZones: React.FC = () => {
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-crab-600/10 border border-crab-500/25 text-crab-300 text-xs font-bold uppercase tracking-widest mb-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-crab-600/10 border border-crab-500/25 text-crab-300 text-xs font-bold uppercase tracking-widest mb-3">
             <Truck className="w-3.5 h-3.5 text-crab-400" />
-            <span>Швидко & Гаряче</span>
+            <span>Офіційні тарифи доставки</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-display font-extrabold text-white tracking-tight">
-            Зони та умови доставки
+            Зони та розцінки доставки Crab Club
           </h2>
           <p className="mt-4 text-sm sm:text-base text-slate-400 font-light">
-            Доставляємо ваші улюблені страви щодня з 10:00 до 22:00
+            Швидка преміум-доставка щодня з 10:00 до 22:00
           </p>
         </div>
 
         {/* Zones Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-          {RESTAURANT_INFO.delivery_zones.map((zone, idx) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-12">
+          {RESTAURANT_INFO.delivery_zones.map((zone) => (
             <div
-              key={idx}
-              className="glass-card p-6 sm:p-7 rounded-3xl border border-white/10 relative overflow-hidden flex flex-col justify-between"
+              key={zone.id}
+              className="glass-card p-6 sm:p-7 rounded-3xl border border-white/10 relative overflow-hidden flex flex-col justify-between hover:border-crab-500/30 transition-all group"
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-crab-600/20 border border-crab-500/30 flex items-center justify-center text-crab-400">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-crab-600/20 border border-crab-500/30 flex items-center justify-center text-crab-400 group-hover:scale-105 transition-transform">
                       <MapPin className="w-4 h-4" />
                     </div>
-                    <h3 className="font-bold text-lg text-white">{zone.zone}</h3>
+                    <div>
+                      <h3 className="font-bold text-lg text-white">{zone.zone}</h3>
+                      <p className="text-[11px] text-zinc-400 line-clamp-1">{zone.description}</p>
+                    </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-amber-400">
+                  <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-amber-400 shrink-0">
                     {zone.time}
                   </span>
                 </div>
 
-                <div className="space-y-2.5 text-xs sm:text-sm text-slate-300 mt-4">
+                <div className="space-y-2.5 text-xs sm:text-sm text-slate-300 mt-5 pt-3 border-t border-white/[0.06]">
                   <div className="flex justify-between py-1.5 border-b border-white/5">
-                    <span className="text-slate-400">Мінімальне замовлення:</span>
-                    <span className="font-bold text-white">{zone.min}</span>
+                    <span className="text-slate-400">Вартість доставки:</span>
+                    <span className="font-bold text-white text-base">{zone.price} ₴</span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-white/5">
                     <span className="text-slate-400">Безкоштовна доставка:</span>
-                    <span className="font-bold text-emerald-400">від {zone.free_from}</span>
+                    <span className="font-bold text-emerald-400">від {zone.freeFromAmount} ₴</span>
                   </div>
                   <div className="flex justify-between py-1.5">
-                    <span className="text-slate-400">Вартість доставки до порогу:</span>
-                    <span className="font-semibold text-white">70 ₴</span>
+                    <span className="text-slate-400">Знижка на самовивіз:</span>
+                    <span className="font-bold text-amber-300">-10%</span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-white/5 flex items-center gap-2 text-xs text-slate-400">
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Графік: {RESTAURANT_INFO.work_hours}</span>
+              <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>10:00 – 22:00</span>
+                </div>
+                <span className="text-emerald-400 font-semibold text-[11px]">Термобокси ✓</span>
               </div>
             </div>
           ))}
@@ -118,8 +124,9 @@ export const DeliveryZones: React.FC = () => {
                     <span>{faq.q}</span>
                     {isOpen ? <ChevronUp className="w-4 h-4 text-amber-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
                   </button>
+
                   {isOpen && (
-                    <div className="px-4 sm:px-5 pb-5 text-xs sm:text-sm text-slate-400 leading-relaxed font-light border-t border-white/5 pt-3">
+                    <div className="px-4 pb-4 sm:px-5 sm:pb-5 text-xs sm:text-sm text-slate-300 leading-relaxed font-light border-t border-white/5 pt-3">
                       {faq.a}
                     </div>
                   )}

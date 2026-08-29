@@ -12,7 +12,8 @@ import {
   User, 
   Sparkles, 
   UtensilsCrossed,
-  ArrowRight
+  ArrowRight,
+  Info
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
@@ -35,8 +36,6 @@ export const CheckoutModal: React.FC = () => {
     clearCart,
     subtotal,
     discount,
-    deliveryFee,
-    total,
     orderType,
     setOrderType,
     promoCode,
@@ -52,7 +51,7 @@ export const CheckoutModal: React.FC = () => {
   const [phone, setPhone] = useState(userProfile.phone || '');
   
   // Delivery address fields
-  const [city, setCity] = useState(userProfile.city || 'смт. Овідіополь');
+  const [city, setCity] = useState(userProfile.city || 'смт. Овідіополь (Центр)');
   const [street, setStreet] = useState(userProfile.street || '');
   const [house, setHouse] = useState(userProfile.house || '');
   const [apartment, setApartment] = useState(userProfile.apartment || '');
@@ -78,6 +77,36 @@ export const CheckoutModal: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOnlinePayOpen, setIsOnlinePayOpen] = useState(false);
   const [pendingOrderDetails, setPendingOrderDetails] = useState<OrderDetails | null>(null);
+
+  // Exact Official Delivery Zone Tariff Calculator
+  const getZoneDeliveryDetails = (selectedCity: string, sub: number) => {
+    if (orderType === 'takeaway') {
+      return { fee: 0, threshold: 0, isFree: true, zoneName: 'Самовивіз (-10%)', basePrice: 0 };
+    }
+    if (selectedCity.includes('Центр')) {
+      const isFree = sub >= 500;
+      return { fee: isFree ? 0 : 50, threshold: 500, isFree, zoneName: 'Центр', basePrice: 50 };
+    }
+    if (selectedCity.includes('Росток')) {
+      const isFree = sub >= 1700;
+      return { fee: isFree ? 0 : 200, threshold: 1700, isFree, zoneName: 'Росток', basePrice: 200 };
+    }
+    if (selectedCity.includes('Сусідні села') || selectedCity.includes('Роксолани') || selectedCity.includes('Калаглія') || selectedCity.includes('Миколаївка')) {
+      const isFree = sub >= 2700;
+      return { fee: isFree ? 0 : 300, threshold: 2700, isFree, zoneName: 'Сусідні села', basePrice: 300 };
+    }
+    if (selectedCity.includes('За межами')) {
+      const isFree = sub >= 3700;
+      return { fee: isFree ? 0 : 500, threshold: 3700, isFree, zoneName: 'За межами сусідніх сел', basePrice: 500 };
+    }
+    // Default: Овідіополь (100 грн, free from 1000 грн)
+    const isFree = sub >= 1000;
+    return { fee: isFree ? 0 : 100, threshold: 1000, isFree, zoneName: 'Овідіополь', basePrice: 100 };
+  };
+
+  const zoneDetails = getZoneDeliveryDetails(city, subtotal);
+  const finalDeliveryFee = zoneDetails.fee;
+  const finalTotal = Math.max(0, subtotal - discount + finalDeliveryFee);
 
   const handleSubmitOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,8 +208,8 @@ export const CheckoutModal: React.FC = () => {
         items: [...cart],
         subtotal,
         discount,
-        deliveryFee,
-        total,
+        deliveryFee: finalDeliveryFee,
+        total: finalTotal,
         promoCode: promoCode || undefined,
         status: 'received'
       };
@@ -219,77 +248,58 @@ export const CheckoutModal: React.FC = () => {
             {/* Modal Header */}
             <div className="p-4 sm:p-6 border-b border-white/[0.08] flex items-center justify-between bg-[#141422]/90 backdrop-blur-xl">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-crab-600/20 border border-crab-500/30 text-crab-400 shadow-sm">
-                  <Sparkles className="w-5 h-5" />
+                <div className="p-2.5 rounded-2xl bg-crab-600/20 border border-crab-500/30 text-crab-400">
+                  <Truck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Оформлення замовлення</h2>
-                  <p className="text-xs text-zinc-400">Швидка доставка з ресторану Crab Club</p>
+                  <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                    Оформлення замовлення
+                  </h2>
+                  <p className="text-xs text-zinc-400">
+                    Crab Club • Доставка свіжості та високого смаку
+                  </p>
                 </div>
               </div>
 
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsCheckoutOpen(false)}
-                aria-label="Закрити"
-                className="p-2 rounded-2xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10"
+                className="p-2 rounded-2xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/5"
               >
                 <X className="w-5 h-5" />
               </motion.button>
             </div>
 
-            {/* Scrollable Form Content */}
-            <form onSubmit={handleSubmitOrder} className="overflow-y-auto p-4 sm:p-6 space-y-6 flex-1">
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleSubmitOrder} className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
               
-              {/* Order Type Toggle */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                  Спосіб отримання:
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    type="button"
-                    onClick={() => setOrderType('delivery')}
-                    className={`p-3.5 rounded-2xl border flex items-center gap-3 transition-all ${
-                      orderType === 'delivery'
-                        ? 'bg-crab-600/20 border-crab-500 text-white shadow-md'
-                        : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <div className={`p-2.5 rounded-xl ${orderType === 'delivery' ? 'bg-crab-600 text-white' : 'bg-white/5'}`}>
-                      <Truck className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <div className="font-bold text-sm">Доставка кур'єром</div>
-                      <div className="text-[11px] text-zinc-400">45-60 хв • Овідіополь та регіон</div>
-                    </div>
-                  </motion.button>
+              {/* Order Type Switcher (Delivery / Takeaway) */}
+              <div className="grid grid-cols-2 gap-2 bg-[#171724] p-1.5 rounded-2xl border border-white/[0.06]">
+                <button
+                  type="button"
+                  onClick={() => setOrderType('delivery')}
+                  className={`py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                    orderType === 'delivery'
+                      ? 'apple-button-primary text-white shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Truck className="w-4 h-4" />
+                  <span>Кур'єрська доставка</span>
+                </button>
 
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    type="button"
-                    onClick={() => setOrderType('takeaway')}
-                    className={`p-3.5 rounded-2xl border flex items-center gap-3 transition-all relative ${
-                      orderType === 'takeaway'
-                        ? 'bg-crab-600/20 border-crab-500 text-white shadow-md'
-                        : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <div className={`p-2.5 rounded-xl ${orderType === 'takeaway' ? 'bg-crab-600 text-white' : 'bg-white/5'}`}>
-                      <Store className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <div className="font-bold text-sm flex items-center gap-1.5">
-                        <span>Самовивіз</span>
-                        <span className="px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-extrabold">
-                          -10%
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-zinc-400">смт. Овідіополь</div>
-                    </div>
-                  </motion.button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setOrderType('takeaway')}
+                  className={`py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                    orderType === 'takeaway'
+                      ? 'apple-button-primary text-white shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Store className="w-4 h-4" />
+                  <span>Самовивіз (-10%)</span>
+                </button>
               </div>
 
               {/* Contact Details */}
@@ -331,24 +341,29 @@ export const CheckoutModal: React.FC = () => {
               {/* Delivery Address */}
               {orderType === 'delivery' && (
                 <div className="space-y-3 p-4 rounded-3xl bg-white/[0.02] border border-white/[0.06]">
-                  <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-crab-400" />
-                    <span>Адреса доставки:</span>
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-crab-400" />
+                      <span>Зона та адреса доставки:</span>
+                    </h3>
+                    <span className="text-[11px] text-emerald-400 font-semibold">
+                      {zoneDetails.isFree ? 'Безкоштовна доставка ✓' : `Доставка: ${zoneDetails.fee} ₴`}
+                    </span>
+                  </div>
 
                   <div className="space-y-3">
                     <div className="space-y-1">
-                      <label className="text-[11px] text-zinc-400">Населений пункт</label>
+                      <label className="text-[11px] text-zinc-400">Оберіть вашу зону доставки:</label>
                       <select
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
                         className="w-full bg-[#181826] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 cursor-pointer shadow-inner"
                       >
-                        <option value="смт. Овідіополь">смт. Овідіополь (Центр / Доставка від 300 грн)</option>
-                        <option value="с. Роксолани">с. Роксолани</option>
-                        <option value="с. Калаглія">с. Калаглія</option>
-                        <option value="с. Миколаївка">с. Миколаївка</option>
-                        <option value="Інший населений пункт">Інший населений пункт (уточнити у оператора)</option>
+                        <option value="смт. Овідіополь (Центр)">Центр (Овідіополь) — 50 ₴ (безкоштовно від 500 ₴)</option>
+                        <option value="смт. Овідіополь (інші райони)">Овідіополь (інші райони) — 100 ₴ (безкоштовно від 1000 ₴)</option>
+                        <option value="Масив Росток">Росток — 200 ₴ (безкоштовно від 1700 ₴)</option>
+                        <option value="Сусідні села (Роксолани, Калаглія, Миколаївка...)">Сусідні села (Роксолани, Калаглія, Миколаївка...) — 300 ₴ (безкоштовно від 2700 ₴)</option>
+                        <option value="За межами сусідніх сел">За межами сусідніх сел — 500 ₴ (безкоштовно від 3700 ₴)</option>
                       </select>
                     </div>
 
@@ -388,7 +403,7 @@ export const CheckoutModal: React.FC = () => {
                           maxLength={10}
                           value={apartment}
                           onChange={(e) => setApartment(e.target.value)}
-                          placeholder="45"
+                          placeholder="12"
                           className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none"
                         />
                       </div>
@@ -491,7 +506,7 @@ export const CheckoutModal: React.FC = () => {
                   <span>Спосіб оплати:</span>
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <motion.button
                     whileTap={{ scale: 0.96 }}
                     type="button"
@@ -504,7 +519,7 @@ export const CheckoutModal: React.FC = () => {
                   >
                     <Smartphone className="w-5 h-5 text-emerald-400" />
                     <span>Оплата онлайн</span>
-                    <span className="text-[10px] text-zinc-400 font-normal">Apple Pay / Google Pay / Картка</span>
+                    <span className="text-[10px] text-zinc-400 font-normal">Apple Pay / Monobank / Картка</span>
                   </motion.button>
 
                   <motion.button
@@ -592,6 +607,30 @@ export const CheckoutModal: React.FC = () => {
                 </div>
               </div>
 
+              {/* Order Breakdown Summary */}
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2 text-xs text-zinc-400">
+                <div className="flex justify-between">
+                  <span>Сума товарів:</span>
+                  <span className="font-semibold text-white">{subtotal} ₴</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-emerald-400">
+                    <span>Знижка:</span>
+                    <span className="font-bold">-{discount} ₴</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <span>Доставка ({zoneDetails.zoneName}):</span>
+                  <span className="font-semibold text-white">
+                    {finalDeliveryFee === 0 ? (
+                      <span className="text-emerald-400 font-bold">Безкоштовно</span>
+                    ) : (
+                      `${finalDeliveryFee} ₴`
+                    )}
+                  </span>
+                </div>
+              </div>
+
             </form>
 
             {/* Modal Footer */}
@@ -599,7 +638,7 @@ export const CheckoutModal: React.FC = () => {
               <div className="text-left w-full sm:w-auto">
                 <div className="text-xs text-zinc-400">До сплати:</div>
                 <div className="font-display font-extrabold text-2xl text-amber-300 tracking-tight">
-                  {total} ₴
+                  {finalTotal} ₴
                 </div>
               </div>
 
@@ -649,23 +688,26 @@ export const CheckoutModal: React.FC = () => {
             // Confetti
             try {
               confetti({
-                particleCount: 90,
-                spread: 75,
-                origin: { y: 0.55 },
-                colors: ['#10B981', '#F59E0B', '#E11D48', '#FFFFFF']
+                particleCount: 100,
+                spread: 80,
+                origin: { y: 0.6 },
+                colors: ['#E11D48', '#F59E0B', '#10B981', '#FFFFFF']
               });
             } catch {
               // ignore
             }
             setCurrentOrder(finalOrder);
+            sendOrderToPoster(finalOrder).catch(err => console.warn('[Poster POS]', err));
             clearCart();
+            setIsSubmitting(false);
             setIsOnlinePayOpen(false);
+            setPendingOrderDetails(null);
             setIsCheckoutOpen(false);
             setIsOrderTrackerOpen(true);
-            showToast(`💳 Оплата успішна! Замовлення #${finalOrder.orderNumber} прийнято!`, undefined, 'success');
+            showToast(`🎉 Оплата успішна! Замовлення #${finalOrder.orderNumber} прийнято!`, undefined, 'success');
           }
         }}
-        amount={total}
+        amount={finalTotal}
         orderNumber={pendingOrderDetails?.orderNumber || '0000'}
       />
     </AnimatePresence>

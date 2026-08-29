@@ -65,10 +65,12 @@ export interface CartItem {
 }
 
 export interface DeliveryZone {
+  id: string;
   zone: string;
+  price: number;
+  freeFromAmount: number;
   time: string;
-  min: string;
-  free_from: string;
+  description?: string;
 }
 
 export interface RestaurantInfo {

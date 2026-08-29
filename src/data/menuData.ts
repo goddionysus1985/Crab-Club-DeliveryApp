@@ -11,26 +11,48 @@ export const RESTAURANT_INFO: RestaurantInfo = {
   "phone_raw": "+380686921378",
   "work_hours": "Щодня з 10:00 до 22:00",
   "delivery_time": "45–60 хв",
-  "min_order": 300,
-  "free_delivery_from": 700,
+  "min_order": 200,
+  "free_delivery_from": 500,
   "delivery_zones": [
     {
+      "id": "center",
+      "zone": "Центр",
+      "price": 50,
+      "freeFromAmount": 500,
+      "time": "30–45 хв",
+      "description": "Центральна частина смт. Овідіополь"
+    },
+    {
+      "id": "ovidiopol",
       "zone": "Овідіополь",
-      "time": "30-45 хв",
-      "min": "300 грн",
-      "free_from": "600 грн"
+      "price": 100,
+      "freeFromAmount": 1000,
+      "time": "35–50 хв",
+      "description": "Всі райони смт. Овідіополь"
     },
     {
-      "zone": "Роксолани / Калаглія",
-      "time": "45-60 хв",
-      "min": "400 грн",
-      "free_from": "800 грн"
+      "id": "rostok",
+      "zone": "Росток",
+      "price": 200,
+      "freeFromAmount": 1700,
+      "time": "40–55 хв",
+      "description": "Масив Росток та прилеглі райони"
     },
     {
-      "zone": "Прилеглі населені пункти",
-      "time": "50-70 хв",
-      "min": "500 грн",
-      "free_from": "1000 грн"
+      "id": "neighbor_villages",
+      "zone": "Сусідні села",
+      "price": 300,
+      "freeFromAmount": 2700,
+      "time": "45–60 хв",
+      "description": "Роксолани, Калаглія, Миколаївка та прилеглі села"
+    },
+    {
+      "id": "beyond_villages",
+      "zone": "За межами сусідніх сел",
+      "price": 500,
+      "freeFromAmount": 3700,
+      "time": "50–75 хв",
+      "description": "Віддалені населені пункти та дачні кооперативи"
     }
   ],
   "features": [
