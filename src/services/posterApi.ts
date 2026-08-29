@@ -3,7 +3,7 @@
  * Documentation: https://dev.joinposter.com/ru/docs/v2/incomingOrders/createIncomingOrder
  */
 
-import { OrderDetails, CartItem } from '../types';
+import { OrderDetails, CartItem, Product } from '../types';
 import { POSTER_CONFIG } from '../config/poster';
 
 export interface PosterIncomingProduct {
@@ -170,4 +170,41 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
     posterIncomingOrderId: parseInt(order.orderNumber, 10),
     message: 'Замовлення успішно опрацьовано (Режим готовності до Poster API)'
   };
+}
+
+/**
+ * Fetch latest live prices & products from Poster POS API
+ * (GET /api/menu.getProducts)
+ */
+export async function syncPricesWithPoster(): Promise<Record<number, number> | null> {
+  if (!POSTER_CONFIG.isLiveMode || !POSTER_CONFIG.apiToken) {
+    return null;
+  }
+
+  try {
+    const endpoint = `https://joinposter.com/api/menu.getProducts?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+    const response = await fetch(endpoint);
+    const result = await response.json();
+
+    if (result.response && Array.isArray(result.response)) {
+      const priceMap: Record<number, number> = {};
+      result.response.forEach((prod: any) => {
+        const prodId = parseInt(prod.product_id, 10);
+        // Poster returns price in kopecks (e.g. 35900 = 359 UAH) or in currency units
+        const price = typeof prod.price === 'object' 
+          ? parseInt(Object.values(prod.price)[0] as string, 10) / 100 
+          : parseInt(prod.price, 10) / 100;
+
+        if (prodId && price > 0) {
+          priceMap[prodId] = price;
+        }
+      });
+      console.info('[Poster POS] 🔄 Ціни успішно синхронізовано з хмарою Poster!');
+      return priceMap;
+    }
+    return null;
+  } catch (error) {
+    console.warn('[Poster POS] Не вдалося синхронізувати ціни з Poster:', error);
+    return null;
+  }
 }
