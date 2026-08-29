@@ -24,6 +24,7 @@ import {
   securityRateLimiter 
 } from '../utils/security';
 import { PaymentModal } from './PaymentModal';
+import { sendOrderToPoster } from '../services/posterApi';
 
 export const CheckoutModal: React.FC = () => {
   const {
@@ -104,6 +105,9 @@ export const CheckoutModal: React.FC = () => {
     const sanitizedChange = cleanRawText(cashChangeFrom, 50);
 
     const completeOrder = (order: OrderDetails) => {
+      // Send order to Poster POS (or prepare in simulation mode)
+      sendOrderToPoster(order).catch(err => console.warn('[Poster POS]', err));
+
       // Confetti celebration
       try {
         confetti({
