@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { 
   Phone, 
   Search, 
@@ -231,24 +232,34 @@ export const Header: React.FC = () => {
               <span className="xl:hidden">Дзвінок</span>
             </a>
 
-            {/* Cart Button */}
-            <button
+            {/* Cart Button with Spring Bounce Animation on Add */}
+            <motion.button
+              key={totalItemsCount}
+              initial={{ scale: 1 }}
+              animate={totalItemsCount > 0 ? { scale: [1, 1.15, 0.95, 1.04, 1] } : {}}
+              transition={{ duration: 0.35 }}
+              whileTap={{ scale: 0.92 }}
               onClick={() => setIsCartOpen(true)}
-              className="relative flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl apple-button-primary text-white font-semibold text-xs sm:text-sm transition-all"
+              className="relative flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl apple-button-primary text-white font-semibold text-xs sm:text-sm transition-all shadow-md"
               aria-label="Відкрити кошик"
             >
               <div className="relative">
                 <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
                 {totalItemsCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-amber-400 text-slate-950 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-[#0B0B0F]">
+                  <motion.span
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', damping: 15, stiffness: 400 }}
+                    className="absolute -top-2 -right-2 bg-amber-400 text-slate-950 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-[#0B0B0F]"
+                  >
                     {totalItemsCount}
-                  </span>
+                  </motion.span>
                 )}
               </div>
               <span className="hidden xs:inline">
                 {total > 0 ? `${total} ₴` : 'Кошик'}
               </span>
-            </button>
+            </motion.button>
 
             {/* Mobile Menu Toggle */}
             <button
