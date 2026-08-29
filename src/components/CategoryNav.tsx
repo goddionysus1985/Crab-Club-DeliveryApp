@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { 
   Coffee, 
   Sparkles, 
@@ -44,7 +45,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const activeBtnRef = useRef<HTMLButtonElement>(null);
 
-  // Auto-scroll active pill into view in the horizontal scroll container
+  // Auto-scroll active pill into view in horizontal container
   useEffect(() => {
     if (activeBtnRef.current && scrollContainerRef.current) {
       const container = scrollContainerRef.current;
@@ -81,83 +82,99 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
   const subcategories = currentCategoryObj?.subcategories || [];
 
   return (
-    <div id="menu-nav" className="sticky top-[61px] sm:top-[69px] z-30 bg-[#0B0B0F]/95 backdrop-blur-xl border-b border-white/10 pt-2.5 pb-2.5 shadow-xl">
+    <div id="menu-nav" className="sticky top-[58px] sm:top-[66px] z-30 apple-glass-nav py-2.5 shadow-2xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2.5">
         
-        {/* Main Categories Bar */}
+        {/* Main Categories Bar with Apple-style Fluid Capsule Slider */}
         <div 
           ref={scrollContainerRef}
-          className="flex items-center gap-2 overflow-x-auto hide-scrollbar py-1 scroll-smooth"
+          className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-1 scroll-smooth"
         >
-          <button
+          {/* All items pill */}
+          <motion.button
             ref={activeCategory === 'all' ? activeBtnRef : null}
+            whileTap={{ scale: 0.95 }}
             onClick={() => {
               onSelectCategory('all');
               onSelectSubcategory('all');
             }}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
-              activeCategory === 'all'
-                ? 'bg-crab-600 text-white shadow-lg shadow-crab-600/30 scale-[1.02]'
-                : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5'
+            className={`relative flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
+              activeCategory === 'all' ? 'text-white' : 'text-zinc-400 hover:text-zinc-100'
             }`}
           >
+            {activeCategory === 'all' && (
+              <motion.div
+                layoutId="activeCategoryPill"
+                className="absolute inset-0 bg-gradient-to-r from-crab-600 to-crab-700 rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_4px_16px_rgba(225,29,72,0.35)] -z-10"
+                transition={{ type: 'spring', damping: 25, stiffness: 320 }}
+              />
+            )}
             <Layers className="w-4 h-4" />
             <span>Всі страви</span>
-          </button>
+          </motion.button>
 
+          {/* Categories pills */}
           {CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat.slug;
             return (
-              <button
+              <motion.button
                 key={cat.id}
                 ref={isActive ? activeBtnRef : null}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => {
                   onSelectCategory(cat.slug);
                   onSelectSubcategory('all');
                 }}
-                className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
-                  isActive
-                    ? 'bg-crab-600 text-white shadow-lg shadow-crab-600/30 scale-[1.02]'
-                    : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5'
+                className={`relative flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
+                  isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]'
                 }`}
               >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeCategoryPill"
+                    className="absolute inset-0 bg-gradient-to-r from-crab-600 to-crab-700 rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_4px_16px_rgba(225,29,72,0.35)] -z-10"
+                    transition={{ type: 'spring', damping: 25, stiffness: 320 }}
+                  />
+                )}
                 {getCategoryIcon(cat.icon)}
                 <span>{cat.name}</span>
-              </button>
+              </motion.button>
             );
           })}
         </div>
 
         {/* Subcategories (if current category has any) */}
         {subcategories.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-0.5 border-t border-white/5 pt-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-0.5 border-t border-white/[0.06] pt-2">
+            <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider shrink-0 mr-1">
               Розділи:
             </span>
-            <button
+            <motion.button
+              whileTap={{ scale: 0.94 }}
               onClick={() => onSelectSubcategory('all')}
-              className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
+              className={`px-3 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
                 activeSubcategory === 'all'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
               }`}
             >
               Всі в розділі
-            </button>
+            </motion.button>
             {subcategories.map((sub) => {
               const isSubActive = activeSubcategory === sub.slug;
               return (
-                <button
+                <motion.button
                   key={sub.id}
+                  whileTap={{ scale: 0.94 }}
                   onClick={() => onSelectSubcategory(sub.slug)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
+                  className={`px-3 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
                     isSubActive
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                   }`}
                 >
                   {sub.name}
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -167,61 +184,65 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
         <div className="flex items-center justify-between gap-3 overflow-x-auto hide-scrollbar pt-0.5">
           {/* Quick Filters */}
           <div className="flex items-center gap-2 shrink-0">
-            <button
+            <motion.button
+              whileTap={{ scale: 0.93 }}
               onClick={() => onSelectFilter(activeFilter === 'popular' ? 'none' : 'popular')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                 activeFilter === 'popular'
                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold'
-                  : 'bg-white/5 text-slate-400 hover:text-slate-200 border border-white/5'
+                  : 'bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
               }`}
             >
               <FlameKindling className="w-3.5 h-3.5 text-amber-400" />
               <span>Хіти 🔥</span>
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
+              whileTap={{ scale: 0.93 }}
               onClick={() => onSelectFilter(activeFilter === 'chef' ? 'none' : 'chef')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                 activeFilter === 'chef'
                   ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold'
-                  : 'bg-white/5 text-slate-400 hover:text-slate-200 border border-white/5'
+                  : 'bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
               }`}
             >
               <Crown className="w-3.5 h-3.5 text-purple-400" />
               <span>Шеф рекомендує 👑</span>
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
+              whileTap={{ scale: 0.93 }}
               onClick={() => onSelectFilter(activeFilter === 'spicy' ? 'none' : 'spicy')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                 activeFilter === 'spicy'
                   ? 'bg-red-500/20 text-red-300 border border-red-500/40 font-bold'
-                  : 'bg-white/5 text-slate-400 hover:text-slate-200 border border-white/5'
+                  : 'bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
               }`}
             >
               <span>Гостре 🌶️</span>
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
+              whileTap={{ scale: 0.93 }}
               onClick={() => onSelectFilter(activeFilter === 'veg' ? 'none' : 'veg')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                 activeFilter === 'veg'
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
-                  : 'bg-white/5 text-slate-400 hover:text-slate-200 border border-white/5'
+                  : 'bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
               }`}
             >
               <Leaf className="w-3.5 h-3.5 text-emerald-400" />
               <span>Веган 🌱</span>
-            </button>
+            </motion.button>
           </div>
 
           {/* Sort Selector */}
           <div className="flex items-center gap-2 shrink-0">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400 hidden sm:inline" />
+            <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500 hidden sm:inline" />
             <select
               value={sortBy}
               onChange={(e) => onSelectSort(e.target.value)}
-              className="bg-[#14141E] border border-white/10 text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+              className="bg-[#12121A] border border-white/10 text-zinc-300 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-400 cursor-pointer shadow-inner"
             >
               <option value="default">За замовчуванням</option>
               <option value="price_asc">Спочатку дешевші</option>
