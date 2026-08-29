@@ -25,6 +25,7 @@ import {
 } from '../utils/security';
 import { PaymentModal } from './PaymentModal';
 import { sendOrderToPoster } from '../services/posterApi';
+import { getRestaurantScheduleStatus } from '../utils/workHours';
 
 export const CheckoutModal: React.FC = () => {
   const {
@@ -44,6 +45,8 @@ export const CheckoutModal: React.FC = () => {
     showToast
   } = useCart();
 
+  const scheduleStatus = getRestaurantScheduleStatus();
+
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   
@@ -55,9 +58,9 @@ export const CheckoutModal: React.FC = () => {
   const [floor, setFloor] = useState('');
   const [doorphone, setDoorphone] = useState('');
 
-  // Time & payment
-  const [deliveryTimeType, setDeliveryTimeType] = useState<'asap' | 'scheduled'>('asap');
-  const [scheduledTime, setScheduledTime] = useState('18:00');
+  // Time & payment: if restaurant closed, default to scheduled
+  const [deliveryTimeType, setDeliveryTimeType] = useState<'asap' | 'scheduled'>(scheduleStatus.isOpen ? 'asap' : 'scheduled');
+  const [scheduledTime, setScheduledTime] = useState(scheduleStatus.isOpen ? '18:00' : '11:00');
   const [paymentMethod, setPaymentMethod] = useState<'card_online' | 'card_courier' | 'cash'>('card_online');
   const [cashChangeFrom, setCashChangeFrom] = useState('');
   const [cutleryCount, setCutleryCount] = useState(2);
@@ -412,18 +415,31 @@ export const CheckoutModal: React.FC = () => {
               <div className="space-y-2">
                 <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-amber-400" />
-                  <span>Час доставки:</span>
+                  <span>Час доставки / приготування:</span>
                 </h3>
+
+                {!scheduleStatus.isOpen && (
+                  <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-200 text-xs flex items-start gap-2.5">
+                    <span className="text-sm shrink-0">🌙</span>
+                    <div className="leading-relaxed">
+                      <span className="font-bold text-white">Ресторан зараз відпочиває (графік: 10:00–22:00).</span>
+                      <p className="text-[11px] text-purple-300 mt-0.5">
+                        Ваше передзамовлення буде передано на кухню та приготовлено першим {scheduleStatus.nextOpenTimeText.toLowerCase()}!
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <motion.button
                     whileTap={{ scale: 0.96 }}
                     type="button"
+                    disabled={!scheduleStatus.isOpen}
                     onClick={() => setDeliveryTimeType('asap')}
                     className={`p-3 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                       deliveryTimeType === 'asap'
                         ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-md'
-                        : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'
+                        : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white disabled:opacity-40 disabled:pointer-events-none'
                     }`}
                   >
                     <span>🚀 Якнайшвидше (~45-60 хв)</span>
@@ -439,15 +455,18 @@ export const CheckoutModal: React.FC = () => {
                         : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'
                     }`}
                   >
-                    <span>🕒 На точний час</span>
+                    <span>🕒 {scheduleStatus.isOpen ? 'На точний час' : 'Передзамовлення на час'}</span>
                   </motion.button>
                 </div>
 
                 {deliveryTimeType === 'scheduled' && (
-                  <div className="pt-2">
+                  <div className="pt-2 flex items-center gap-3">
+                    <label className="text-xs text-zinc-400">Оберіть час:</label>
                     <input
                       type="time"
                       value={scheduledTime}
+                      min="10:00"
+                      max="22:00"
                       onChange={(e) => setScheduledTime(e.target.value)}
                       className="bg-[#181826] border border-white/15 rounded-2xl px-4 py-2 text-sm text-white focus:outline-none"
                     />

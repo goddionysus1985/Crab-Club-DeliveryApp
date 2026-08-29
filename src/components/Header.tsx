@@ -9,10 +9,13 @@ import {
   Menu as MenuIcon, 
   X, 
   Sparkles,
-  Compass
+  Compass,
+  RotateCcw,
+  Moon
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { RESTAURANT_INFO } from '../data/menuData';
+import { getRestaurantScheduleStatus } from '../utils/workHours';
 
 export const Header: React.FC = () => {
   const { 
@@ -22,32 +25,68 @@ export const Header: React.FC = () => {
     setIsSearchOpen, 
     favorites, 
     currentOrder, 
-    setIsOrderTrackerOpen 
+    setIsOrderTrackerOpen,
+    orderHistory,
+    setIsOrderHistoryOpen
   } = useCart();
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scheduleStatus, setScheduleStatus] = useState(getRestaurantScheduleStatus);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    // Recheck schedule status every minute
+    const scheduleInterval = setInterval(() => {
+      setScheduleStatus(getRestaurantScheduleStatus());
+    }, 60000);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearInterval(scheduleInterval);
+    };
   }, []);
 
   return (
     <>
-      {/* Top Luxury Announcement Bar */}
-      <div className="bg-[#120508] text-xs font-medium text-white/90 py-1 px-3 sm:px-4 border-b border-white/10 relative z-50">
+      {/* Top Luxury Announcement Bar with Dynamic Live Work Hours Status */}
+      <div className={`text-xs font-medium text-white/90 py-1 px-3 sm:px-4 border-b border-white/10 relative z-50 transition-colors ${
+        scheduleStatus.badgeType === 'closed' 
+          ? 'bg-[#150D1E]' 
+          : scheduleStatus.badgeType === 'closing_soon'
+          ? 'bg-[#2A1608]'
+          : 'bg-[#120508]'
+      }`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-            <span className="flex h-2 w-2 relative shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-amber-300 font-semibold uppercase tracking-wider text-[9px] sm:text-xs truncate">
-              Доставка в смт. Овідіополь відкрита
+            {scheduleStatus.badgeType === 'open' && (
+              <span className="flex h-2 w-2 relative shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            )}
+            {scheduleStatus.badgeType === 'closing_soon' && (
+              <span className="flex h-2 w-2 relative shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+            )}
+            {scheduleStatus.badgeType === 'closed' && (
+              <Moon className="w-3 h-3 text-purple-400 shrink-0" />
+            )}
+
+            <span className={`font-semibold uppercase tracking-wider text-[9px] sm:text-xs truncate ${
+              scheduleStatus.badgeType === 'closed'
+                ? 'text-purple-300'
+                : scheduleStatus.badgeType === 'closing_soon'
+                ? 'text-amber-300'
+                : 'text-amber-300'
+            }`}>
+              {scheduleStatus.statusText}
             </span>
             <span className="text-white/40 hidden md:inline">|</span>
             <span className="hidden md:inline text-white/80 text-xs">
@@ -127,7 +166,7 @@ export const Header: React.FC = () => {
           </nav>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             {/* Active order tracker pill if order exists */}
             {currentOrder && (
               <button
@@ -151,6 +190,21 @@ export const Header: React.FC = () => {
               <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[10px] bg-black/40 text-zinc-400 rounded border border-white/10">
                 ⌘K
               </kbd>
+            </button>
+
+            {/* Order History (Re-order) Icon */}
+            <button
+              onClick={() => setIsOrderHistoryOpen(true)}
+              className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-amber-400 transition-all"
+              aria-label="Історія замовлень"
+              title="Історія замовлень та повтор у 1 клік"
+            >
+              <RotateCcw className="w-4 h-4" />
+              {orderHistory.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold flex items-center justify-center ring-2 ring-[#0B0B0F]">
+                  {orderHistory.length}
+                </span>
+              )}
             </button>
 
             {/* Favorites Icon */}
@@ -219,6 +273,21 @@ export const Header: React.FC = () => {
                 <span>🍽️ Меню страв</span>
                 <span className="text-xs text-amber-400 font-bold">200+ позицій</span>
               </a>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setIsOrderHistoryOpen(true);
+                }}
+                className="px-3 py-2.5 rounded-2xl hover:bg-white/5 text-zinc-300 flex items-center justify-between text-left"
+              >
+                <span>🔄 Повторити минуле замовлення</span>
+                {orderHistory.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-bold">
+                    {orderHistory.length}
+                  </span>
+                )}
+              </button>
               <a
                 href="#delivery"
                 onClick={() => setMobileMenuOpen(false)}

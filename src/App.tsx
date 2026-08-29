@@ -8,6 +8,7 @@ import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { SearchModal } from './components/SearchModal';
 import { OrderTrackerModal } from './components/OrderTrackerModal';
+import { OrderHistoryModal } from './components/OrderHistoryModal';
 import { StorySection } from './components/StorySection';
 import { DeliveryZones } from './components/DeliveryZones';
 import { ReviewsSection } from './components/ReviewsSection';
@@ -305,6 +306,7 @@ export const App: React.FC = () => {
       <ProductModal />
       <SearchModal />
       <OrderTrackerModal />
+      <OrderHistoryModal />
       <NotificationToast />
 
     </div>

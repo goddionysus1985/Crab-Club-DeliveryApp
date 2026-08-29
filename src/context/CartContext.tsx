@@ -53,12 +53,16 @@ interface CartContextType {
   setIsSearchOpen: (open: boolean) => void;
   isOrderTrackerOpen: boolean;
   setIsOrderTrackerOpen: (open: boolean) => void;
+  isOrderHistoryOpen: boolean;
+  setIsOrderHistoryOpen: (open: boolean) => void;
   activeProductModal: Product | null;
   setActiveProductModal: (p: Product | null) => void;
 
-  // Current Active Order
+  // Current Active Order & History
   currentOrder: OrderDetails | null;
   setCurrentOrder: (order: OrderDetails | null) => void;
+  orderHistory: OrderDetails[];
+  repeatOrder: (historicOrder: OrderDetails) => void;
 
   // Wishlist
   favorites: number[];
@@ -97,7 +101,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          // Filter to only existing valid product IDs
           const validIds = new Set(PRODUCTS.map(p => p.id));
           return parsed.filter(id => typeof id === 'number' && validIds.has(id));
         }
@@ -108,7 +111,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  const [currentOrder, setCurrentOrder] = useState<OrderDetails | null>(() => {
+  const [currentOrder, setCurrentOrderState] = useState<OrderDetails | null>(() => {
     try {
       const saved = localStorage.getItem('crabclub_last_order');
       return saved ? JSON.parse(saved) : null;
@@ -116,6 +119,58 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return null;
     }
   });
+
+  const [orderHistory, setOrderHistory] = useState<OrderDetails[]>(() => {
+    try {
+      const saved = localStorage.getItem('crabclub_order_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const setCurrentOrder = (order: OrderDetails | null) => {
+    setCurrentOrderState(order);
+    if (order) {
+      localStorage.setItem('crabclub_last_order', JSON.stringify(order));
+      setOrderHistory(prev => {
+        const updated = [order, ...prev.filter(o => o.orderId !== order.orderId)].slice(0, 10);
+        localStorage.setItem('crabclub_order_history', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  };
+
+  const repeatOrder = (historicOrder: OrderDetails) => {
+    if (!historicOrder.items || historicOrder.items.length === 0) return;
+
+    setCart(prev => {
+      const newItems: CartItem[] = [];
+      historicOrder.items.forEach(histItem => {
+        const prod = PRODUCTS.find(p => p.id === histItem.product.id);
+        if (prod) {
+          const extraPrice = histItem.selectedOptions?.reduce((sum, o) => sum + (o.price || 0), 0) || 0;
+          const unitPrice = prod.price + extraPrice;
+          const qty = Math.max(1, histItem.quantity);
+          newItems.push({
+            id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            product: prod,
+            quantity: qty,
+            selectedOptions: histItem.selectedOptions ? [...histItem.selectedOptions] : [],
+            comment: histItem.comment,
+            totalPrice: unitPrice * qty
+          });
+        }
+      });
+      const merged = [...prev, ...newItems];
+      localStorage.setItem('crabclub_cart', JSON.stringify(merged));
+      return merged;
+    });
+
+    setIsOrderHistoryOpen(false);
+    setIsCartOpen(true);
+    showToast(`Замовлення #${historicOrder.orderNumber} додано у ваш кошик!`, undefined, 'success');
+  };
 
   const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('delivery');
   const [promoCode, setPromoCode] = useState<string>('');
@@ -127,63 +182,54 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isOrderTrackerOpen, setIsOrderTrackerOpen] = useState<boolean>(false);
+  const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState<boolean>(false);
   const [activeProductModal, setActiveProductModal] = useState<Product | null>(null);
 
   const [toast, setToast] = useState<Toast | null>(null);
 
-  // Sync to local storage
+  // Sync cart to localStorage
   useEffect(() => {
     try {
       localStorage.setItem('crabclub_cart', JSON.stringify(cart));
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // Storage limits or private mode
     }
   }, [cart]);
 
+  // Sync favorites to localStorage
   useEffect(() => {
     try {
       localStorage.setItem('crabclub_favorites', JSON.stringify(favorites));
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // ignore
     }
   }, [favorites]);
 
-  useEffect(() => {
-    try {
-      if (currentOrder) {
-        localStorage.setItem('crabclub_last_order', JSON.stringify(currentOrder));
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, [currentOrder]);
-
   const showToast = (text: string, image?: string, type: 'success' | 'info' | 'error' = 'success') => {
-    setToast({
-      id: Date.now().toString(),
-      text: cleanRawText(text, 150),
-      image,
-      type
-    });
-    setTimeout(() => {
-      setToast(null);
-    }, 3200);
+    setToast({ id: Date.now().toString(), text, image, type });
   };
 
   const hideToast = () => setToast(null);
 
-  const toggleFavorite = (productId: number) => {
-    // Verify product exists in catalog
-    const productExists = PRODUCTS.some(p => p.id === productId);
-    if (!productExists) return;
+  // Auto-hide toast after 3s
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
+  const toggleFavorite = (productId: number) => {
     setFavorites(prev => {
-      const exists = prev.includes(productId);
-      if (exists) {
-        showToast('Видалено з улюблених', undefined, 'info');
+      const isFav = prev.includes(productId);
+      if (isFav) {
+        showToast('Видалено з обраного', undefined, 'info');
         return prev.filter(id => id !== productId);
       } else {
-        showToast('Додано до улюблених ❤️', undefined, 'success');
+        const prod = PRODUCTS.find(p => p.id === productId);
+        showToast(`Додано до обраного: ${prod?.name || ''}`, prod?.image, 'success');
         return [...prev, productId];
       }
     });
@@ -191,96 +237,89 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isFavorite = (productId: number) => favorites.includes(productId);
 
-  const generateCartItemId = (productId: number, options?: { group_name: string; option_name: string; price: number }[]) => {
-    if (!options || options.length === 0) return `${productId}`;
-    const optsStr = options.map(o => `${o.group_name}:${o.option_name}`).sort().join('|');
-    return `${productId}_${optsStr}`;
-  };
-
   const addToCart = (
-    product: Product,
-    quantity = 1,
-    selectedOptions: { group_name: string; option_name: string; price: number }[] = [],
-    comment = ''
+    product: Product, 
+    quantity = 1, 
+    selectedOptions?: { group_name: string; option_name: string; price: number }[],
+    comment?: string
   ) => {
-    // Authoritative lookup
-    const authoritative = PRODUCTS.find(p => p.id === product.id);
-    if (!authoritative) return;
+    // Authoritative price check
+    const originalProduct = PRODUCTS.find(p => p.id === product.id);
+    if (!originalProduct) {
+      showToast('Цей товар наразі недоступний', undefined, 'error');
+      return;
+    }
 
-    const safeQty = Math.max(1, Math.min(99, Math.floor(quantity)));
-    const safeComment = cleanRawText(comment, 200);
+    const safeOptions = selectedOptions?.map(opt => ({
+      group_name: cleanRawText(opt.group_name, 50),
+      option_name: cleanRawText(opt.option_name, 50),
+      price: Math.max(0, Number(opt.price) || 0)
+    })) || [];
 
-    // Verify option prices against database
-    const verifiedOptions = selectedOptions.map(opt => {
-      let truePrice = 0;
-      if (authoritative.modifications) {
-        for (const grp of authoritative.modifications) {
-          const matched = grp.options.find(o => o.name === opt.option_name);
-          if (matched) {
-            truePrice = Math.max(0, matched.price);
-            break;
-          }
-        }
-      }
-      return {
-        group_name: cleanRawText(opt.group_name, 50),
-        option_name: cleanRawText(opt.option_name, 50),
-        price: truePrice
-      };
-    });
+    const optionsKey = safeOptions.length > 0
+      ? safeOptions.map(o => `${o.group_name}:${o.option_name}`).sort().join('|')
+      : 'standard';
 
-    const extraPrice = verifiedOptions.reduce((sum, opt) => sum + opt.price, 0);
-    const unitPrice = authoritative.price + extraPrice;
-    const cartItemId = generateCartItemId(authoritative.id, verifiedOptions);
+    const safeQuantity = Math.max(1, Math.min(50, Math.floor(quantity)));
+
+    // Extra cost calculation
+    const extraPrice = safeOptions.reduce((sum, opt) => sum + opt.price, 0);
+    const unitPrice = originalProduct.price + extraPrice;
 
     setCart(prevCart => {
-      const existingIndex = prevCart.findIndex(item => item.id === cartItemId);
+      const existingIndex = prevCart.findIndex(item => {
+        const itemOptionsKey = item.selectedOptions && item.selectedOptions.length > 0
+          ? item.selectedOptions.map(o => `${o.group_name}:${o.option_name}`).sort().join('|')
+          : 'standard';
+        return item.product.id === product.id && itemOptionsKey === optionsKey && item.comment === comment;
+      });
+
       if (existingIndex > -1) {
-        const updated = [...prevCart];
-        const newQty = Math.min(99, updated[existingIndex].quantity + safeQty);
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          quantity: newQty,
-          totalPrice: newQty * unitPrice
+        const newCart = [...prevCart];
+        const newQuantity = Math.min(50, newCart[existingIndex].quantity + safeQuantity);
+        newCart[existingIndex] = {
+          ...newCart[existingIndex],
+          quantity: newQuantity,
+          totalPrice: unitPrice * newQuantity
         };
-        return updated;
+        return newCart;
       } else {
-        return [
-          ...prevCart,
-          {
-            id: cartItemId,
-            product: authoritative,
-            quantity: safeQty,
-            selectedOptions: verifiedOptions,
-            totalPrice: safeQty * unitPrice,
-            comment: safeComment
-          }
-        ];
+        const newItem: CartItem = {
+          id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          product: originalProduct,
+          quantity: safeQuantity,
+          selectedOptions: safeOptions,
+          comment: comment ? cleanRawText(comment, 150) : undefined,
+          totalPrice: unitPrice * safeQuantity
+        };
+        return [...prevCart, newItem];
       }
     });
 
-    showToast(`Додано до кошика: ${authoritative.name}`, authoritative.image, 'success');
+    showToast(`Додано: ${originalProduct.name}`, originalProduct.image, 'success');
   };
 
   const removeFromCart = (cartItemId: string) => {
-    setCart(prev => prev.filter(item => item.id !== cartItemId));
+    setCart(prevCart => prevCart.filter(item => item.id !== cartItemId));
   };
 
-  const updateQuantity = (cartItemId: string, quantity: number) => {
-    if (quantity <= 0) {
+  const updateQuantity = (cartItemId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
       removeFromCart(cartItemId);
       return;
     }
-    const safeQty = Math.min(99, Math.floor(quantity));
-    setCart(prev =>
-      prev.map(item => {
+    const safeQty = Math.min(50, Math.floor(newQuantity));
+    setCart(prevCart =>
+      prevCart.map(item => {
         if (item.id === cartItemId) {
-          const extraPrice = item.selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
-          const unitPrice = item.product.price + extraPrice;
+          const originalProd = PRODUCTS.find(p => p.id === item.product.id);
+          const basePrice = originalProd ? originalProd.price : item.product.price;
+          const extraPrice = item.selectedOptions?.reduce((sum, opt) => sum + opt.price, 0) || 0;
+          const unitPrice = basePrice + extraPrice;
           return {
             ...item,
             quantity: safeQty,
-            totalPrice: safeQty * unitPrice
+            totalPrice: unitPrice * safeQty
           };
         }
         return item;
@@ -290,9 +329,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearCart = () => {
     setCart([]);
+    showToast('Кошик очищено', undefined, 'info');
   };
 
-  const getItemQuantityInCart = (productId: number) => {
+  const getItemQuantityInCart = (productId: number): number => {
     return cart
       .filter(item => item.product.id === productId)
       .reduce((sum, item) => sum + item.quantity, 0);
@@ -300,21 +340,29 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const applyPromoCode = (rawCode: string): boolean => {
     const cleanCode = sanitizePromoCode(rawCode);
+    if (!cleanCode) return false;
 
-    // Anti-Bruteforce Rate Limiting (Max 5 attempts per minute)
+    // Security rate limiter for promo bruteforce
     if (!securityRateLimiter.isAllowed('promo_check', 5, 60000)) {
-      const cooldown = securityRateLimiter.getRemainingCooldownSeconds('promo_check', 60000);
-      showToast(`Забагато спроб. Зачекайте ${cooldown} сек.`, undefined, 'error');
+      showToast('Забагато спроб. Спробуйте пізніше', undefined, 'error');
       return false;
     }
 
-    if (PROMO_CODES[cleanCode]) {
-      const promo = PROMO_CODES[cleanCode];
-      setPromoCode(cleanCode);
-      setPromoDiscountPercent(promo.discountPercent || 0);
-      setPromoDiscountFixed(promo.discountFixed || 0);
-      setPromoMessage(promo.description);
-      showToast(`Промокод застосовано: ${promo.description}`, undefined, 'success');
+    const codeKey = cleanCode.toUpperCase();
+    const foundPromo = PROMO_CODES[codeKey];
+
+    if (foundPromo) {
+      setPromoCode(codeKey);
+      if (foundPromo.discountPercent) {
+        setPromoDiscountPercent(foundPromo.discountPercent);
+        setPromoDiscountFixed(0);
+        setPromoMessage(`Знижка -${foundPromo.discountPercent}% успішно активована!`);
+      } else if (foundPromo.discountFixed) {
+        setPromoDiscountFixed(foundPromo.discountFixed);
+        setPromoDiscountPercent(0);
+        setPromoMessage(`Знижка -${foundPromo.discountFixed} грн успішно активована!`);
+      }
+      showToast(`Промокод ${codeKey} застосовано! 🎉`, undefined, 'success');
       return true;
     } else {
       showToast('Недійсний промокод. Спробуйте CRABCLUB', undefined, 'error');
@@ -377,10 +425,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsSearchOpen,
         isOrderTrackerOpen,
         setIsOrderTrackerOpen,
+        isOrderHistoryOpen,
+        setIsOrderHistoryOpen,
         activeProductModal,
         setActiveProductModal,
         currentOrder,
         setCurrentOrder,
+        orderHistory,
+        repeatOrder,
         favorites,
         toggleFavorite,
         isFavorite,
@@ -395,7 +447,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useCart = () => {
+export const useCart = (): CartContextType => {
   const context = useContext(CartContext);
   if (!context) {
     throw new Error('useCart must be used within a CartProvider');
