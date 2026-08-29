@@ -47,7 +47,7 @@ export const InstagramFeed: React.FC = () => {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-crab-600/10 border border-crab-500/25 text-crab-300 text-xs font-bold uppercase tracking-widest mb-2">
               <InstagramIcon className="w-3.5 h-3.5 text-crab-400" />
-              <span>@crabclub_ua</span>
+              <span>@crab_club.ovi</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white">
               Слідкуйте за нами в Instagram
