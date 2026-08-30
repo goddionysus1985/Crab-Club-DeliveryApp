@@ -138,51 +138,6 @@ export const Hero: React.FC = () => {
           </div>
         </div>
 
-        {/* Live Trust Metrics: Horizontal swipeable chips on mobile (36px), 4 cards on desktop */}
-        <div className="flex sm:grid sm:grid-cols-4 gap-2 sm:gap-4 mt-2.5 sm:mt-4 overflow-x-auto hide-scrollbar pb-1 sm:pb-0 select-none">
-          <div className="apple-card px-3 py-1.5 sm:p-3.5 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 shrink-0 whitespace-nowrap">
-            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
-              <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-400" />
-            </div>
-            <div>
-              <div className="text-xs sm:text-base font-bold text-white flex items-center gap-1">
-                <span>4.97</span>
-                <span className="text-[9px] sm:text-xs text-amber-400 font-normal">★ 850+ відгуків</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="apple-card px-3 py-1.5 sm:p-3.5 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 shrink-0 whitespace-nowrap">
-            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-crab-500/10 border border-crab-500/20 flex items-center justify-center text-crab-400 shrink-0">
-              <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-            <div>
-              <div className="text-xs sm:text-base font-bold text-white">45–60 хв</div>
-              <p className="text-[9px] sm:text-xs text-zinc-400 hidden sm:block">Швидка доставка</p>
-            </div>
-          </div>
-
-          <div className="apple-card px-3 py-1.5 sm:p-3.5 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 shrink-0 whitespace-nowrap">
-            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-            <div>
-              <div className="text-xs sm:text-base font-bold text-emerald-400">від 500 ₴ 0 ₴</div>
-              <p className="text-[9px] sm:text-xs text-zinc-400 hidden sm:block">Безкоштовна доставка</p>
-            </div>
-          </div>
-
-          <div className="apple-card px-3 py-1.5 sm:p-3.5 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 shrink-0 whitespace-nowrap">
-            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
-              <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-            <div>
-              <div className="text-xs sm:text-base font-bold text-amber-300">-10% Самовивіз</div>
-              <p className="text-[9px] sm:text-xs text-zinc-400 hidden sm:block">Знижка на самовивіз</p>
-            </div>
-          </div>
-        </div>
-
       </div>
     </section>
   );
