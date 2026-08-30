@@ -110,9 +110,9 @@ export const FloatingContacts: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* 4. Quick Return to Menu Pill + Floating Speed Dial */}
-      <div className={`fixed right-3.5 sm:right-6 z-30 flex flex-col items-end gap-2.5 transition-all ${
-        totalItemsCount > 0 ? 'bottom-[130px] lg:bottom-6' : 'bottom-[68px] lg:bottom-6'
+      {/* 4. Quick Return to Menu Pill + Floating Speed Dial (Desktop only) */}
+      <div className={`hidden lg:flex fixed right-6 z-30 flex-col items-end gap-2.5 transition-all ${
+        totalItemsCount > 0 ? 'bottom-24' : 'bottom-6'
       }`}>
         {/* Quick Jump to Menu Categories Pill */}
         <AnimatePresence>

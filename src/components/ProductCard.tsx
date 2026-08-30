@@ -87,31 +87,31 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({ product }) => {
           <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isFav ? 'fill-crab-500 text-crab-500' : 'text-zinc-300'}`} />
         </motion.button>
 
-        {/* Badges Container */}
-        <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-col gap-1 z-10">
-          {product.chef_choice && (
-            <span className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 rounded-md sm:rounded-lg bg-purple-600/90 text-white text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-xl shadow-md border border-white/10">
-              <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-              <span>Шеф</span>
+        {/* Sleek Apple Glass Badges */}
+        <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 flex flex-wrap gap-1 max-w-[80%] z-10 pointer-events-none">
+          {product.popular && (
+            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] sm:text-[10px] font-black tracking-wide shadow-md">
+              <Flame className="w-2.5 h-2.5 fill-slate-950" />
+              <span>ХІТ</span>
             </span>
           )}
 
-          {product.popular && (
-            <span className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 rounded-md sm:rounded-lg bg-amber-400 text-slate-950 text-[8px] sm:text-[10px] font-black uppercase tracking-wider backdrop-blur-xl shadow-md">
-              <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-              <span>Хіт</span>
+          {product.chef_choice && (
+            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#1A1228]/85 backdrop-blur-md text-purple-300 border border-purple-500/30 text-[9px] sm:text-[10px] font-bold tracking-wide shadow-md">
+              <Crown className="w-2.5 h-2.5 text-purple-400" />
+              <span>ШЕФ</span>
             </span>
           )}
 
           {product.is_spicy && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md sm:rounded-lg bg-red-600/90 text-white text-[8px] sm:text-[10px] font-bold uppercase tracking-wider backdrop-blur-xl shadow-md border border-white/10">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#200A10]/85 backdrop-blur-md text-rose-300 border border-rose-500/30 text-[9px] sm:text-[10px] font-bold tracking-wide shadow-md">
               <span>🌶️</span>
             </span>
           )}
 
           {product.is_vegetarian && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md sm:rounded-lg bg-emerald-600/90 text-white text-[8px] sm:text-[10px] font-bold uppercase tracking-wider backdrop-blur-xl shadow-md border border-white/10">
-              <Leaf className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#081C12]/85 backdrop-blur-md text-emerald-300 border border-emerald-500/30 text-[9px] sm:text-[10px] font-bold tracking-wide shadow-md">
+              <Leaf className="w-2.5 h-2.5 text-emerald-400" />
             </span>
           )}
         </div>
@@ -136,11 +136,6 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({ product }) => {
             <span className="text-[9px] sm:text-[11px] font-semibold text-zinc-400 uppercase tracking-wider truncate">
               {product.category_name}
             </span>
-            {hasModifiers && (
-              <span className="text-[8px] sm:text-[10px] text-amber-300 bg-amber-500/10 px-1 py-0.5 rounded border border-amber-500/20 shrink-0 font-medium">
-                Опції
-              </span>
-            )}
           </div>
 
           <h3 className="font-bold text-xs sm:text-base text-zinc-100 group-hover:text-amber-300 transition-colors line-clamp-1 mb-1">
@@ -192,14 +187,10 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({ product }) => {
               whileTap={{ scale: 0.92 }}
               onClick={handleAddClick}
               aria-label="Додати до кошика"
-              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-sm font-bold shadow-md transition-all ${
-                hasModifiers
-                  ? 'apple-button-secondary text-white'
-                  : 'apple-button-primary text-white'
-              }`}
+              className="flex items-center justify-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold apple-button-primary text-white shadow-md transition-all"
             >
               <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>{hasModifiers ? 'Опції' : '+'}</span>
+              <span className="hidden sm:inline">У кошик</span>
             </motion.button>
           )}
         </div>
