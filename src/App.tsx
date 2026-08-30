@@ -17,6 +17,7 @@ import { Footer } from './components/Footer';
 import { FloatingContacts } from './components/FloatingContacts';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { NotificationToast } from './components/NotificationToast';
+import { ClosedNoticeModal } from './components/ClosedNoticeModal';
 import { CATEGORIES, PRODUCTS } from './data/menuData';
 import { useCart } from './context/CartContext';
 import { Product } from './types';
@@ -232,6 +233,7 @@ export const App: React.FC = () => {
       <SearchModal />
       <OrderTrackerModal />
       <ProfileModal />
+      <ClosedNoticeModal />
       <NotificationToast />
 
     </div>

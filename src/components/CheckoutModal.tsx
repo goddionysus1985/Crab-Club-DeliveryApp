@@ -13,7 +13,8 @@ import {
   Sparkles, 
   UtensilsCrossed,
   ArrowRight,
-  Info
+  Info,
+  Moon
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
@@ -317,6 +318,19 @@ export const CheckoutModal: React.FC = () => {
                   <span>Самовивіз (-10%)</span>
                 </button>
               </div>
+
+              {/* Closed Outside Work Hours Banner */}
+              {!scheduleStatus.isOpen && (
+                <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-500/40 text-purple-200 text-xs sm:text-sm flex items-start gap-3 shadow-lg">
+                  <Moon className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-bold text-white text-sm mb-0.5">Ресторан зараз зачинено (Графік 10:00 – 22:00)</h4>
+                    <p className="text-zinc-300 font-light leading-relaxed">
+                      Ваше замовлення буде прийнято як <strong>попереднє</strong> на {scheduleStatus.nextOpenTimeText.toLowerCase()} (з 10:00).
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Contact Details */}
               <div className="space-y-3">
@@ -724,7 +738,7 @@ export const CheckoutModal: React.FC = () => {
                     <span>Оформлення...</span>
                   ) : (
                     <>
-                      <span>Підтвердити замовлення</span>
+                      <span>{scheduleStatus.isOpen ? 'Підтвердити замовлення' : 'Підтвердити передзамовлення'}</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}

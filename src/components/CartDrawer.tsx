@@ -11,10 +11,12 @@ import {
   Truck, 
   Store, 
   Tag, 
-  Check 
+  Check,
+  Moon
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { PRODUCTS, RESTAURANT_INFO } from '../data/menuData';
+import { getRestaurantScheduleStatus } from '../utils/workHours';
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -407,6 +409,19 @@ export const CartDrawer: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Closed Outside Work Hours Notice */}
+                  {!getRestaurantScheduleStatus().isOpen && (
+                    <div className="p-3 rounded-2xl bg-purple-950/50 border border-purple-500/30 text-purple-200 text-xs flex items-start gap-2.5">
+                      <Moon className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block text-white">Ресторан зараз зачинено (10:00 – 22:00)</span>
+                        <span className="text-zinc-300 font-light">
+                          Оформлюйте попереднє замовлення — приготуємо {getRestaurantScheduleStatus().nextOpenTimeText.toLowerCase()} (з 10:00).
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Minimum Order Warning if subtotal < 300 */}
                   {!isMinOrderReached && (
                     <div className="p-3 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center justify-between">
@@ -422,7 +437,13 @@ export const CartDrawer: React.FC = () => {
                     onClick={handleProceedToCheckout}
                     className="w-full py-3.5 px-6 rounded-2xl apple-button-primary text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-crab-600/30 disabled:opacity-40 disabled:pointer-events-none"
                   >
-                    <span>{isMinOrderReached ? 'Оформити замовлення' : `Додайте ще на ${minOrderRemaining} ₴`}</span>
+                    <span>
+                      {!isMinOrderReached
+                        ? `Додайте ще на ${minOrderRemaining} ₴`
+                        : getRestaurantScheduleStatus().isOpen
+                        ? 'Оформити замовлення'
+                        : 'Передзамовлення на завтра'}
+                    </span>
                     <ArrowRight className="w-4 h-4" />
                   </motion.button>
                 </div>
