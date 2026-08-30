@@ -182,28 +182,28 @@ export const Header: React.FC = () => {
               </button>
             )}
 
-            {/* Quick Search */}
+            {/* Quick Search (Desktop only) */}
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-all text-xs font-medium"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-all text-xs font-medium"
               aria-label="Пошук страви"
             >
               <Search className="w-4 h-4 text-amber-400" />
-              <span className="hidden md:inline">Пошук</span>
-              <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[10px] bg-black/40 text-zinc-400 rounded border border-white/10">
+              <span>Пошук</span>
+              <kbd className="inline-block px-1.5 py-0.5 text-[10px] bg-black/40 text-zinc-400 rounded border border-white/10">
                 ⌘K
               </kbd>
             </button>
 
-            {/* Personal Account / Profile Button */}
+            {/* Personal Account / Profile Button (Desktop only) */}
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="relative p-2 sm:px-3 sm:py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-amber-400 transition-all flex items-center gap-1.5"
+              className="hidden lg:flex relative px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-amber-400 transition-all items-center gap-1.5"
               aria-label="Особистий кабінет"
               title="Особистий кабінет та історія замовлень"
             >
               <User className="w-4 h-4 text-amber-400" />
-              <span className="hidden xl:inline text-xs font-medium text-zinc-300 hover:text-white max-w-[85px] truncate">
+              <span className="text-xs font-medium text-zinc-300 hover:text-white max-w-[90px] truncate">
                 {userProfile.name || 'Кабінет'}
               </span>
               {orderHistory.length > 0 && (
@@ -213,10 +213,10 @@ export const Header: React.FC = () => {
               )}
             </button>
 
-            {/* Favorites Icon */}
+            {/* Favorites Icon (Desktop only) */}
             <a
               href="#favorites"
-              className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-crab-400 transition-all"
+              className="hidden lg:flex relative p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-crab-400 transition-all"
               aria-label="Улюблені страви"
             >
               <Heart className={`w-4 h-4 ${favorites.length > 0 ? 'fill-crab-500 text-crab-500' : ''}`} />
@@ -230,14 +230,14 @@ export const Header: React.FC = () => {
             {/* Phone Call Quick Link */}
             <a
               href={`tel:${RESTAURANT_INFO.phone_raw}`}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-200 hover:text-amber-400 transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-200 hover:text-amber-400 transition-all"
             >
               <Phone className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden xl:inline">{RESTAURANT_INFO.phone}</span>
-              <span className="xl:hidden">Дзвінок</span>
+              <span className="hidden sm:inline">{RESTAURANT_INFO.phone}</span>
+              <span className="sm:hidden">Дзвінок</span>
             </a>
 
-            {/* Cart Button with Spring Bounce Animation on Add */}
+            {/* Cart Button (Desktop only) */}
             <motion.button
               key={totalItemsCount}
               initial={{ scale: 1 }}
@@ -245,11 +245,11 @@ export const Header: React.FC = () => {
               transition={{ duration: 0.35 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => setIsCartOpen(true)}
-              className="relative flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl apple-button-primary text-white font-semibold text-xs sm:text-sm transition-all shadow-md"
+              className="hidden lg:flex relative items-center gap-2 px-4 py-2 rounded-xl apple-button-primary text-white font-semibold text-sm transition-all shadow-md"
               aria-label="Відкрити кошик"
             >
               <div className="relative">
-                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+                <ShoppingBag className="w-4 h-4" />
                 {totalItemsCount > 0 && (
                   <motion.span
                     initial={{ scale: 0.5 }}
@@ -261,7 +261,7 @@ export const Header: React.FC = () => {
                   </motion.span>
                 )}
               </div>
-              <span className="hidden xs:inline">
+              <span>
                 {total > 0 ? `${total} ₴` : 'Кошик'}
               </span>
             </motion.button>
