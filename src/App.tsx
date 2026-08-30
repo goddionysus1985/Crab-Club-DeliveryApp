@@ -32,115 +32,36 @@ export const App: React.FC = () => {
   const isScrollingProgrammatically = useRef(false);
   const scrollTimeoutRef = useRef<number | null>(null);
 
-  // Smooth scroll handler with offset for sticky header & nav
+  // Instant Tab-Filter Category Handler
   const handleSelectCategory = (slug: string) => {
     setActiveCategory(slug);
     setActiveSubcategory('all');
 
-    isScrollingProgrammatically.current = true;
-    if (scrollTimeoutRef.current) {
-      window.clearTimeout(scrollTimeoutRef.current);
-    }
-
-    requestAnimationFrame(() => {
-      if (slug === 'all') {
-        const anchor = document.getElementById('menu-top-anchor');
-        if (anchor) {
-          const headerEl = document.querySelector('header');
-          const headerH = headerEl ? headerEl.offsetHeight : 52;
-          const targetY = anchor.getBoundingClientRect().top + window.pageYOffset - headerH - 10;
-          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      } else {
-        const targetSection = document.getElementById(`category-${slug}`);
-        if (targetSection) {
-          const headerEl = document.querySelector('header');
-          const navEl = document.getElementById('menu-nav');
-          const headerH = headerEl ? headerEl.offsetHeight : 52;
-          const navH = navEl ? navEl.offsetHeight : 55;
-          const totalOffset = headerH + navH + 16;
-
-          const targetY = targetSection.getBoundingClientRect().top + window.pageYOffset - totalOffset;
-          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-        }
+    // Ensure menu begins right below sticky header
+    const navEl = document.getElementById('menu-nav');
+    if (navEl) {
+      const headerEl = document.querySelector('header');
+      const headerH = headerEl ? headerEl.offsetHeight : 52;
+      const targetY = navEl.getBoundingClientRect().top + window.pageYOffset - headerH;
+      // Scroll to menu top if user is looking at hero or deep down
+      if (window.pageYOffset > targetY + 50 || window.pageYOffset < targetY - 100) {
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
       }
-
-      scrollTimeoutRef.current = window.setTimeout(() => {
-        isScrollingProgrammatically.current = false;
-      }, 900);
-    });
+    }
   };
 
   const handleSelectSubcategory = (subSlug: string) => {
     setActiveSubcategory(subSlug);
-    if (activeCategory !== 'all') {
-      isScrollingProgrammatically.current = true;
-      if (scrollTimeoutRef.current) {
-        window.clearTimeout(scrollTimeoutRef.current);
+    const navEl = document.getElementById('menu-nav');
+    if (navEl) {
+      const headerEl = document.querySelector('header');
+      const headerH = headerEl ? headerEl.offsetHeight : 52;
+      const targetY = navEl.getBoundingClientRect().top + window.pageYOffset - headerH;
+      if (window.pageYOffset > targetY + 50) {
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
       }
-
-      requestAnimationFrame(() => {
-        const targetSection = document.getElementById(`category-${activeCategory}`);
-        if (targetSection) {
-          const headerEl = document.querySelector('header');
-          const navEl = document.getElementById('menu-nav');
-          const headerH = headerEl ? headerEl.offsetHeight : 52;
-          const navH = navEl ? navEl.offsetHeight : 55;
-          const totalOffset = headerH + navH + 16;
-
-          const targetY = targetSection.getBoundingClientRect().top + window.pageYOffset - totalOffset;
-          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-        }
-
-        scrollTimeoutRef.current = window.setTimeout(() => {
-          isScrollingProgrammatically.current = false;
-        }, 900);
-      });
     }
   };
-
-  // High-precision ScrollSpy based on reading-line threshold
-  useEffect(() => {
-    const handleScroll = () => {
-      if (isScrollingProgrammatically.current) return;
-
-      const headerEl = document.querySelector('header');
-      const navEl = document.getElementById('menu-nav');
-      const headerH = headerEl ? headerEl.offsetHeight : 55;
-      const navH = navEl ? navEl.offsetHeight : 60;
-      const triggerThreshold = headerH + navH + 40;
-
-      const menuTopAnchor = document.getElementById('menu-top-anchor');
-      // If user is at or above the menu anchor, highlight 'all'
-      if (menuTopAnchor && menuTopAnchor.getBoundingClientRect().top > headerH + 10) {
-        if (activeCategory !== 'all') {
-          setActiveCategory('all');
-        }
-        return;
-      }
-
-      // Find the active section: the last category whose top <= triggerThreshold
-      let activeSlug = '';
-      for (const cat of CATEGORIES) {
-        const el = document.getElementById(`category-${cat.slug}`);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top <= triggerThreshold) {
-            activeSlug = cat.slug;
-          }
-        }
-      }
-
-      if (activeSlug && activeSlug !== activeCategory) {
-        setActiveCategory(activeSlug);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [activeCategory]);
 
   // Filter & Sort helper
   const processProductsList = (list: Product[]) => {
@@ -225,9 +146,9 @@ export const App: React.FC = () => {
           </section>
         )}
 
-        {/* All Categories Rendered Continuously */}
+        {/* Categories Catalog */}
         <div className="space-y-16">
-          {CATEGORIES.map(category => {
+          {CATEGORIES.filter(category => activeCategory === 'all' || category.slug === activeCategory).map(category => {
             let catProducts = PRODUCTS.filter(p => 
               p.category_url === category.slug || 
               p.parent_category_url === category.slug || 
