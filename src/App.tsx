@@ -179,18 +179,10 @@ export const App: React.FC = () => {
                 className="scroll-mt-44"
               >
                 {/* Category Header */}
-                <div className="flex items-end justify-between border-b border-white/10 pb-4 mb-6">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="w-2.5 h-2.5 rounded-full bg-crab-600"></span>
-                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-                        Розділ меню
-                      </span>
-                    </div>
-                    <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white">
-                      {category.name}
-                    </h2>
-                  </div>
+                <div className="flex items-end justify-between border-b border-white/10 pb-3 mb-5">
+                  <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white">
+                    {category.name}
+                  </h2>
 
                   <span className="text-xs text-slate-400 font-medium">
                     {filtered.length} позицій
