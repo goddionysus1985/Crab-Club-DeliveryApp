@@ -298,3 +298,123 @@ export async function registerPosterClient(name: string, phone: string): Promise
   };
 }
 
+/**
+ * Live Stop-List cache and fetcher (Real-time Stock Management)
+ */
+let stopListCache: Set<number> = new Set();
+let lastStopListFetch = 0;
+
+/**
+ * Fetch currently stopped product IDs from Poster POS in real-time
+ */
+export async function fetchPosterStopList(spotId: number = POSTER_CONFIG.defaultSpotId || 1): Promise<Set<number>> {
+  // Cache for 30 seconds to prevent hammering Poster API on rapid cart updates
+  if (Date.now() - lastStopListFetch < 30000 && stopListCache.size > 0) {
+    return stopListCache;
+  }
+
+  if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
+    try {
+      const endpoint = `https://joinposter.com/api/spots.getSpotStopList?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}&spot_id=${spotId}`;
+      const res = await fetch(endpoint);
+      const data = await res.json();
+      
+      if (data.response && Array.isArray(data.response)) {
+        const stoppedIds = new Set<number>();
+        data.response.forEach((item: any) => {
+          if (item.product_id) stoppedIds.add(Number(item.product_id));
+        });
+        stopListCache = stoppedIds;
+        lastStopListFetch = Date.now();
+        return stopListCache;
+      }
+    } catch (err) {
+      console.warn('[Poster Stop-List] Failed to fetch stop list from Poster API:', err);
+    }
+  }
+
+  return stopListCache;
+}
+
+/**
+ * Validate cart items against the active kitchen stop-list before checkout or payment
+ */
+export async function validateCartAvailability(cart: CartItem[]): Promise<{
+  isValid: boolean;
+  unavailableItems: Array<{ cartItemId: string; productName: string }>;
+}> {
+  const stoppedIds = await fetchPosterStopList();
+  if (stoppedIds.size === 0) {
+    return { isValid: true, unavailableItems: [] };
+  }
+
+  const unavailableItems: Array<{ cartItemId: string; productName: string }> = [];
+
+  cart.forEach(item => {
+    if (stoppedIds.has(item.product.id)) {
+      unavailableItems.push({
+        cartItemId: item.id,
+        productName: item.product.name
+      });
+    }
+  });
+
+  return {
+    isValid: unavailableItems.length === 0,
+    unavailableItems
+  };
+}
+
+/**
+ * Fetch entire live menu & categories from Poster POS API (Dynamic Menu Sync)
+ */
+export async function syncPosterMenuCatalog(): Promise<{ success: boolean; productsCount?: number; message: string }> {
+  if (!POSTER_CONFIG.isLiveMode || !POSTER_CONFIG.apiToken) {
+    return {
+      success: true,
+      message: 'Каталог синхронізовано з локальної бази (Режим готовності до Poster API)'
+    };
+  }
+
+  try {
+    const productsEndpoint = `https://joinposter.com/api/menu.getProducts?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+    const categoriesEndpoint = `https://joinposter.com/api/menu.getCategories?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+
+    const [productsRes, categoriesRes] = await Promise.all([
+      fetch(productsEndpoint),
+      fetch(categoriesEndpoint)
+    ]);
+
+    const productsData = await productsRes.json();
+    const categoriesData = await categoriesRes.json();
+
+    if (productsData.response && Array.isArray(productsData.response)) {
+      // Save synced snapshot in LocalStorage
+      localStorage.setItem('crabclub_synced_poster_menu', JSON.stringify({
+        timestamp: Date.now(),
+        products: productsData.response,
+        categories: categoriesData.response || []
+      }));
+
+      console.info(`[Poster Menu Sync] 🔄 Успішно оновлено ${productsData.response.length} страв з Poster POS API!`);
+      return {
+        success: true,
+        productsCount: productsData.response.length,
+        message: `Успішно синхронізовано ${productsData.response.length} позицій меню з Poster POS`
+      };
+    }
+
+    return {
+      success: false,
+      message: 'Poster API повернув неочікуваний формат меню'
+    };
+  } catch (err: any) {
+    console.error('[Poster Menu Sync] Помилка синхронізації меню:', err);
+    return {
+      success: false,
+      message: err.message || 'Помилка мережі при завантаженні меню'
+    };
+  }
+}
+
+

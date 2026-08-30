@@ -17,6 +17,7 @@ import {
 import { useCart } from '../context/CartContext';
 import { PRODUCTS, RESTAURANT_INFO } from '../data/menuData';
 import { getRestaurantScheduleStatus } from '../utils/workHours';
+import { validateCartAvailability } from '../services/posterApi';
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -43,7 +44,8 @@ export const CartDrawer: React.FC = () => {
     addToCart,
     cashbackEarned,
     isMinOrderReached,
-    minOrderRemaining
+    minOrderRemaining,
+    showToast
   } = useCart();
 
   const [inputPromo, setInputPromo] = useState('');
@@ -63,7 +65,13 @@ export const CartDrawer: React.FC = () => {
     }
   };
 
-  const handleProceedToCheckout = () => {
+  const handleProceedToCheckout = async () => {
+    const check = await validateCartAvailability(cart);
+    if (!check.isValid && check.unavailableItems.length > 0) {
+      showToast(`Страва "${check.unavailableItems[0].productName}" тимчасово в стоп-листі`, undefined, 'error');
+      return;
+    }
+
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };
