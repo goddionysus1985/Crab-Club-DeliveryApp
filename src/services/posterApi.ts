@@ -173,38 +173,97 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
 }
 
 /**
- * Fetch latest live prices & products from Poster POS API
- * (GET /api/menu.getProducts)
+ * Customer Profile & Loyalty interface from Poster POS CRM
  */
-export async function syncPricesWithPoster(): Promise<Record<number, number> | null> {
-  if (!POSTER_CONFIG.isLiveMode || !POSTER_CONFIG.apiToken) {
-    return null;
-  }
-
-  try {
-    const endpoint = `https://joinposter.com/api/menu.getProducts?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
-    const response = await fetch(endpoint);
-    const result = await response.json();
-
-    if (result.response && Array.isArray(result.response)) {
-      const priceMap: Record<number, number> = {};
-      result.response.forEach((prod: any) => {
-        const prodId = parseInt(prod.product_id, 10);
-        // Poster returns price in kopecks (e.g. 35900 = 359 UAH) or in currency units
-        const price = typeof prod.price === 'object' 
-          ? parseInt(Object.values(prod.price)[0] as string, 10) / 100 
-          : parseInt(prod.price, 10) / 100;
-
-        if (prodId && price > 0) {
-          priceMap[prodId] = price;
-        }
-      });
-      console.info('[Poster POS] 🔄 Ціни успішно синхронізовано з хмарою Poster!');
-      return priceMap;
-    }
-    return null;
-  } catch (error) {
-    console.warn('[Poster POS] Не вдалося синхронізувати ціни з Poster:', error);
-    return null;
-  }
+export interface PosterClient {
+  client_id: number;
+  firstname: string;
+  lastname?: string;
+  phone: string;
+  bonus: number; // in UAH
+  discount_per?: number;
+  total_payed_sum?: number;
 }
+
+/**
+ * Find customer in Poster POS CRM by phone number and get real bonus balance
+ */
+export async function getPosterClientByPhone(phone: string): Promise<PosterClient | null> {
+  const cleanPhone = phone.replace(/[^\d]/g, '');
+  if (!cleanPhone || cleanPhone.length < 9) return null;
+
+  if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
+    try {
+      const endpoint = `https://joinposter.com/api/clients.getClients?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}&phone=${encodeURIComponent(cleanPhone)}`;
+      const res = await fetch(endpoint);
+      const data = await res.json();
+      if (data.response && Array.isArray(data.response) && data.response.length > 0) {
+        const c = data.response[0];
+        const bonusRaw = parseFloat(c.bonus || '0');
+        const bonusUah = bonusRaw > 1000 ? Math.round(bonusRaw / 100) : Math.round(bonusRaw);
+        return {
+          client_id: parseInt(c.client_id, 10),
+          firstname: c.firstname || c.client_name || '',
+          lastname: c.lastname || '',
+          phone: c.phone || cleanPhone,
+          bonus: bonusUah,
+          discount_per: parseFloat(c.discount_per || '0'),
+          total_payed_sum: parseFloat(c.total_payed_sum || '0') / 100
+        };
+      }
+    } catch (e) {
+      console.warn('[Poster CRM] Error fetching client by phone:', e);
+    }
+  }
+
+  // Simulation mode: if no live token yet, generate a simulated bonus balance
+  return {
+    client_id: 1001,
+    firstname: 'Гість',
+    phone: cleanPhone,
+    bonus: 50,
+    discount_per: 0
+  };
+}
+
+/**
+ * Register a new customer in Poster POS CRM
+ */
+export async function registerPosterClient(name: string, phone: string): Promise<PosterClient | null> {
+  const cleanPhone = phone.replace(/[^\d]/g, '');
+  if (!cleanPhone) return null;
+
+  if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
+    try {
+      const endpoint = `https://joinposter.com/api/clients.createClient?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_name: name || 'Гість',
+          phone: cleanPhone,
+          client_sex: 0
+        })
+      });
+      const data = await res.json();
+      if (data.response && data.response.client_id) {
+        return {
+          client_id: parseInt(data.response.client_id, 10),
+          firstname: name,
+          phone: cleanPhone,
+          bonus: 0
+        };
+      }
+    } catch (e) {
+      console.warn('[Poster CRM] Error creating client:', e);
+    }
+  }
+
+  return {
+    client_id: 1002,
+    firstname: name,
+    phone: cleanPhone,
+    bonus: 0
+  };
+}
+

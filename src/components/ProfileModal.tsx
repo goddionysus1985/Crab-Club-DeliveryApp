@@ -17,11 +17,13 @@ import {
   ShieldCheck,
   Sparkles,
   UtensilsCrossed,
-  FileText
+  FileText,
+  RefreshCw
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { PRODUCTS } from '../data/menuData';
 import { OrderDetails } from '../types';
+import { getPosterClientByPhone } from '../services/posterApi';
 
 export const ProfileModal: React.FC = () => {
   const { 
@@ -50,6 +52,33 @@ export const ProfileModal: React.FC = () => {
   const [floor, setFloor] = useState(userProfile.floor || '');
   const [doorphone, setDoorphone] = useState(userProfile.doorphone || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isSyncingPoster, setIsSyncingPoster] = useState(false);
+
+  const handleSyncPoster = async () => {
+    if (!phone || phone.replace(/[^\d]/g, '').length < 9) {
+      showToast('Будь ласка, введіть коректний номер телефону', undefined, 'error');
+      return;
+    }
+    setIsSyncingPoster(true);
+    try {
+      const client = await getPosterClientByPhone(phone);
+      if (client) {
+        setName(client.firstname || name);
+        updateUserProfile({
+          name: client.firstname || name,
+          phone: client.phone || phone,
+          bonusBalance: client.bonus
+        });
+        showToast(`🎉 Профіль синхронізовано з касою! Баланс: ${client.bonus} ₴`, undefined, 'success');
+      } else {
+        showToast('Профіль не знайдено в базі каси, але дані збережено', undefined, 'info');
+      }
+    } catch (err) {
+      showToast('Помилка зв\'язку з сервером лояльності', undefined, 'error');
+    } finally {
+      setIsSyncingPoster(false);
+    }
+  };
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -305,13 +334,25 @@ export const ProfileModal: React.FC = () => {
 
                   <div className="space-y-1">
                     <label className="text-[11px] text-zinc-400 font-medium">Номер телефону</label>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+380 (__) ___ __ __"
-                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+380 (__) ___ __ __"
+                        className="flex-1 bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
+                      />
+                      <button
+                        type="button"
+                        disabled={isSyncingPoster}
+                        onClick={handleSyncPoster}
+                        className="px-3.5 py-2.5 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 disabled:opacity-50"
+                        title="Оновити баланс бонусів з каси ресторану (Poster POS)"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isSyncingPoster ? 'animate-spin' : ''}`} />
+                        <span>Синхронізувати</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
