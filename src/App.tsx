@@ -18,6 +18,8 @@ import { FloatingContacts } from './components/FloatingContacts';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { NotificationToast } from './components/NotificationToast';
 import { ClosedNoticeModal } from './components/ClosedNoticeModal';
+import { PWAInstallBanner } from './components/PWAInstallBanner';
+import { QuickReorderBanner } from './components/QuickReorderBanner';
 import { CATEGORIES, PRODUCTS } from './data/menuData';
 import { useCart } from './context/CartContext';
 import { Product } from './types';
@@ -106,6 +108,9 @@ export const App: React.FC = () => {
         onSelectCategory={handleSelectCategory}
         onSelectSubcategory={handleSelectSubcategory}
       />
+
+      {/* Quick Reorder Banner (if past orders exist) */}
+      <QuickReorderBanner />
 
       {/* Anchor for scrolling back to menu */}
       <div id="menu-top-anchor" className="scroll-mt-16" />
@@ -234,6 +239,7 @@ export const App: React.FC = () => {
       <OrderTrackerModal />
       <ProfileModal />
       <ClosedNoticeModal />
+      <PWAInstallBanner />
       <NotificationToast />
 
     </div>
