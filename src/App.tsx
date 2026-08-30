@@ -42,36 +42,33 @@ export const App: React.FC = () => {
       window.clearTimeout(scrollTimeoutRef.current);
     }
 
-    // Allow DOM to settle before measuring exact element offset
-    setTimeout(() => {
-      if (slug === 'all') {
-        const anchor = document.getElementById('menu-top-anchor');
-        if (anchor) {
-          const headerEl = document.querySelector('header');
-          const headerH = headerEl ? headerEl.offsetHeight : 55;
-          const targetY = anchor.getBoundingClientRect().top + window.scrollY - headerH;
-          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+    if (slug === 'all') {
+      const anchor = document.getElementById('menu-top-anchor');
+      if (anchor) {
+        const headerEl = document.querySelector('header');
+        const headerH = headerEl ? headerEl.offsetHeight : 55;
+        const targetY = anchor.getBoundingClientRect().top + window.pageYOffset - headerH;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
       } else {
-        const targetSection = document.getElementById(`category-${slug}`);
-        if (targetSection) {
-          const headerEl = document.querySelector('header');
-          const navEl = document.getElementById('menu-nav');
-          const headerH = headerEl ? headerEl.offsetHeight : 55;
-          const navH = navEl ? navEl.offsetHeight : 60;
-          const totalOffset = headerH + navH + 8;
-
-          const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
-          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+    } else {
+      const targetSection = document.getElementById(`category-${slug}`);
+      if (targetSection) {
+        const headerEl = document.querySelector('header');
+        const navEl = document.getElementById('menu-nav');
+        const headerH = headerEl ? headerEl.offsetHeight : 55;
+        const navH = navEl ? navEl.offsetHeight : 60;
+        const totalOffset = headerH + navH + 12;
 
-      scrollTimeoutRef.current = window.setTimeout(() => {
-        isScrollingProgrammatically.current = false;
-      }, 1200);
-    }, 40);
+        const targetY = targetSection.getBoundingClientRect().top + window.pageYOffset - totalOffset;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      }
+    }
+
+    scrollTimeoutRef.current = window.setTimeout(() => {
+      isScrollingProgrammatically.current = false;
+    }, 1000);
   };
 
   const handleSelectSubcategory = (subSlug: string) => {
@@ -82,27 +79,25 @@ export const App: React.FC = () => {
         window.clearTimeout(scrollTimeoutRef.current);
       }
 
-      setTimeout(() => {
-        const targetSection = document.getElementById(`category-${activeCategory}`);
-        if (targetSection) {
-          const headerEl = document.querySelector('header');
-          const navEl = document.getElementById('menu-nav');
-          const headerH = headerEl ? headerEl.offsetHeight : 55;
-          const navH = navEl ? navEl.offsetHeight : 60;
-          const totalOffset = headerH + navH + 8;
+      const targetSection = document.getElementById(`category-${activeCategory}`);
+      if (targetSection) {
+        const headerEl = document.querySelector('header');
+        const navEl = document.getElementById('menu-nav');
+        const headerH = headerEl ? headerEl.offsetHeight : 55;
+        const navH = navEl ? navEl.offsetHeight : 60;
+        const totalOffset = headerH + navH + 12;
 
-          const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
-          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-        }
+        const targetY = targetSection.getBoundingClientRect().top + window.pageYOffset - totalOffset;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      }
 
-        scrollTimeoutRef.current = window.setTimeout(() => {
-          isScrollingProgrammatically.current = false;
-        }, 1200);
-      }, 40);
+      scrollTimeoutRef.current = window.setTimeout(() => {
+        isScrollingProgrammatically.current = false;
+      }, 1000);
     }
   };
 
-  // ScrollSpy based on real viewport bounding boxes
+  // High-precision ScrollSpy based on reading-line threshold
   useEffect(() => {
     const handleScroll = () => {
       if (isScrollingProgrammatically.current) return;
@@ -111,32 +106,31 @@ export const App: React.FC = () => {
       const navEl = document.getElementById('menu-nav');
       const headerH = headerEl ? headerEl.offsetHeight : 55;
       const navH = navEl ? navEl.offsetHeight : 60;
-      const triggerThreshold = headerH + navH + 15;
+      const triggerThreshold = headerH + navH + 40;
 
-      let currentSlug = 'all';
-
-      // Check if user is above the menu
-      if (navEl && navEl.getBoundingClientRect().top > triggerThreshold + 20) {
+      const menuTopAnchor = document.getElementById('menu-top-anchor');
+      // If user is at or above the menu anchor, highlight 'all'
+      if (menuTopAnchor && menuTopAnchor.getBoundingClientRect().top > headerH + 10) {
         if (activeCategory !== 'all') {
           setActiveCategory('all');
         }
         return;
       }
 
-      // Check categories from top to bottom
+      // Find the active section: the last category whose top <= triggerThreshold
+      let activeSlug = '';
       for (const cat of CATEGORIES) {
         const el = document.getElementById(`category-${cat.slug}`);
         if (el) {
           const rect = el.getBoundingClientRect();
-          if (rect.top <= triggerThreshold + 10 && rect.bottom > triggerThreshold - 10) {
-            currentSlug = cat.slug;
-            break;
+          if (rect.top <= triggerThreshold) {
+            activeSlug = cat.slug;
           }
         }
       }
 
-      if (currentSlug !== activeCategory) {
-        setActiveCategory(currentSlug);
+      if (activeSlug && activeSlug !== activeCategory) {
+        setActiveCategory(activeSlug);
       }
     };
 
