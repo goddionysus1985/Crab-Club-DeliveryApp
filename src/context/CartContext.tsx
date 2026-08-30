@@ -250,6 +250,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [toast, setToast] = useState<Toast | null>(null);
 
+  // Lock background body scroll whenever any modal/drawer is open
+  const isAnyModalOpen = isCartOpen || isCheckoutOpen || isSearchOpen || isOrderTrackerOpen || isProfileOpen || activeProductModal !== null;
+
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isAnyModalOpen]);
+
   // Sync cart to localStorage
   useEffect(() => {
     try {

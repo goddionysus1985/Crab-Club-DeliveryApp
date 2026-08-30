@@ -48,6 +48,7 @@ export const CartDrawer: React.FC = () => {
 
   const [inputPromo, setInputPromo] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const scheduleStatus = getRestaurantScheduleStatus();
 
   // Find drinks and desserts for upsell
   const upsellProducts = PRODUCTS.filter(p => 
@@ -78,141 +79,142 @@ export const CartDrawer: React.FC = () => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
             onClick={() => setIsCartOpen(false)}
-            className="fixed inset-0 bg-black/75 backdrop-blur-md"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md"
           />
 
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
-            {/* Apple Spring Slide-Over Panel */}
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="w-screen max-w-md bg-[#0F0F17] border-l border-white/10 shadow-2xl flex flex-col relative"
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="w-screen max-w-md bg-[#0E0E16] text-white shadow-2xl flex flex-col justify-between border-l border-white/[0.08]"
             >
               {/* Header */}
-              <div className="p-4 sm:p-5 border-b border-white/[0.08] flex items-center justify-between bg-[#12121D]/80 backdrop-blur-xl">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-2xl bg-crab-600/20 border border-crab-500/30 text-crab-400">
-                    <ShoppingBag className="w-5 h-5" />
+              <div className="p-4 sm:p-5 border-b border-white/[0.08] bg-[#12121D]/90 backdrop-blur-xl shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-crab-600/20 border border-crab-500/30 text-crab-400 flex items-center justify-center">
+                      <ShoppingBag className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                        Ваш кошик
+                      </h2>
+                      <p className="text-xs text-zinc-400">
+                        {cart.length > 0 ? `${cart.reduce((s, i) => s + i.quantity, 0)} позицій у замовленні` : 'Кошик порожній'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-white tracking-tight">Ваш кошик</h2>
-                    <p className="text-xs text-zinc-400">
-                      {cart.length > 0 ? `${cart.reduce((s, i) => s + i.quantity, 0)} позицій у замовленні` : 'Кошик порожній'}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-1.5">
-                  {cart.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    {cart.length > 0 && (
+                      <button
+                        onClick={() => setShowClearConfirm(true)}
+                        aria-label="Очистити кошик"
+                        className="p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-white/5 transition-colors"
+                        title="Очистити кошик"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+
                     <motion.button
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => setShowClearConfirm(true)}
-                      className="p-2 text-zinc-400 hover:text-red-400 hover:bg-white/5 rounded-2xl transition-colors"
-                      title="Очистити кошик"
+                      onClick={() => setIsCartOpen(false)}
+                      aria-label="Закрити"
+                      className="p-2 rounded-2xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 transition-colors"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <X className="w-5 h-5" />
                     </motion.button>
-                  )}
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setIsCartOpen(false)}
-                    className="p-2 rounded-2xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/5"
-                  >
-                    <X className="w-5 h-5" />
-                  </motion.button>
-                </div>
-              </div>
-
-              {/* Delivery / Takeaway Switcher (Apple Segmented Bar) */}
-              <div className="p-4 bg-white/[0.02] border-b border-white/[0.06]">
-                <div className="grid grid-cols-2 gap-1.5 bg-[#171724] p-1 rounded-2xl border border-white/[0.06] relative">
-                  <button
-                    type="button"
-                    onClick={() => setOrderType('delivery')}
-                    className={`relative flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-colors z-10 ${
-                      orderType === 'delivery' ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
-                    }`}
-                  >
-                    {orderType === 'delivery' && (
-                      <motion.div
-                        layoutId="orderTypePill"
-                        className="absolute inset-0 bg-gradient-to-r from-crab-600 to-crab-700 rounded-xl shadow-md -z-10"
-                        transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-                      />
-                    )}
-                    <Truck className="w-4 h-4" />
-                    <span>Доставка</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setOrderType('takeaway')}
-                    className={`relative flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-colors z-10 ${
-                      orderType === 'takeaway' ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
-                    }`}
-                  >
-                    {orderType === 'takeaway' && (
-                      <motion.div
-                        layoutId="orderTypePill"
-                        className="absolute inset-0 bg-gradient-to-r from-crab-600 to-crab-700 rounded-xl shadow-md -z-10"
-                        transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-                      />
-                    )}
-                    <Store className="w-4 h-4" />
-                    <span>Самовивіз</span>
-                    <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black">
-                      -10%
-                    </span>
-                  </button>
+                  </div>
                 </div>
 
-                {/* Free Delivery Bar */}
-                {orderType === 'delivery' && (
-                  <div className="mt-3 bg-[#171726] rounded-2xl p-3 border border-white/[0.06]">
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="font-semibold text-zinc-300 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                        <span>
-                          {amountNeededForFreeDelivery > 0
-                            ? `Додайте ще ${amountNeededForFreeDelivery} ₴ для безкоштовної доставки`
-                            : '🎉 Безкоштовна доставка активна!'}
+                {/* Delivery Mode Toggle (Delivery / Takeaway -10%) */}
+                {cart.length > 0 && (
+                  <div className="grid grid-cols-2 gap-1.5 bg-[#171724] p-1 rounded-2xl border border-white/[0.06] mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setOrderType('delivery')}
+                      className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                        orderType === 'delivery'
+                          ? 'apple-button-primary text-white shadow-md'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <Truck className="w-3.5 h-3.5" />
+                      <span>Доставка</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setOrderType('takeaway')}
+                      className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                        orderType === 'takeaway'
+                          ? 'apple-button-primary text-white shadow-md'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <Store className="w-3.5 h-3.5" />
+                      <span>Самовивіз</span>
+                      <span className="px-1.5 py-0.2 rounded bg-amber-400 text-black text-[9px] font-black">
+                        -10%
+                      </span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Free Delivery Dynamic Progress Tracker */}
+                {cart.length > 0 && orderType === 'delivery' && (
+                  <div className="mt-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <div className="flex justify-between items-center text-[11px] mb-1.5 font-medium">
+                      {amountNeededForFreeDelivery > 0 ? (
+                        <span className="text-zinc-300 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-amber-400" />
+                          <span>Додайте ще <strong className="text-amber-400 font-bold">{amountNeededForFreeDelivery} ₴</strong> для безкоштовної доставки</span>
                         </span>
-                      </span>
-                      <span className="text-[11px] text-amber-400 font-bold">
-                        {freeDeliveryProgress}%
-                      </span>
+                      ) : (
+                        <span className="text-emerald-400 font-bold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Вітаємо! У вас безкоштовна доставка 🎉</span>
+                        </span>
+                      )}
+                      <span className="text-zinc-400 font-bold">{freeDeliveryProgress}%</span>
                     </div>
+
                     <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 rounded-full"
+                        className="h-full bg-gradient-to-r from-amber-500 via-emerald-500 to-emerald-400 rounded-full"
                         initial={{ width: 0 }}
                         animate={{ width: `${freeDeliveryProgress}%` }}
-                        transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
                       />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Cart Items List */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {/* Scrollable Cart Items List */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
                 {cart.length === 0 ? (
-                  <div className="text-center py-16">
-                    <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 text-zinc-500">
-                      <ShoppingBag className="w-10 h-10" />
+                  <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4 my-auto">
+                    <div className="w-20 h-20 rounded-3xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-zinc-500 shadow-inner">
+                      <ShoppingBag className="w-9 h-9" />
                     </div>
-                    <h3 className="text-lg font-bold text-white mb-1">Ваш кошик порожній</h3>
-                    <p className="text-xs text-zinc-400 max-w-xs mx-auto mb-6 font-light">
-                      Оберіть найсмачніші суші, піцу або авторські страви з нашого преміум-меню.
-                    </p>
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-bold text-white">
+                        Ваш кошик порожній
+                      </h3>
+                      <p className="text-xs text-zinc-400 max-w-xs font-light">
+                        Оберіть найсмачніші роли, неаполітанську піцу чи авторські страви у нашому меню.
+                      </p>
+                    </div>
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setIsCartOpen(false)}
-                      className="px-6 py-2.5 rounded-2xl apple-button-primary text-white text-xs font-bold"
+                      className="px-6 py-3 rounded-2xl apple-button-primary text-white text-xs font-bold shadow-lg shadow-crab-600/30"
                     >
-                      Перейти до меню
+                      Переглянути меню
                     </motion.button>
                   </div>
                 ) : (
@@ -223,27 +225,33 @@ export const CartDrawer: React.FC = () => {
                         layout
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-                        className="apple-card p-3.5 rounded-2xl flex gap-3 items-center group relative"
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="p-3 sm:p-3.5 rounded-2xl bg-[#14141F] border border-white/[0.07] flex items-center gap-3 relative group shadow-sm hover:border-white/15 transition-all"
                       >
-                        {/* Image */}
+                        {/* Product Image */}
                         <img
                           src={item.product.image}
                           alt={item.product.name}
-                          className="w-16 h-16 rounded-xl object-cover bg-[#1A1A26] shrink-0 shadow-sm"
+                          className="w-16 h-16 rounded-xl object-cover bg-black/40 shrink-0 border border-white/10"
                         />
 
-                        {/* Info */}
+                        {/* Info & Modifiers */}
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-xs sm:text-sm text-white truncate mb-0.5">
+                          <h4 className="font-display font-bold text-xs sm:text-sm text-white truncate">
                             {item.product.name}
                           </h4>
 
-                          {/* Modifiers List */}
+                          {/* Selected options tags */}
                           {item.selectedOptions && item.selectedOptions.length > 0 && (
-                            <div className="text-[11px] text-amber-300 font-medium truncate mb-1">
-                              + {item.selectedOptions.map(o => o.option_name).join(', ')}
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {item.selectedOptions.map((opt, i) => (
+                                <span
+                                  key={i}
+                                  className="px-1.5 py-0.2 rounded bg-white/5 border border-white/10 text-[10px] text-zinc-300 font-light truncate"
+                                >
+                                  {opt.option_name} {opt.price > 0 ? `(+${opt.price} ₴)` : ''}
+                                </span>
+                              ))}
                             </div>
                           )}
 
@@ -290,8 +298,8 @@ export const CartDrawer: React.FC = () => {
 
                 {/* Upsell Recommendations */}
                 {cart.length > 0 && upsellProducts.length > 0 && (
-                  <div className="pt-4 border-t border-white/[0.06]">
-                    <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                  <div className="pt-3 border-t border-white/[0.06]">
+                    <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                       <span>Рекомендуємо додати:</span>
                     </h4>
@@ -299,12 +307,12 @@ export const CartDrawer: React.FC = () => {
                       {upsellProducts.map(prod => (
                         <div
                           key={prod.id}
-                          className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center gap-2"
+                          className="p-2 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center gap-2"
                         >
                           <img
                             src={prod.image}
                             alt={prod.name}
-                            className="w-10 h-10 rounded-xl object-cover bg-black/40 shrink-0 shadow-sm"
+                            className="w-9 h-9 rounded-xl object-cover bg-black/40 shrink-0 shadow-sm"
                           />
                           <div className="min-w-0 flex-1">
                             <div className="font-semibold text-[11px] text-white truncate">
@@ -317,135 +325,121 @@ export const CartDrawer: React.FC = () => {
                           <motion.button
                             whileTap={{ scale: 0.85 }}
                             onClick={() => addToCart(prod, 1)}
-                            className="p-1.5 rounded-xl apple-button-primary text-white shrink-0 shadow-sm"
+                            className="p-1 rounded-lg apple-button-primary text-white shrink-0 shadow-sm"
                           >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-3 h-3" />
                           </motion.button>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Footer & Checkout */}
-              {cart.length > 0 && (
-                <div className="p-4 sm:p-5 bg-[#0C0C14] border-t border-white/[0.08] space-y-4">
-                  {/* Promo Code Box */}
-                  {promoCode ? (
-                    <div className="flex items-center justify-between p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400">
-                      <div className="flex items-center gap-2">
-                        <Check className="w-4 h-4" />
-                        <span>Промокод <strong>{promoCode}</strong> застосовано!</span>
+                {/* Promo Code & Cashback section inside scrollable area */}
+                {cart.length > 0 && (
+                  <div className="pt-3 border-t border-white/[0.06] space-y-2.5">
+                    {/* Promo Code Box */}
+                    {promoCode ? (
+                      <div className="flex items-center justify-between p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400">
+                        <div className="flex items-center gap-2">
+                          <Check className="w-4 h-4" />
+                          <span>Промокод <strong>{promoCode}</strong> застосовано!</span>
+                        </div>
+                        <button
+                          onClick={removePromoCode}
+                          className="text-zinc-400 hover:text-white"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
-                      <button
-                        onClick={removePromoCode}
-                        className="text-zinc-400 hover:text-white"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <form onSubmit={handleApplyPromo} className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Tag className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          value={inputPromo}
-                          onChange={(e) => setInputPromo(e.target.value)}
-                          placeholder="Промокод (CRABCLUB)"
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 uppercase focus:outline-none focus:border-amber-400"
-                        />
-                      </div>
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        type="submit"
-                        className="px-3.5 py-2 rounded-2xl apple-button-secondary text-white text-xs font-semibold"
-                      >
-                        Застосувати
-                      </motion.button>
-                    </form>
-                  )}
-
-                  {/* Cashback Earned Badge */}
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-300">
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Кешбек 5% на ваш бонусний рахунок:</span>
-                    </span>
-                    <span className="font-bold text-amber-400">+{cashbackEarned} ₴</span>
-                  </div>
-
-                  {/* Price Details */}
-                  <div className="space-y-1.5 text-xs text-zinc-300 border-t border-white/[0.06] pt-3">
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Сума замовлення:</span>
-                      <span className="font-semibold text-white">{subtotal} ₴</span>
-                    </div>
-
-                    {discount > 0 && (
-                      <div className="flex justify-between text-emerald-400 font-semibold">
-                        <span>Знижка {orderType === 'takeaway' ? '(самовивіз 10%)' : ''}:</span>
-                        <span>-{discount} ₴</span>
-                      </div>
+                    ) : (
+                      <form onSubmit={handleApplyPromo} className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Tag className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={inputPromo}
+                            onChange={(e) => setInputPromo(e.target.value)}
+                            placeholder="Промокод (CRABCLUB)"
+                            className="w-full bg-white/[0.04] border border-white/10 rounded-2xl pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 uppercase focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          type="submit"
+                          className="px-3.5 py-2 rounded-2xl apple-button-secondary text-white text-xs font-semibold"
+                        >
+                          Застосувати
+                        </motion.button>
+                      </form>
                     )}
 
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Доставка:</span>
-                      <span className="font-semibold text-white">
-                        {deliveryFee === 0 ? (
-                          <span className="text-emerald-400 font-bold">Безкоштовно</span>
-                        ) : (
-                          `${deliveryFee} ₴`
-                        )}
+                    {/* Cashback Earned Badge */}
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-300">
+                      <span className="flex items-center gap-1.5 font-medium">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Кешбек 5% на бонусний рахунок:</span>
                       </span>
+                      <span className="font-bold text-amber-400">+{cashbackEarned} ₴</span>
                     </div>
 
-                    <div className="flex justify-between items-baseline pt-2 border-t border-white/10 text-sm">
-                      <span className="font-bold text-white">Разом до сплати:</span>
-                      <span className="font-display font-extrabold text-xl text-amber-300 tracking-tight">
-                        {total} ₴
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Closed Outside Work Hours Notice */}
-                  {!getRestaurantScheduleStatus().isOpen && (
-                    <div className="p-3 rounded-2xl bg-purple-950/50 border border-purple-500/30 text-purple-200 text-xs flex items-start gap-2.5">
-                      <Moon className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold block text-white">Ресторан зараз зачинено (10:00 – 22:00)</span>
-                        <span className="text-zinc-300 font-light">
-                          Оформлюйте попереднє замовлення — приготуємо {getRestaurantScheduleStatus().nextOpenTimeText.toLowerCase()} (з 10:00).
-                        </span>
+                    {/* Closed Outside Work Hours Notice */}
+                    {!scheduleStatus.isOpen && (
+                      <div className="p-3 rounded-2xl bg-purple-950/50 border border-purple-500/30 text-purple-200 text-xs flex items-start gap-2.5">
+                        <Moon className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block text-white">Ресторан зараз зачинено ({scheduleStatus.workHoursText})</span>
+                          <span className="text-zinc-300 font-light text-[11px]">
+                            Приймаємо попередні замовлення на {scheduleStatus.nextOpenTimeText.toLowerCase()}.
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                )}
+              </div>
 
+              {/* Ultra-Compact Bottom Sticky Checkout Bar */}
+              {cart.length > 0 && (
+                <div className="p-3.5 sm:p-4 bg-[#0A0A10] border-t border-white/[0.08] shrink-0 space-y-2">
                   {/* Minimum Order Warning if subtotal < 300 */}
                   {!isMinOrderReached && (
-                    <div className="p-3 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center justify-between">
+                    <div className="p-2 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-[11px] flex items-center justify-between">
                       <span>Мінімальне замовлення — 300 ₴:</span>
                       <span className="font-bold text-white">додайте ще на {minOrderRemaining} ₴</span>
                     </div>
                   )}
 
-                  {/* Primary CTA */}
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    disabled={!isMinOrderReached}
-                    onClick={handleProceedToCheckout}
-                    className="w-full py-3.5 px-6 rounded-2xl apple-button-primary text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-crab-600/30 disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    <span>
-                      {!isMinOrderReached
-                        ? `Додайте ще на ${minOrderRemaining} ₴`
-                        : getRestaurantScheduleStatus().isOpen
-                        ? 'Оформити замовлення'
-                        : 'Передзамовлення на завтра'}
-                    </span>
-                    <ArrowRight className="w-4 h-4" />
-                  </motion.button>
+                  {/* 1-Line Total Summary & CTA Button */}
+                  <div className="flex items-center gap-3">
+                    <div className="min-w-0 pr-1">
+                      <span className="text-[10px] text-zinc-400 uppercase tracking-wider block font-semibold">
+                        Разом:
+                      </span>
+                      <div className="font-display font-black text-xl sm:text-2xl text-amber-300 tracking-tight leading-none">
+                        {total} <span className="text-sm font-bold text-white">₴</span>
+                      </div>
+                      <span className="text-[10px] text-zinc-400 block truncate mt-0.5">
+                        {deliveryFee === 0 ? 'Безкоштовна доставка' : `+${deliveryFee} ₴ доставка`}
+                      </span>
+                    </div>
+
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      disabled={!isMinOrderReached}
+                      onClick={handleProceedToCheckout}
+                      className="flex-1 py-3 px-4 rounded-2xl apple-button-primary text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-xl shadow-crab-600/30 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <span className="truncate">
+                        {!isMinOrderReached
+                          ? `Ще на ${minOrderRemaining} ₴`
+                          : scheduleStatus.isOpen
+                          ? 'Оформити замовлення'
+                          : 'Передзамовлення'}
+                      </span>
+                      <ArrowRight className="w-4 h-4 shrink-0" />
+                    </motion.button>
+                  </div>
                 </div>
               )}
 
