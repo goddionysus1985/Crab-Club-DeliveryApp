@@ -67,9 +67,9 @@ export const ClosedNoticeModal: React.FC = () => {
 
             {/* Title & Description */}
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-bold uppercase tracking-widest">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[11px] sm:text-xs font-bold uppercase tracking-widest">
                 <Clock className="w-3.5 h-3.5 text-purple-400" />
-                <span>Графік роботи: 10:00 – 22:00</span>
+                <span>Пн–Сб: 10:00–22:00 • Нд: 11:00–22:00</span>
               </div>
 
               <h2 className="text-xl sm:text-2xl font-display font-extrabold text-white tracking-tight">
@@ -77,7 +77,7 @@ export const ClosedNoticeModal: React.FC = () => {
               </h2>
 
               <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-light max-w-md mx-auto">
-                Ми відпочиваємо та готуємо найсвіжіші інгредієнти. Але ви можете <strong className="text-amber-400 font-semibold">сформувати замовлення вже зараз</strong> — ми з радістю приготуємо та доставимо його <strong className="text-purple-300 font-semibold">{scheduleStatus.nextOpenTimeText.toLowerCase()} (з 10:00)</strong>!
+                Ми відпочиваємо та готуємо найсвіжіші інгредієнти. Але ви можете <strong className="text-amber-400 font-semibold">сформувати замовлення вже зараз</strong> — ми з радістю приготуємо та доставимо його <strong className="text-purple-300 font-semibold">{scheduleStatus.nextOpenTimeText.toLowerCase()}</strong>!
               </p>
             </div>
 

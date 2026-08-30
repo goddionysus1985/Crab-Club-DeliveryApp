@@ -9,7 +9,7 @@ export const RESTAURANT_INFO: RestaurantInfo = {
   "address": "смт. Овідіополь, Одеська область",
   "phone": "+380 (68) 692 13 78",
   "phone_raw": "+380686921378",
-  "work_hours": "Щодня з 10:00 до 22:00",
+  "work_hours": "Пн–Сб: 10:00–22:00, Нд: 11:00–22:00",
   "delivery_time": "45–60 хв",
   "min_order": 300,
   "free_delivery_from": 500,
