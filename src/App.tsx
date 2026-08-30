@@ -101,7 +101,10 @@ export const App: React.FC = () => {
       <Header />
 
       {/* Main Hero Slider */}
-      <Hero />
+      <Hero 
+        onSelectCategory={handleSelectCategory}
+        onSelectSubcategory={handleSelectSubcategory}
+      />
 
       {/* Anchor for scrolling back to menu */}
       <div id="menu-top-anchor" className="scroll-mt-16" />

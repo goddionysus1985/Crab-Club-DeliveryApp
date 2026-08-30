@@ -14,7 +14,12 @@ import {
 } from 'lucide-react';
 import { BANNERS, RESTAURANT_INFO } from '../data/menuData';
 
-export const Hero: React.FC = () => {
+interface HeroProps {
+  onSelectCategory?: (slug: string) => void;
+  onSelectSubcategory?: (subSlug: string) => void;
+}
+
+export const Hero: React.FC<HeroProps> = ({ onSelectCategory, onSelectSubcategory }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
@@ -27,14 +32,20 @@ export const Hero: React.FC = () => {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % BANNERS.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + BANNERS.length) % BANNERS.length);
 
-  const scrollToMenu = (e: React.MouseEvent) => {
+  const handleBannerAction = (banner: any, e: React.MouseEvent) => {
     e.preventDefault();
-    const anchor = document.getElementById('menu-top-anchor') || document.getElementById('menu-nav');
-    if (anchor) {
-      const headerEl = document.querySelector('header');
-      const headerH = headerEl ? headerEl.offsetHeight : 55;
-      const targetY = anchor.getBoundingClientRect().top + window.scrollY - headerH;
-      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+    if (banner.id === 1) {
+      // Sets & Rolls
+      onSelectCategory?.('menyu-roli');
+      onSelectSubcategory?.('seti');
+    } else if (banner.id === 2) {
+      // Pizza
+      onSelectCategory?.('pica');
+      onSelectSubcategory?.('all');
+    } else {
+      // All menu
+      onSelectCategory?.('all');
+      onSelectSubcategory?.('all');
     }
   };
 
@@ -87,7 +98,7 @@ export const Hero: React.FC = () => {
 
                   <div className="flex items-center gap-2 sm:gap-4 mt-auto sm:mt-0">
                     <button
-                      onClick={scrollToMenu}
+                      onClick={(e) => handleBannerAction(banner, e)}
                       className="px-3.5 py-1.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl apple-button-primary text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-crab-600/30"
                     >
                       <span>{banner.ctaText || 'До меню'}</span>
