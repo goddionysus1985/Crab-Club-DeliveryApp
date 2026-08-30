@@ -42,38 +42,36 @@ export const App: React.FC = () => {
       window.clearTimeout(scrollTimeoutRef.current);
     }
 
-    // Wait for React commit and DOM reflow so sticky nav height is final
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (slug === 'all') {
-          const anchor = document.getElementById('menu-top-anchor');
-          if (anchor) {
-            const headerEl = document.querySelector('header');
-            const headerH = headerEl ? headerEl.offsetHeight : 55;
-            const targetY = anchor.getBoundingClientRect().top + window.scrollY - headerH;
-            window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-          } else {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
+    // Allow DOM to settle before measuring exact element offset
+    setTimeout(() => {
+      if (slug === 'all') {
+        const anchor = document.getElementById('menu-top-anchor');
+        if (anchor) {
+          const headerEl = document.querySelector('header');
+          const headerH = headerEl ? headerEl.offsetHeight : 55;
+          const targetY = anchor.getBoundingClientRect().top + window.scrollY - headerH;
+          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
         } else {
-          const targetSection = document.getElementById(`category-${slug}`);
-          if (targetSection) {
-            const headerEl = document.querySelector('header');
-            const navEl = document.getElementById('menu-nav');
-            const headerH = headerEl ? headerEl.offsetHeight : 65;
-            const navH = navEl ? navEl.offsetHeight : 70;
-            const totalOffset = headerH + navH + 15;
-
-            const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
-            window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+      } else {
+        const targetSection = document.getElementById(`category-${slug}`);
+        if (targetSection) {
+          const headerEl = document.querySelector('header');
+          const navEl = document.getElementById('menu-nav');
+          const headerH = headerEl ? headerEl.offsetHeight : 55;
+          const navH = navEl ? navEl.offsetHeight : 60;
+          const totalOffset = headerH + navH + 8;
 
-        scrollTimeoutRef.current = window.setTimeout(() => {
-          isScrollingProgrammatically.current = false;
-        }, 1400);
-      });
-    });
+          const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
+          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+        }
+      }
+
+      scrollTimeoutRef.current = window.setTimeout(() => {
+        isScrollingProgrammatically.current = false;
+      }, 1200);
+    }, 40);
   };
 
   const handleSelectSubcategory = (subSlug: string) => {
@@ -84,25 +82,23 @@ export const App: React.FC = () => {
         window.clearTimeout(scrollTimeoutRef.current);
       }
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const targetSection = document.getElementById(`category-${activeCategory}`);
-          if (targetSection) {
-            const headerEl = document.querySelector('header');
-            const navEl = document.getElementById('menu-nav');
-            const headerH = headerEl ? headerEl.offsetHeight : 55;
-            const navH = navEl ? navEl.offsetHeight : 65;
-            const totalOffset = headerH + navH + 12;
+      setTimeout(() => {
+        const targetSection = document.getElementById(`category-${activeCategory}`);
+        if (targetSection) {
+          const headerEl = document.querySelector('header');
+          const navEl = document.getElementById('menu-nav');
+          const headerH = headerEl ? headerEl.offsetHeight : 55;
+          const navH = navEl ? navEl.offsetHeight : 60;
+          const totalOffset = headerH + navH + 8;
 
-            const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
-            window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-          }
+          const targetY = targetSection.getBoundingClientRect().top + window.scrollY - totalOffset;
+          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+        }
 
-          scrollTimeoutRef.current = window.setTimeout(() => {
-            isScrollingProgrammatically.current = false;
-          }, 1400);
-        });
-      });
+        scrollTimeoutRef.current = window.setTimeout(() => {
+          isScrollingProgrammatically.current = false;
+        }, 1200);
+      }, 40);
     }
   };
 
@@ -113,26 +109,26 @@ export const App: React.FC = () => {
 
       const headerEl = document.querySelector('header');
       const navEl = document.getElementById('menu-nav');
-      const headerH = headerEl ? headerEl.offsetHeight : 65;
-      const navH = navEl ? navEl.offsetHeight : 70;
-      const triggerThreshold = headerH + navH + 50;
+      const headerH = headerEl ? headerEl.offsetHeight : 55;
+      const navH = navEl ? navEl.offsetHeight : 60;
+      const triggerThreshold = headerH + navH + 15;
 
       let currentSlug = 'all';
 
       // Check if user is above the menu
-      if (navEl && navEl.getBoundingClientRect().top > triggerThreshold) {
+      if (navEl && navEl.getBoundingClientRect().top > triggerThreshold + 20) {
         if (activeCategory !== 'all') {
           setActiveCategory('all');
         }
         return;
       }
 
-      // Check categories from bottom to top or by distance
+      // Check categories from top to bottom
       for (const cat of CATEGORIES) {
         const el = document.getElementById(`category-${cat.slug}`);
         if (el) {
           const rect = el.getBoundingClientRect();
-          if (rect.top <= triggerThreshold + 60 && rect.bottom > triggerThreshold - 40) {
+          if (rect.top <= triggerThreshold + 10 && rect.bottom > triggerThreshold - 10) {
             currentSlug = cat.slug;
             break;
           }
