@@ -42,33 +42,35 @@ export const App: React.FC = () => {
       window.clearTimeout(scrollTimeoutRef.current);
     }
 
-    if (slug === 'all') {
-      const anchor = document.getElementById('menu-top-anchor');
-      if (anchor) {
-        const headerEl = document.querySelector('header');
-        const headerH = headerEl ? headerEl.offsetHeight : 55;
-        const targetY = anchor.getBoundingClientRect().top + window.pageYOffset - headerH;
-        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      if (slug === 'all') {
+        const anchor = document.getElementById('menu-top-anchor');
+        if (anchor) {
+          const headerEl = document.querySelector('header');
+          const headerH = headerEl ? headerEl.offsetHeight : 52;
+          const targetY = anchor.getBoundingClientRect().top + window.pageYOffset - headerH - 10;
+          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } else {
-      const targetSection = document.getElementById(`category-${slug}`);
-      if (targetSection) {
-        const headerEl = document.querySelector('header');
-        const navEl = document.getElementById('menu-nav');
-        const headerH = headerEl ? headerEl.offsetHeight : 55;
-        const navH = navEl ? navEl.offsetHeight : 60;
-        const totalOffset = headerH + navH + 12;
+        const targetSection = document.getElementById(`category-${slug}`);
+        if (targetSection) {
+          const headerEl = document.querySelector('header');
+          const navEl = document.getElementById('menu-nav');
+          const headerH = headerEl ? headerEl.offsetHeight : 52;
+          const navH = navEl ? navEl.offsetHeight : 55;
+          const totalOffset = headerH + navH + 16;
 
-        const targetY = targetSection.getBoundingClientRect().top + window.pageYOffset - totalOffset;
-        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+          const targetY = targetSection.getBoundingClientRect().top + window.pageYOffset - totalOffset;
+          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+        }
       }
-    }
 
-    scrollTimeoutRef.current = window.setTimeout(() => {
-      isScrollingProgrammatically.current = false;
-    }, 1000);
+      scrollTimeoutRef.current = window.setTimeout(() => {
+        isScrollingProgrammatically.current = false;
+      }, 900);
+    });
   };
 
   const handleSelectSubcategory = (subSlug: string) => {
@@ -79,21 +81,23 @@ export const App: React.FC = () => {
         window.clearTimeout(scrollTimeoutRef.current);
       }
 
-      const targetSection = document.getElementById(`category-${activeCategory}`);
-      if (targetSection) {
-        const headerEl = document.querySelector('header');
-        const navEl = document.getElementById('menu-nav');
-        const headerH = headerEl ? headerEl.offsetHeight : 55;
-        const navH = navEl ? navEl.offsetHeight : 60;
-        const totalOffset = headerH + navH + 12;
+      requestAnimationFrame(() => {
+        const targetSection = document.getElementById(`category-${activeCategory}`);
+        if (targetSection) {
+          const headerEl = document.querySelector('header');
+          const navEl = document.getElementById('menu-nav');
+          const headerH = headerEl ? headerEl.offsetHeight : 52;
+          const navH = navEl ? navEl.offsetHeight : 55;
+          const totalOffset = headerH + navH + 16;
 
-        const targetY = targetSection.getBoundingClientRect().top + window.pageYOffset - totalOffset;
-        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-      }
+          const targetY = targetSection.getBoundingClientRect().top + window.pageYOffset - totalOffset;
+          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+        }
 
-      scrollTimeoutRef.current = window.setTimeout(() => {
-        isScrollingProgrammatically.current = false;
-      }, 1000);
+        scrollTimeoutRef.current = window.setTimeout(() => {
+          isScrollingProgrammatically.current = false;
+        }, 900);
+      });
     }
   };
 
