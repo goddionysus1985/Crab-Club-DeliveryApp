@@ -15,6 +15,7 @@ import { ReviewsSection } from './components/ReviewsSection';
 import { InstagramFeed } from './components/InstagramFeed';
 import { Footer } from './components/Footer';
 import { FloatingContacts } from './components/FloatingContacts';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { NotificationToast } from './components/NotificationToast';
 import { CATEGORIES, PRODUCTS } from './data/menuData';
 import { useCart } from './context/CartContext';
@@ -180,7 +181,7 @@ export const App: React.FC = () => {
   }, [favorites]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0B0B0F] text-slate-100 selection:bg-crab-600 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#0B0B0F] text-slate-100 selection:bg-crab-600 selection:text-white pb-20 lg:pb-0">
       {/* Header */}
       <Header />
 
@@ -222,7 +223,7 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {favoriteProducts.map(product => (
                 <ProductCard key={product.id} product={product} />
               ))}
@@ -273,7 +274,7 @@ export const App: React.FC = () => {
                 </div>
 
                 {/* Products Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
                   {filtered.map(product => (
                     <ProductCard key={product.id} product={product} />
                   ))}
@@ -302,6 +303,9 @@ export const App: React.FC = () => {
 
       {/* Floating Speed Dials & Contacts */}
       <FloatingContacts />
+
+      {/* Mobile Bottom Thumb Navigation Bar */}
+      <MobileBottomNav />
 
       {/* Modals & Drawers */}
       <CartDrawer />

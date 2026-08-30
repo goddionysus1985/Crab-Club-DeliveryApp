@@ -112,4 +112,12 @@
     content-visibility: auto;
     contain-intrinsic-size: 340px;
   }
+
+  /* Safe Area Inset utilities for modern smartphones */
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
 }

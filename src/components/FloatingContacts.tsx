@@ -61,7 +61,7 @@ export const FloatingContacts: React.FC = () => {
       {/* 1. Mobile Floating Sticky Bottom Cart Bar with Apple Spring */}
       <AnimatePresence>
         {totalItemsCount > 0 && (
-          <div className="fixed bottom-3 inset-x-3 z-40 lg:hidden">
+          <div className="fixed bottom-[68px] inset-x-3 z-40 lg:hidden">
             <motion.div
               initial={{ opacity: 0, y: 35, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -71,37 +71,37 @@ export const FloatingContacts: React.FC = () => {
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setIsCartOpen(true)}
-                className="w-full py-3.5 px-4 rounded-3xl apple-button-primary text-white font-bold text-sm shadow-2xl flex items-center justify-between border border-white/20 backdrop-blur-xl"
+                className="w-full py-3 px-4 rounded-2xl apple-button-primary text-white font-bold text-sm shadow-2xl flex items-center justify-between border border-white/20 backdrop-blur-xl"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <div className="relative p-1.5 rounded-xl bg-white/20">
-                    <ShoppingBag className="w-5 h-5" />
+                    <ShoppingBag className="w-4 h-4" />
                     <motion.span
                       key={totalItemsCount}
                       initial={{ scale: 0.5 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', damping: 15, stiffness: 400 }}
-                      className="absolute -top-2 -right-2 bg-amber-400 text-slate-950 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-[#08080C]"
+                      className="absolute -top-1.5 -right-1.5 bg-amber-400 text-slate-950 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-[#08080C]"
                     >
                       {totalItemsCount}
                     </motion.span>
                   </div>
                   <div className="text-left">
-                    <span className="block text-xs text-white/80 font-normal">
+                    <span className="block text-[10px] text-white/80 font-normal leading-tight">
                       {totalItemsCount} {totalItemsCount === 1 ? 'страва' : totalItemsCount < 5 ? 'страви' : 'страв'}
                     </span>
-                    <span className="font-bold text-sm text-white">
+                    <span className="font-bold text-xs sm:text-sm text-white">
                       Оформити замовлення
                     </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="font-display font-black text-base text-amber-300">
+                  <span className="font-display font-black text-sm sm:text-base text-amber-300">
                     {total} ₴
                   </span>
                   <div className="p-1 rounded-full bg-white/20">
-                    <ArrowRight className="w-4 h-4 text-white" />
+                    <ArrowRight className="w-3.5 h-3.5 text-white" />
                   </div>
                 </div>
               </motion.button>
@@ -112,7 +112,7 @@ export const FloatingContacts: React.FC = () => {
 
       {/* 4. Quick Return to Menu Pill + Floating Speed Dial */}
       <div className={`fixed right-3.5 sm:right-6 z-30 flex flex-col items-end gap-2.5 transition-all ${
-        totalItemsCount > 0 ? 'bottom-20 lg:bottom-6' : 'bottom-6'
+        totalItemsCount > 0 ? 'bottom-[130px] lg:bottom-6' : 'bottom-[68px] lg:bottom-6'
       }`}>
         {/* Quick Jump to Menu Categories Pill */}
         <AnimatePresence>

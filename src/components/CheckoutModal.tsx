@@ -240,7 +240,7 @@ export const CheckoutModal: React.FC = () => {
   return (
     <AnimatePresence>
       {isCheckoutOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -252,12 +252,15 @@ export const CheckoutModal: React.FC = () => {
           />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 15 }}
+            initial={{ opacity: 0, scale: 0.96, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 15 }}
+            exit={{ opacity: 0, scale: 0.96, y: 30 }}
             transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-            className="relative w-full max-w-3xl bg-[#111119] border border-white/[0.12] rounded-3xl overflow-hidden shadow-2xl z-10 max-h-[92vh] flex flex-col my-auto"
+            className="relative w-full max-w-3xl bg-[#111119] border-t sm:border border-white/[0.12] rounded-t-[32px] sm:rounded-3xl overflow-hidden shadow-2xl z-10 max-h-[94vh] sm:max-h-[92vh] flex flex-col mt-auto sm:my-auto"
           >
+            {/* iOS Grabber Indicator on Mobile */}
+            <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0" />
+
             {/* Modal Header */}
             <div className="p-4 sm:p-6 border-b border-white/[0.08] flex items-center justify-between bg-[#141422]/90 backdrop-blur-xl">
               <div className="flex items-center gap-3">
