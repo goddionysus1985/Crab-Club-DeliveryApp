@@ -151,7 +151,20 @@ export const Header: React.FC = () => {
 
           {/* Desktop Nav Links */}
           <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-zinc-300">
-            <a href="#menu" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+            <a 
+              href="#menu" 
+              onClick={(e) => {
+                e.preventDefault();
+                const anchor = document.getElementById('menu-top-anchor') || document.getElementById('menu');
+                if (anchor) {
+                  const headerEl = document.querySelector('header');
+                  const headerH = headerEl ? headerEl.offsetHeight : 55;
+                  const targetY = anchor.getBoundingClientRect().top + window.scrollY - headerH;
+                  window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+                }
+              }}
+              className="hover:text-amber-400 transition-colors flex items-center gap-1.5"
+            >
               <span>Меню</span>
             </a>
             <a href="#delivery" className="hover:text-amber-400 transition-colors">
@@ -307,7 +320,17 @@ export const Header: React.FC = () => {
 
               <a
                 href="#menu"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  const anchor = document.getElementById('menu-top-anchor') || document.getElementById('menu');
+                  if (anchor) {
+                    const headerEl = document.querySelector('header');
+                    const headerH = headerEl ? headerEl.offsetHeight : 55;
+                    const targetY = anchor.getBoundingClientRect().top + window.scrollY - headerH;
+                    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+                  }
+                }}
                 className="px-3 py-2.5 rounded-2xl bg-white/[0.04] text-white flex items-center justify-between border border-white/5"
               >
                 <span>🍽️ Меню страв</span>
@@ -316,28 +339,68 @@ export const Header: React.FC = () => {
 
               <a
                 href="#delivery"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  const el = document.getElementById('delivery');
+                  if (el) {
+                    const headerEl = document.querySelector('header');
+                    const headerH = headerEl ? headerEl.offsetHeight : 55;
+                    const targetY = el.getBoundingClientRect().top + window.scrollY - headerH;
+                    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+                  }
+                }}
                 className="px-3 py-2.5 rounded-2xl hover:bg-white/5 text-zinc-300"
               >
                 🚀 Зони та умови доставки
               </a>
               <a
                 href="#about"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  const el = document.getElementById('about');
+                  if (el) {
+                    const headerEl = document.querySelector('header');
+                    const headerH = headerEl ? headerEl.offsetHeight : 55;
+                    const targetY = el.getBoundingClientRect().top + window.scrollY - headerH;
+                    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+                  }
+                }}
                 className="px-3 py-2.5 rounded-2xl hover:bg-white/5 text-zinc-300"
               >
                 👑 Про ресторан Crab Club
               </a>
               <a
                 href="#reviews"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  const el = document.getElementById('reviews');
+                  if (el) {
+                    const headerEl = document.querySelector('header');
+                    const headerH = headerEl ? headerEl.offsetHeight : 55;
+                    const targetY = el.getBoundingClientRect().top + window.scrollY - headerH;
+                    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+                  }
+                }}
                 className="px-3 py-2.5 rounded-2xl hover:bg-white/5 text-zinc-300"
               >
                 ⭐ Відгуки гостей (4.97)
               </a>
               <a
                 href="#contacts"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  const el = document.getElementById('contacts');
+                  if (el) {
+                    const headerEl = document.querySelector('header');
+                    const headerH = headerEl ? headerEl.offsetHeight : 55;
+                    const targetY = el.getBoundingClientRect().top + window.scrollY - headerH;
+                    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+                  }
+                }}
                 className="px-3 py-2.5 rounded-2xl hover:bg-white/5 text-zinc-300"
               >
                 📍 Контакти та графік
