@@ -70,16 +70,16 @@ export const MobileBottomNav: React.FC = () => {
 
         {/* 3. Central Cart Tab with Live Counter */}
         <motion.button
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.92 }}
           onClick={() => setIsCartOpen(true)}
-          className="flex flex-col items-center justify-center -mt-3 relative"
+          className="flex flex-col items-center justify-center -mt-5 relative z-10"
         >
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform ${
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all ${
             totalItemsCount > 0 
-              ? 'apple-button-primary text-white shadow-crab-600/40 scale-105' 
-              : 'bg-white/10 text-zinc-300 border border-white/10'
+              ? 'apple-button-primary text-white shadow-crab-600/50 ring-4 ring-[#0D0D17] scale-105' 
+              : 'bg-[#181826] text-zinc-300 border border-white/10 ring-4 ring-[#0D0D17]'
           }`}>
-            <ShoppingBag className="w-5 h-5" />
+            <ShoppingBag className="w-6 h-6" />
             <AnimatePresence>
               {totalItemsCount > 0 && (
                 <motion.span
@@ -95,7 +95,7 @@ export const MobileBottomNav: React.FC = () => {
               )}
             </AnimatePresence>
           </div>
-          <span className="text-[10px] font-bold tracking-tight text-white mt-1">
+          <span className="text-[11px] font-bold tracking-tight text-white mt-1">
             {totalItemsCount > 0 ? `${total} ₴` : 'Кошик'}
           </span>
         </motion.button>
