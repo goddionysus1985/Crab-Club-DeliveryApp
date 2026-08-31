@@ -240,15 +240,6 @@ export const Header: React.FC = () => {
               )}
             </a>
 
-            {/* Phone Call Quick Link */}
-            <a
-              href={`tel:${RESTAURANT_INFO.phone_raw}`}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-200 hover:text-amber-400 transition-all"
-            >
-              <Phone className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">{RESTAURANT_INFO.phone}</span>
-              <span className="sm:hidden">Дзвінок</span>
-            </a>
 
             {/* Cart Button (Desktop only) */}
             <motion.button
