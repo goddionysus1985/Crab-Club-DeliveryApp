@@ -3,7 +3,7 @@
  * Documentation: https://dev.joinposter.com/ru/docs/v2/incomingOrders/createIncomingOrder
  */
 
-import { OrderDetails, CartItem, Product, ModificationGroup, ModificationOption } from '../types';
+import { OrderDetails, CartItem, Product, ModificationGroup, ModificationOption, Category, SubCategory } from '../types';
 import { POSTER_CONFIG } from '../config/poster';
 
 export interface PosterIncomingProduct {
@@ -616,6 +616,98 @@ export function mapPosterRawProduct(raw: any): Product {
     image: imageUrl,
     modifications: modificationGroups.length > 0 ? modificationGroups : undefined
   };
+}
+
+function getPosterCategoryIcon(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('кава') || n.includes('coffee') || n.includes('чай')) return '☕';
+  if (n.includes('випіч') || n.includes('круас') || n.includes('хліб')) return '🥐';
+  if (n.includes('напо') || n.includes('вода') || n.includes('сік')) return '🥤';
+  if (n.includes('рол') || n.includes('суші') || n.includes('сет')) return '🍣';
+  if (n.includes('піц')) return '🍕';
+  if (n.includes('бургер')) return '🍔';
+  if (n.includes('суп')) return '🍲';
+  if (n.includes('салат')) return '🥗';
+  if (n.includes('десерт')) return '🍰';
+  return '🍽️';
+}
+
+function slugifyCategoryName(text: string): string {
+  const cyrMap: Record<string, string> = {
+    'кава': 'coffee',
+    'випічка': 'bakery',
+    'холодні напої': 'cold-drinks',
+    'напої': 'drinks',
+    'роли': 'rolls',
+    'піца': 'pizza',
+    'бургери': 'burgers',
+    'супи': 'soups',
+    'салати': 'salads',
+    'десерти': 'desserts'
+  };
+  const lower = text.toLowerCase().trim();
+  for (const [cyr, lat] of Object.entries(cyrMap)) {
+    if (lower.includes(cyr)) return lat;
+  }
+  return lower.replace(/[^a-z0-9а-яіїє]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'menu';
+}
+
+/**
+ * Fetch and build full live catalog directly from Poster POS API
+ */
+export async function fetchLivePosterCatalog(): Promise<{
+  categories: Category[];
+  products: Product[];
+} | null> {
+  if (!POSTER_CONFIG.isLiveMode || !POSTER_CONFIG.apiToken) return null;
+
+  try {
+    const productsEndpoint = `https://joinposter.com/api/menu.getProducts?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+    const categoriesEndpoint = `https://joinposter.com/api/menu.getCategories?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+
+    const [productsRes, categoriesRes] = await Promise.all([
+      fetch(productsEndpoint),
+      fetch(categoriesEndpoint)
+    ]);
+
+    const productsData = await productsRes.json();
+    const categoriesData = await categoriesRes.json();
+
+    if (productsData.response && Array.isArray(productsData.response) && productsData.response.length > 0) {
+      // Build category map
+      const categoryMap = new Map<string, { id: number; name: string; slug: string }>();
+
+      const mappedCategories: Category[] = (categoriesData.response || []).map((c: any) => {
+        const slug = slugifyCategoryName(c.category_name || `cat-${c.category_id}`);
+        categoryMap.set(String(c.category_id), { id: Number(c.category_id), name: c.category_name, slug });
+        return {
+          id: Number(c.category_id),
+          name: String(c.category_name),
+          slug,
+          icon: getPosterCategoryIcon(c.category_name),
+          subcategories: []
+        };
+      });
+
+      const mappedProducts: Product[] = productsData.response.map((p: any) => {
+        const catInfo = categoryMap.get(String(p.menu_category_id || p.category_id));
+        const base = mapPosterRawProduct(p);
+        return {
+          ...base,
+          category_name: catInfo ? catInfo.name : p.category_name || 'Меню',
+          category_url: catInfo ? catInfo.slug : 'all'
+        };
+      });
+
+      return {
+        categories: mappedCategories,
+        products: mappedProducts
+      };
+    }
+  } catch (err) {
+    console.warn('[Poster Live Catalog] Failed to fetch catalog:', err);
+  }
+  return null;
 }
 
 

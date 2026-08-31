@@ -31,6 +31,7 @@ import {
 } from './animations/MenuAmbientAnimations';
 
 interface CategoryNavProps {
+  categories?: Category[];
   activeCategory: string;
   onSelectCategory: (slug: string) => void;
   activeSubcategory: string;
@@ -42,6 +43,7 @@ interface CategoryNavProps {
 }
 
 export const CategoryNav: React.FC<CategoryNavProps> = ({
+  categories,
   activeCategory,
   onSelectCategory,
   activeSubcategory,
@@ -51,6 +53,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
   sortBy,
   onSelectSort,
 }) => {
+  const categoriesList = categories && categories.length > 0 ? categories : CATEGORIES;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -138,7 +141,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
     }
   };
 
-  const currentCategoryObj = CATEGORIES.find(c => c.slug === activeCategory);
+  const currentCategoryObj = categoriesList.find(c => c.slug === activeCategory);
   const subcategories = currentCategoryObj?.subcategories || [];
   const hasActiveFilters = activeFilter !== 'none' || sortBy !== 'default';
 
@@ -198,7 +201,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
               </motion.button>
 
               {/* Categories pills */}
-              {CATEGORIES.map((cat) => {
+              {categoriesList.map((cat) => {
                 const isActive = activeCategory === cat.slug;
                 return (
                   <motion.button

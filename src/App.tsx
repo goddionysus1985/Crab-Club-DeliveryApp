@@ -26,12 +26,39 @@ import {
   LivingFlameAnimation 
 } from './components/animations/MenuAmbientAnimations';
 import { CATEGORIES, PRODUCTS } from './data/menuData';
+import { fetchLivePosterCatalog } from './services/posterApi';
 import { useCart } from './context/CartContext';
-import { Product } from './types';
-import { Heart, Sparkles } from 'lucide-react';
+import { Product, Category } from './types';
+import { Heart, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { favorites, setActiveProductModal } = useCart();
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>(PRODUCTS);
+  const [catalogCategories, setCatalogCategories] = useState<Category[]>(CATEGORIES);
+  const [isPosterLiveSynced, setIsPosterLiveSynced] = useState<boolean>(false);
+
+  // Live Sync with Poster POS API on launch
+  useEffect(() => {
+    let isMounted = true;
+    async function loadPosterMenu() {
+      try {
+        const liveCatalog = await fetchLivePosterCatalog();
+        if (isMounted && liveCatalog && liveCatalog.products && liveCatalog.products.length > 0) {
+          console.info(`[Poster Live Sync] 🚀 Синхронізовано ${liveCatalog.products.length} позицій з Poster POS!`);
+          setCatalogProducts(liveCatalog.products);
+          if (liveCatalog.categories && liveCatalog.categories.length > 0) {
+            setCatalogCategories(liveCatalog.categories);
+          }
+          setIsPosterLiveSynced(true);
+        }
+      } catch (e) {
+        console.warn('[Poster Live Sync] Fallback to default catalog:', e);
+      }
+    }
+    loadPosterMenu();
+    return () => { isMounted = false; };
+  }, []);
+
   // Read category from URL hash on initial load
   const [activeCategory, setActiveCategory] = useState<string>(() => {
     try {
@@ -151,8 +178,8 @@ export const App: React.FC = () => {
 
   // Get favorite products
   const favoriteProducts = useMemo(() => {
-    return PRODUCTS.filter(p => favorites.includes(p.id));
-  }, [favorites]);
+    return catalogProducts.filter(p => favorites.includes(p.id));
+  }, [favorites, catalogProducts]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0B0B0F] text-slate-100 selection:bg-crab-600 selection:text-white pb-20 lg:pb-0">
@@ -170,6 +197,7 @@ export const App: React.FC = () => {
 
       {/* Category Navigation Bar */}
       <CategoryNav
+        categories={catalogCategories}
         activeCategory={activeCategory}
         onSelectCategory={handleSelectCategory}
         activeSubcategory={activeSubcategory}
@@ -181,8 +209,19 @@ export const App: React.FC = () => {
       />
 
       {/* Main Menu Catalog Section */}
-      <main id="menu" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-16">
+      <main id="menu" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12">
         
+        {/* Live Poster POS Sync Status Banner */}
+        {isPosterLiveSynced && (
+          <div className="flex items-center justify-between p-3.5 px-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-semibold animate-in fade-in duration-300">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+              <span>Хмарне меню підтягнуто з каси Poster POS ({catalogProducts.length} позицій)</span>
+            </div>
+            <span className="text-[11px] text-emerald-300/90 bg-emerald-500/20 px-2.5 py-0.5 rounded-full font-mono">🟢 Live Sync</span>
+          </div>
+        )}
+
         {/* Favorites Section (if any saved) */}
         {favoriteProducts.length > 0 && (
           <section id="favorites" className="p-6 rounded-3xl bg-gradient-to-r from-crab-950/40 via-[#13131D] to-[#13131D] border border-crab-500/20 scroll-mt-44">
@@ -210,8 +249,8 @@ export const App: React.FC = () => {
 
         {/* Categories Catalog */}
         <div className="space-y-16">
-          {CATEGORIES.filter(category => activeCategory === 'all' || category.slug === activeCategory).map(category => {
-            let catProducts = PRODUCTS.filter(p => 
+          {catalogCategories.filter(category => activeCategory === 'all' || category.slug === activeCategory).map(category => {
+            let catProducts = catalogProducts.filter(p => 
               p.category_url === category.slug || 
               p.parent_category_url === category.slug || 
               category.subcategories.some(s => s.slug === p.category_url)
