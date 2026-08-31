@@ -31,11 +31,16 @@ import { Product } from './types';
 import { Heart, Sparkles } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const { favorites } = useCart();
+  const { favorites, setActiveProductModal } = useCart();
   // Read category from URL hash on initial load
   const [activeCategory, setActiveCategory] = useState<string>(() => {
     try {
       const hash = window.location.hash.replace(/^#\/?/, '');
+      const prodMatch = hash.match(/product[/-](\d+)/i);
+      if (prodMatch && prodMatch[1]) {
+        const prod = PRODUCTS.find(p => p.id === parseInt(prodMatch[1], 10));
+        if (prod) return prod.parent_category_url || prod.category_url;
+      }
       if (hash && hash !== 'menu' && hash !== 'delivery' && hash !== 'about' && hash !== 'reviews' && hash !== 'contacts') {
         const found = CATEGORIES.find(c => c.slug === hash);
         if (found) return found.slug;
@@ -55,6 +60,17 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace(/^#\/?/, '');
+      const prodMatch = hash.match(/product[/-](\d+)/i);
+      if (prodMatch && prodMatch[1]) {
+        const prod = PRODUCTS.find(p => p.id === parseInt(prodMatch[1], 10));
+        if (prod) {
+          setActiveProductModal(prod);
+          setActiveCategory(prod.parent_category_url || prod.category_url);
+          setActiveSubcategory('all');
+          return;
+        }
+      }
+
       if (hash && hash !== 'menu' && hash !== 'delivery' && hash !== 'about' && hash !== 'reviews' && hash !== 'contacts') {
         const found = CATEGORIES.find(c => c.slug === hash);
         if (found) {
@@ -68,7 +84,7 @@ export const App: React.FC = () => {
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  }, [setActiveProductModal]);
 
   // Instant Tab-Filter Category Handler with accurate scroll & URL Hash update
   const handleSelectCategory = (slug: string) => {

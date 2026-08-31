@@ -246,7 +246,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isOrderTrackerOpen, setIsOrderTrackerOpen] = useState<boolean>(false);
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
-  const [activeProductModal, setActiveProductModal] = useState<Product | null>(null);
+  const [activeProductModal, setActiveProductModalState] = useState<Product | null>(() => {
+    try {
+      const match = window.location.hash.match(/product[/-](\d+)/i);
+      if (match && match[1]) {
+        const prodId = parseInt(match[1], 10);
+        return PRODUCTS.find(p => p.id === prodId) || null;
+      }
+    } catch {}
+    return null;
+  });
+
+  const setActiveProductModal = (product: Product | null) => {
+    setActiveProductModalState(product);
+    try {
+      if (product) {
+        window.history.replaceState(null, '', `#/product/${product.id}`);
+      } else {
+        const currentHash = window.location.hash;
+        if (currentHash.includes('product')) {
+          window.history.replaceState(null, '', '#menu');
+        }
+      }
+    } catch {}
+  };
 
   const [toast, setToast] = useState<Toast | null>(null);
 
