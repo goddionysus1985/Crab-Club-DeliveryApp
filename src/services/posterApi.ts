@@ -647,9 +647,52 @@ export function mapPosterRawProduct(raw: any): Product {
     });
   }
 
+  // 1. Clean Ingredients Parsing (extract ingredient_name from Poster tech cards array)
+  let parsedIngredients = '';
+  if (Array.isArray(raw.ingredients) && raw.ingredients.length > 0) {
+    parsedIngredients = raw.ingredients
+      .map((ing: any) => ing?.ingredient_name || ing?.name || '')
+      .filter((name: string) => name && typeof name === 'string' && name.trim().length > 0)
+      .join(', ');
+  } else if (typeof raw.ingredients === 'string') {
+    parsedIngredients = raw.ingredients.trim();
+  }
+
+  // 2. Production description / ingredients fallback
+  const prodDesc = typeof raw.product_production_description === 'string' ? raw.product_production_description.trim() : '';
+  const finalIngredients = parsedIngredients || prodDesc || '';
+  const finalDescription = prodDesc || parsedIngredients || '';
+
+  // 3. Weight parsing (Poster uses 'out' for output grams in dishes or 'weight')
+  let weightText = '1 порція';
+  if (raw.out && Number(raw.out) > 0) {
+    weightText = `${Number(raw.out)} г`;
+  } else if (raw.weight && Number(raw.weight) > 0) {
+    weightText = `${Number(raw.weight)} г`;
+  }
+
+  // 4. Smart Category-aware HD Fallback Photos when no image uploaded to Poster
+  const catName = String(raw.category_name || '').toLowerCase();
+  const prodName = String(raw.product_name || raw.name || '').toLowerCase();
+  let defaultImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
+
+  if (catName.includes('бургер') || prodName.includes('бургер')) {
+    defaultImage = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('кава') || prodName.includes('капуч') || prodName.includes('еспресо') || prodName.includes('лате') || prodName.includes('американо')) {
+    defaultImage = 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('випіч') || prodName.includes('круас') || prodName.includes('булоч') || prodName.includes('хліб')) {
+    defaultImage = 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('напо') || catName.includes('вода') || prodName.includes('боржом') || prodName.includes('кола') || prodName.includes('сік')) {
+    defaultImage = 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('піц') || prodName.includes('піц')) {
+    defaultImage = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('рол') || catName.includes('суш') || prodName.includes('рол') || prodName.includes('філадельфія')) {
+    defaultImage = 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&auto=format&fit=crop&q=80';
+  }
+
   const imageUrl = raw.photo_origin 
     ? `https://joinposter.com${raw.photo_origin}` 
-    : (raw.photo ? `https://joinposter.com${raw.photo}` : 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&auto=format&fit=crop&q=80');
+    : (raw.photo ? `https://joinposter.com${raw.photo}` : defaultImage);
 
   return {
     id: Number(raw.product_id || raw.id),
@@ -658,9 +701,9 @@ export function mapPosterRawProduct(raw: any): Product {
     category_name: String(raw.category_name || 'Меню'),
     category_url: String(raw.category_url || 'all'),
     price: Math.round(priceUah),
-    weight: raw.weight ? `${raw.weight} г` : '1 порція',
-    ingredients: String(raw.ingredients || raw.product_production_description || ''),
-    description_raw: String(raw.product_production_description || raw.ingredients || ''),
+    weight: weightText,
+    ingredients: finalIngredients,
+    description_raw: finalDescription,
     image: imageUrl,
     modifications: modificationGroups.length > 0 ? modificationGroups : undefined
   };
