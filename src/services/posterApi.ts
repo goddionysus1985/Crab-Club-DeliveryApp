@@ -40,6 +40,32 @@ export interface PosterApiResponse<T = any> {
 }
 
 /**
+ * Universal Endpoint Resolver: automatically routes via local dev proxy to bypass browser CORS
+ */
+export function getPosterApiUrl(method: string, extraParams?: Record<string, string | number>): string {
+  const token = POSTER_CONFIG.apiToken || '878574:81779496978a44fd04baad6f04b15fac';
+  const isLocal = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' ||
+    window.location.port === '3000'
+  );
+
+  let urlStr = isLocal ? `/api/poster/${method}` : `https://joinposter.com/api/${method}`;
+  const url = new URL(urlStr, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  url.searchParams.set('token', token);
+
+  if (extraParams) {
+    Object.entries(extraParams).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) {
+        url.searchParams.set(k, String(v));
+      }
+    });
+  }
+
+  return url.toString();
+}
+
+/**
  * Convert user scheduled delivery time into Poster API format ('YYYY-MM-DD HH:mm:ss')
  */
 export function formatPosterDeliveryTime(scheduledTime?: string): string | undefined {
@@ -173,7 +199,7 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
     const timeoutId = setTimeout(() => controller.abort(), 7000);
 
     try {
-      const endpoint = `https://joinposter.com/api/incomingOrders.createIncomingOrder?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+      const endpoint = getPosterApiUrl('incomingOrders.createIncomingOrder');
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -273,7 +299,7 @@ export async function getPosterClientByPhone(phone: string): Promise<PosterClien
 
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
-      const endpoint = `https://joinposter.com/api/clients.getClients?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}&phone=${encodeURIComponent(cleanPhone)}`;
+      const endpoint = getPosterApiUrl('clients.getClients', { phone: cleanPhone });
       const res = await fetch(endpoint);
       const data = await res.json();
       if (data.response && Array.isArray(data.response) && data.response.length > 0) {
@@ -319,7 +345,7 @@ export async function registerPosterClient(name: string, phone: string): Promise
 
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
-      const endpoint = `https://joinposter.com/api/clients.createClient?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+      const endpoint = getPosterApiUrl('clients.createClient');
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -359,7 +385,7 @@ export async function deductPosterClientBonus(clientId: number, bonusToSpend: nu
 
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
-      const endpoint = `https://joinposter.com/api/clients.changeClientBonus?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+      const endpoint = getPosterApiUrl('clients.changeClientBonus');
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -394,7 +420,7 @@ export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<P
 
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
-      const endpoint = `https://joinposter.com/api/incomingOrders.getIncomingOrder?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}&incoming_order_id=${incomingOrderId}`;
+      const endpoint = getPosterApiUrl('incomingOrders.getIncomingOrder', { incoming_order_id: incomingOrderId });
       const res = await fetch(endpoint, {
         headers: { 'Accept': 'application/json' }
       });
@@ -449,7 +475,7 @@ export async function fetchPosterStopList(spotId: number = POSTER_CONFIG.default
 
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
-      const endpoint = `https://joinposter.com/api/spots.getSpotStopList?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}&spot_id=${spotId}`;
+      const endpoint = getPosterApiUrl('spots.getSpotStopList', { spot_id: spotId });
       const res = await fetch(endpoint);
       const data = await res.json();
       
@@ -511,8 +537,8 @@ export async function syncPosterMenuCatalog(): Promise<{ success: boolean; produ
   }
 
   try {
-    const productsEndpoint = `https://joinposter.com/api/menu.getProducts?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
-    const categoriesEndpoint = `https://joinposter.com/api/menu.getCategories?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+    const productsEndpoint = getPosterApiUrl('menu.getProducts');
+    const categoriesEndpoint = getPosterApiUrl('menu.getCategories');
 
     const [productsRes, categoriesRes] = await Promise.all([
       fetch(productsEndpoint),
@@ -662,8 +688,8 @@ export async function fetchLivePosterCatalog(): Promise<{
   if (!POSTER_CONFIG.isLiveMode || !POSTER_CONFIG.apiToken) return null;
 
   try {
-    const productsEndpoint = `https://joinposter.com/api/menu.getProducts?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
-    const categoriesEndpoint = `https://joinposter.com/api/menu.getCategories?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+    const productsEndpoint = getPosterApiUrl('menu.getProducts');
+    const categoriesEndpoint = getPosterApiUrl('menu.getCategories');
 
     const [productsRes, categoriesRes] = await Promise.all([
       fetch(productsEndpoint),

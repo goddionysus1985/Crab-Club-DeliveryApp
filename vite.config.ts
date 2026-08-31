@@ -7,7 +7,15 @@ export default defineConfig({
   base: './',
   server: {
     port: 3000,
-    host: true
+    host: true,
+    proxy: {
+      '/api/poster': {
+        target: 'https://joinposter.com/api',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api\/poster/, '')
+      }
+    }
   },
   build: {
     target: 'esnext',
