@@ -34,7 +34,6 @@ export async function requestTelegramAuthCode(phone: string): Promise<{
   message: string;
   sessionKey: string;
   botDeepLink: string;
-  demoCode?: string;
 }> {
   const cleanPhone = phone.replace(/[^\d+]/g, '');
   if (!cleanPhone || cleanPhone.length < 9) {
@@ -68,8 +67,7 @@ export async function requestTelegramAuthCode(phone: string): Promise<{
     success: true,
     message: `Код підтвердження надіслано через Telegram-бот!`,
     sessionKey,
-    botDeepLink,
-    demoCode: code // Displayed for seamless instant preview/test
+    botDeepLink
   };
 }
 

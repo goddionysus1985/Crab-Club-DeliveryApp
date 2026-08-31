@@ -57,7 +57,6 @@ export const ProfileModal: React.FC = () => {
   const [authPhone, setAuthPhone] = useState(userProfile.phone || '');
   const [authName, setAuthName] = useState(userProfile.name || '');
   const [otpCode, setOtpCode] = useState('');
-  const [generatedCodeHint, setGeneratedCodeHint] = useState<string | null>(null);
   const [botDeepLink, setBotDeepLink] = useState<string>('');
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
@@ -91,7 +90,6 @@ export const ProfileModal: React.FC = () => {
       const result = await requestTelegramAuthCode(phoneVal.formatted);
       if (result.success) {
         setAuthStep('code');
-        setGeneratedCodeHint(result.demoCode || null);
         setBotDeepLink(result.botDeepLink);
         setResendTimer(60);
         showToast('Код надіслано в Telegram-бот! 📲', undefined, 'success');
@@ -348,13 +346,21 @@ export const ProfileModal: React.FC = () => {
                         <div className="text-sm font-bold text-white">{authPhone}</div>
                       </div>
 
-                      {/* Demo / Bot Quick Link Box */}
-                      {generatedCodeHint && (
-                        <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-center text-xs text-sky-300">
-                          <span>Ваш код підтвердження: </span>
-                          <strong className="font-mono font-bold text-sm tracking-widest text-white">{generatedCodeHint}</strong>
-                        </div>
-                      )}
+                      {/* Open Telegram Bot Action Button */}
+                      <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/25 text-center space-y-2">
+                        <p className="text-xs text-zinc-300">
+                          Код надіслано в чат вашого Telegram-бота:
+                        </p>
+                        <a
+                          href={botDeepLink || 'https://t.me/crabclub_bot'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold shadow-md transition-colors"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Отримати код у @crabclub_bot</span>
+                        </a>
+                      </div>
 
                       <div>
                         <label className="text-xs text-zinc-300 font-medium text-center block mb-2">
