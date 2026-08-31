@@ -3,7 +3,7 @@
  * Documentation: https://dev.joinposter.com/ru/docs/v2/incomingOrders/createIncomingOrder
  */
 
-import { OrderDetails, CartItem, Product } from '../types';
+import { OrderDetails, CartItem, Product, ModificationGroup, ModificationOption } from '../types';
 import { POSTER_CONFIG } from '../config/poster';
 
 export interface PosterIncomingProduct {
@@ -531,6 +531,73 @@ export async function syncPosterMenuCatalog(): Promise<{ success: boolean; produ
       message: err.message || 'Помилка мережі при завантаженні меню'
     };
   }
+}
+
+/**
+ * Canonical Converter: maps raw Poster API products into rich Product models with dynamic modifications
+ */
+export function mapPosterRawProduct(raw: any): Product {
+  const priceUah = typeof raw.price === 'number' 
+    ? (raw.price > 1000 ? raw.price / 100 : raw.price)
+    : (parseFloat(raw.price || '0') > 1000 ? parseFloat(raw.price) / 100 : parseFloat(raw.price || '0'));
+
+  // Parse dynamic modifications from Poster (group_modifications or simple modifications)
+  const modificationGroups: ModificationGroup[] = [];
+
+  if (raw.group_modifications && Array.isArray(raw.group_modifications)) {
+    raw.group_modifications.forEach((group: any) => {
+      const options: ModificationOption[] = (group.modifications || []).map((m: any) => ({
+        id: Number(m.dish_modification_id || m.m || m.id || 0),
+        name: String(m.name || ''),
+        price: typeof m.price === 'number' ? (m.price > 1000 ? m.price / 100 : m.price) : (parseFloat(m.price || '0') / 100)
+      }));
+
+      if (options.length > 0) {
+        modificationGroups.push({
+          group_id: Number(group.dish_modification_group_id || group.id || Math.random() * 1000),
+          group_name: String(group.name || 'Додаткові опції'),
+          type: Number(group.type || 1),
+          min: Number(group.min || 0),
+          max: Number(group.max || 1),
+          options
+        });
+      }
+    });
+  } else if (raw.modifications && Array.isArray(raw.modifications) && raw.modifications.length > 0) {
+    // Single level modifications
+    const options: ModificationOption[] = raw.modifications.map((m: any) => ({
+      id: Number(m.dish_modification_id || m.m || m.id || 0),
+      name: String(m.name || ''),
+      price: typeof m.price === 'number' ? (m.price > 1000 ? m.price / 100 : m.price) : (parseFloat(m.price || '0') / 100)
+    }));
+
+    modificationGroups.push({
+      group_id: 1,
+      group_name: 'Опції та бортики',
+      type: 1,
+      min: 0,
+      max: options.length,
+      options
+    });
+  }
+
+  const imageUrl = raw.photo_origin 
+    ? `https://joinposter.com${raw.photo_origin}` 
+    : (raw.photo ? `https://joinposter.com${raw.photo}` : 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&auto=format&fit=crop&q=80');
+
+  return {
+    id: Number(raw.product_id || raw.id),
+    name: String(raw.product_name || raw.name || 'Страва'),
+    category_pos_id: Number(raw.menu_category_id || raw.category_id || 1),
+    category_name: String(raw.category_name || 'Меню'),
+    category_url: String(raw.category_url || 'all'),
+    price: Math.round(priceUah),
+    weight: raw.weight ? `${raw.weight} г` : '1 порція',
+    ingredients: String(raw.ingredients || raw.product_production_description || ''),
+    description_raw: String(raw.product_production_description || raw.ingredients || ''),
+    image: imageUrl,
+    modifications: modificationGroups.length > 0 ? modificationGroups : undefined
+  };
 }
 
 
