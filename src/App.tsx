@@ -32,7 +32,18 @@ import { Heart, Sparkles } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { favorites } = useCart();
-  const [activeCategory, setActiveCategory] = useState<string>('all');
+  // Read category from URL hash on initial load
+  const [activeCategory, setActiveCategory] = useState<string>(() => {
+    try {
+      const hash = window.location.hash.replace(/^#\/?/, '');
+      if (hash && hash !== 'menu' && hash !== 'delivery' && hash !== 'about' && hash !== 'reviews' && hash !== 'contacts') {
+        const found = CATEGORIES.find(c => c.slug === hash);
+        if (found) return found.slug;
+      }
+    } catch {}
+    return 'all';
+  });
+
   const [activeSubcategory, setActiveSubcategory] = useState<string>('all');
   const [activeFilter, setActiveFilter] = useState<string>('none');
   const [sortBy, setSortBy] = useState<string>('default');
@@ -40,10 +51,35 @@ export const App: React.FC = () => {
   const isScrollingProgrammatically = useRef(false);
   const scrollTimeoutRef = useRef<number | null>(null);
 
-  // Instant Tab-Filter Category Handler with accurate scroll
+  // Sync state when browser Back/Forward is clicked or hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '');
+      if (hash && hash !== 'menu' && hash !== 'delivery' && hash !== 'about' && hash !== 'reviews' && hash !== 'contacts') {
+        const found = CATEGORIES.find(c => c.slug === hash);
+        if (found) {
+          setActiveCategory(found.slug);
+          setActiveSubcategory('all');
+        }
+      } else if (!hash) {
+        setActiveCategory('all');
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Instant Tab-Filter Category Handler with accurate scroll & URL Hash update
   const handleSelectCategory = (slug: string) => {
     setActiveCategory(slug);
     setActiveSubcategory('all');
+
+    // Update browser address bar seamlessly without page reload
+    try {
+      const newHash = slug === 'all' ? '#menu' : `#${slug}`;
+      window.history.replaceState(null, '', newHash);
+    } catch {}
 
     // Ensure page scrolls cleanly to the start of the menu
     requestAnimationFrame(() => {
