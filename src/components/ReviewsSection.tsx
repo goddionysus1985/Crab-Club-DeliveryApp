@@ -215,7 +215,7 @@ export const ReviewsSection: React.FC = () => {
                     maxLength={50}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Іван"
+                    placeholder="Наприклад: Олена або Михайло"
                     className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
                   />
                 </div>
@@ -227,7 +227,7 @@ export const ReviewsSection: React.FC = () => {
                     maxLength={60}
                     value={dish}
                     onChange={(e) => setDish(e.target.value)}
-                    placeholder="Сет Філадельфія / Піца 4 Сири"
+                    placeholder="Наприклад: Сет Філадельфія Мікс або Піца Пепероні"
                     className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
                   />
                 </div>
@@ -259,7 +259,7 @@ export const ReviewsSection: React.FC = () => {
                     maxLength={400}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder="Все дуже смачно, швидка доставка..."
+                    placeholder="Опишіть ваші враження від свіжості риби, смаку, сервісу та швидкості кур'єрської доставки..."
                     className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
                   />
                 </div>
