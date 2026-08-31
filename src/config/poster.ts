@@ -19,8 +19,7 @@ const env = (import.meta as any).env || {};
 export const POSTER_CONFIG: PosterConfig = {
   accountName: "crab-club",
   accountPosId: 21253,
-  // When you obtain your token from Poster Admin, paste it here or in .env
-  apiToken: env.VITE_POSTER_API_TOKEN || "",
+  apiToken: env.VITE_POSTER_API_TOKEN || "878574:81779496978a44fd04baad6f04b15fac",
   defaultSpotId: parseInt(env.VITE_POSTER_SPOT_ID || "1", 10),
-  isLiveMode: Boolean(env.VITE_POSTER_API_TOKEN)
+  isLiveMode: true
 };
