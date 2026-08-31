@@ -322,10 +322,9 @@ export const Header: React.FC = () => {
                     window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
                   }
                 }}
-                className="px-3 py-2.5 rounded-2xl bg-white/[0.04] text-white flex items-center justify-between border border-white/5"
+                className="px-3 py-2.5 rounded-2xl bg-white/[0.04] text-white flex items-center border border-white/5"
               >
                 <span>🍽️ Меню страв</span>
-                <span className="text-xs text-amber-400 font-bold">200+ позицій</span>
               </a>
 
               <a
@@ -398,17 +397,17 @@ export const Header: React.FC = () => {
               </a>
             </nav>
 
-            <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-zinc-400">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-400" />
-                <span>{RESTAURANT_INFO.work_hours}</span>
+            <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-zinc-400 gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="text-[11px] truncate">{RESTAURANT_INFO.work_hours}</span>
               </div>
               <a
                 href={`tel:${RESTAURANT_INFO.phone_raw}`}
-                className="text-amber-400 font-bold flex items-center gap-1"
+                className="text-amber-400 font-bold flex items-center gap-1 shrink-0 whitespace-nowrap text-xs"
               >
                 <Phone className="w-3.5 h-3.5" />
-                {RESTAURANT_INFO.phone}
+                <span>{RESTAURANT_INFO.phone}</span>
               </a>
             </div>
           </div>
