@@ -582,20 +582,33 @@ export async function syncPosterMenuCatalog(): Promise<{ success: boolean; produ
  * Canonical Converter: maps raw Poster API products into rich Product models with dynamic modifications
  */
 export function mapPosterRawProduct(raw: any): Product {
-  const priceUah = typeof raw.price === 'number' 
-    ? (raw.price > 1000 ? raw.price / 100 : raw.price)
-    : (parseFloat(raw.price || '0') > 1000 ? parseFloat(raw.price) / 100 : parseFloat(raw.price || '0'));
+  // Poster API prices can be: number, string ("2500"), or spot price map: { "1": "2500" } or { "1": 2500 }
+  let rawPrice = raw.price;
+  if (typeof rawPrice === 'object' && rawPrice !== null) {
+    const vals = Object.values(rawPrice);
+    rawPrice = vals.length > 0 ? vals[0] : 0;
+  }
+  const parsedPrice = typeof rawPrice === 'number' ? rawPrice : (parseFloat(String(rawPrice || '0')) || 0);
+  const priceUah = parsedPrice > 1000 ? parsedPrice / 100 : parsedPrice;
 
   // Parse dynamic modifications from Poster (group_modifications or simple modifications)
   const modificationGroups: ModificationGroup[] = [];
 
   if (raw.group_modifications && Array.isArray(raw.group_modifications)) {
     raw.group_modifications.forEach((group: any) => {
-      const options: ModificationOption[] = (group.modifications || []).map((m: any) => ({
-        id: Number(m.dish_modification_id || m.m || m.id || 0),
-        name: String(m.name || ''),
-        price: typeof m.price === 'number' ? (m.price > 1000 ? m.price / 100 : m.price) : (parseFloat(m.price || '0') / 100)
-      }));
+      const options: ModificationOption[] = (group.modifications || []).map((m: any) => {
+        let mPrice = m.price;
+        if (typeof mPrice === 'object' && mPrice !== null) {
+          const vals = Object.values(mPrice);
+          mPrice = vals.length > 0 ? vals[0] : 0;
+        }
+        const parsedMPrice = typeof mPrice === 'number' ? mPrice : (parseFloat(String(mPrice || '0')) || 0);
+        return {
+          id: Number(m.dish_modification_id || m.m || m.id || 0),
+          name: String(m.name || ''),
+          price: parsedMPrice > 1000 ? parsedMPrice / 100 : parsedMPrice
+        };
+      });
 
       if (options.length > 0) {
         modificationGroups.push({
@@ -610,11 +623,19 @@ export function mapPosterRawProduct(raw: any): Product {
     });
   } else if (raw.modifications && Array.isArray(raw.modifications) && raw.modifications.length > 0) {
     // Single level modifications
-    const options: ModificationOption[] = raw.modifications.map((m: any) => ({
-      id: Number(m.dish_modification_id || m.m || m.id || 0),
-      name: String(m.name || ''),
-      price: typeof m.price === 'number' ? (m.price > 1000 ? m.price / 100 : m.price) : (parseFloat(m.price || '0') / 100)
-    }));
+    const options: ModificationOption[] = raw.modifications.map((m: any) => {
+      let mPrice = m.price;
+      if (typeof mPrice === 'object' && mPrice !== null) {
+        const vals = Object.values(mPrice);
+        mPrice = vals.length > 0 ? vals[0] : 0;
+      }
+      const parsedMPrice = typeof mPrice === 'number' ? mPrice : (parseFloat(String(mPrice || '0')) || 0);
+      return {
+        id: Number(m.dish_modification_id || m.m || m.id || 0),
+        name: String(m.name || ''),
+        price: parsedMPrice > 1000 ? parsedMPrice / 100 : parsedMPrice
+      };
+    });
 
     modificationGroups.push({
       group_id: 1,

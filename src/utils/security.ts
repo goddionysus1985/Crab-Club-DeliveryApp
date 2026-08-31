@@ -135,10 +135,11 @@ export function verifyAndSanitizeCart(rawCart: unknown[]): CartItem[] {
     const product = cartItem.product as Product | undefined;
     if (!product || typeof product.id !== 'number') continue;
 
-    // Source of Truth Lookup
-    const authoritativeProduct = PRODUCTS.find(p => p.id === product.id);
-    if (!authoritativeProduct) continue; // Remove unverified or outdated products
+    // Source of Truth Lookup (fallback to product if dynamic from Poster POS)
+    const authoritativeProduct = PRODUCTS.find(p => p.id === product.id) || product;
+    if (!authoritativeProduct || !authoritativeProduct.name) continue;
 
+    const basePrice = Math.max(0, Number(authoritativeProduct.price) || 0);
     const quantity = Math.max(1, Math.min(99, Number(cartItem.quantity) || 1));
     const safeComment = cleanRawText(String(cartItem.comment || ''), 200);
 
@@ -153,8 +154,7 @@ export function verifyAndSanitizeCart(rawCart: unknown[]): CartItem[] {
         const groupName = cleanRawText(String(optObj.group_name || ''), 50);
         const optionName = cleanRawText(String(optObj.option_name || ''), 50);
 
-        // Cross-verify price from authoritative modifications
-        let verifiedPrice = 0;
+        let verifiedPrice = Math.max(0, Number(optObj.price) || 0);
         if (authoritativeProduct.modifications) {
           for (const modGroup of authoritativeProduct.modifications) {
             const foundOpt = modGroup.options.find(o => o.name === optionName);
@@ -174,16 +174,19 @@ export function verifyAndSanitizeCart(rawCart: unknown[]): CartItem[] {
       }
     }
 
-    const unitPrice = authoritativeProduct.price + extraCost;
+    const unitPrice = basePrice + extraCost;
     const totalPrice = unitPrice * quantity;
 
     verifiedCart.push({
-      id: String(cartItem.id || authoritativeProduct.id),
-      product: authoritativeProduct,
+      id: String(cartItem.id || `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`),
+      product: {
+        ...authoritativeProduct,
+        price: basePrice
+      },
       quantity,
       selectedOptions,
       totalPrice,
-      comment: safeComment
+      comment: safeComment || undefined
     });
   }
 

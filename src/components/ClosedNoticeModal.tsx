@@ -94,24 +94,15 @@ export const ClosedNoticeModal: React.FC = () => {
             </div>
 
             {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+            <div className="pt-1">
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handleDismiss}
-                className="w-full py-3 px-5 rounded-2xl apple-button-primary text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl shadow-crab-600/30"
+                className="w-full py-3.5 px-5 rounded-2xl apple-button-primary text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl shadow-crab-600/30"
               >
                 <span>Переглянути меню та обрати страви</span>
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
-
-              <a
-                href={`tel:${RESTAURANT_INFO.phone_raw}`}
-                className="py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-xs flex items-center justify-center gap-2 backdrop-blur-md transition-all shrink-0"
-              >
-                <Phone className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">{RESTAURANT_INFO.phone}</span>
-                <span className="sm:hidden">Дзвінок</span>
-              </a>
             </div>
 
           </motion.div>

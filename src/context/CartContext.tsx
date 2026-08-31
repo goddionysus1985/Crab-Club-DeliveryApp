@@ -215,10 +215,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart(prev => {
       const newItems: CartItem[] = [];
       historicOrder.items.forEach(histItem => {
-        const prod = PRODUCTS.find(p => p.id === histItem.product.id);
+        const prod = PRODUCTS.find(p => p.id === histItem.product.id) || histItem.product;
         if (prod) {
           const extraPrice = histItem.selectedOptions?.reduce((sum, o) => sum + (o.price || 0), 0) || 0;
-          const unitPrice = prod.price + extraPrice;
+          const unitPrice = (Number(prod.price) || 0) + extraPrice;
           const qty = Math.max(1, histItem.quantity);
           newItems.push({
             id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -301,22 +301,23 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     try {
       localStorage.setItem('crabclub_cart', JSON.stringify(cart));
-    } catch {
-      // Storage limits or private mode
-    }
+    } catch {}
   }, [cart]);
 
   // Sync favorites to localStorage
   useEffect(() => {
     try {
       localStorage.setItem('crabclub_favorites', JSON.stringify(favorites));
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, [favorites]);
 
-  const showToast = (text: string, image?: string, type: 'success' | 'info' | 'error' = 'success') => {
-    setToast({ id: Date.now().toString(), text, image, type });
+  const showToast = (text: string, image?: string, type: 'success' | 'info' | 'error' = 'info') => {
+    setToast({
+      id: String(Date.now()),
+      text: cleanRawText(text, 100),
+      image,
+      type
+    });
   };
 
   const hideToast = () => setToast(null);
@@ -353,9 +354,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     selectedOptions?: { group_name: string; option_name: string; price: number }[],
     comment?: string
   ) => {
-    // Authoritative price check
-    const originalProduct = PRODUCTS.find(p => p.id === product.id);
-    if (!originalProduct) {
+    if (!product || !product.id) {
       showToast('Цей товар наразі недоступний', undefined, 'error');
       return;
     }
@@ -374,7 +373,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Extra cost calculation
     const extraPrice = safeOptions.reduce((sum, opt) => sum + opt.price, 0);
-    const unitPrice = originalProduct.price + extraPrice;
+    const basePrice = Math.max(0, Number(product.price) || 0);
+    const unitPrice = basePrice + extraPrice;
 
     setCart(prevCart => {
       const existingIndex = prevCart.findIndex(item => {
@@ -396,7 +396,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         const newItem: CartItem = {
           id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          product: originalProduct,
+          product: { ...product, price: basePrice },
           quantity: safeQuantity,
           selectedOptions: safeOptions,
           comment: comment ? cleanRawText(comment, 150) : undefined,
@@ -412,7 +412,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch {}
 
-    showToast(`Додано: ${originalProduct.name}`, originalProduct.image, 'success');
+    showToast(`Додано: ${product.name}`, product.image, 'success');
   };
 
   const removeFromCart = (cartItemId: string) => {
