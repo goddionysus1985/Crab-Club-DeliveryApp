@@ -24,6 +24,11 @@ import {
 } from 'lucide-react';
 import { Category } from '../types';
 import { CATEGORIES } from '../data/menuData';
+import { 
+  SwimmingFishAnimation, 
+  SwayingWheatAnimation, 
+  LivingFlameAnimation 
+} from './animations/MenuAmbientAnimations';
 
 interface CategoryNavProps {
   activeCategory: string;
@@ -108,7 +113,16 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
     }
   };
 
-  const getCategoryIcon = (iconName?: string) => {
+  const getCategoryIcon = (iconName?: string, slug?: string) => {
+    if (slug?.includes('roli') || slug?.includes('moreprodukti') || iconName === 'Fish') {
+      return <SwimmingFishAnimation size={16} />;
+    }
+    if (slug?.includes('pica') || slug?.includes('snidanki') || iconName === 'Pizza') {
+      return <SwayingWheatAnimation size={16} />;
+    }
+    if (slug?.includes('garyachi') || slug?.includes('wok') || iconName === 'Flame') {
+      return <LivingFlameAnimation size={16} />;
+    }
     switch (iconName) {
       case 'Coffee': return <Coffee className="w-4 h-4" />;
       case 'Sparkles': return <Sparkles className="w-4 h-4" />;
@@ -206,7 +220,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
                         transition={{ type: 'spring', damping: 25, stiffness: 320 }}
                       />
                     )}
-                    {getCategoryIcon(cat.icon)}
+                    {getCategoryIcon(cat.icon, cat.slug)}
                     <span>{cat.name}</span>
                   </motion.button>
                 );

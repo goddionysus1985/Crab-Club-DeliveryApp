@@ -20,6 +20,11 @@ import { NotificationToast } from './components/NotificationToast';
 import { ClosedNoticeModal } from './components/ClosedNoticeModal';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { QuickReorderBanner } from './components/QuickReorderBanner';
+import { 
+  SwimmingFishAnimation, 
+  SwayingWheatAnimation, 
+  LivingFlameAnimation 
+} from './components/animations/MenuAmbientAnimations';
 import { CATEGORIES, PRODUCTS } from './data/menuData';
 import { useCart } from './context/CartContext';
 import { Product } from './types';
@@ -178,11 +183,20 @@ export const App: React.FC = () => {
                 id={`category-${category.slug}`}
                 className="scroll-mt-44"
               >
-                {/* Category Header */}
+                {/* Category Header with Ambient Animations */}
                 <div className="flex items-end justify-between border-b border-white/10 pb-3 mb-5">
-                  <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white">
-                    {category.name}
-                  </h2>
+                  <div className="flex items-center gap-2.5">
+                    {category.slug.includes('roli') || category.slug.includes('moreprodukti') ? (
+                      <SwimmingFishAnimation size={24} />
+                    ) : category.slug.includes('pica') || category.slug.includes('snidanki') ? (
+                      <SwayingWheatAnimation size={24} />
+                    ) : category.slug.includes('garyachi') || category.slug.includes('wok') ? (
+                      <LivingFlameAnimation size={24} />
+                    ) : null}
+                    <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white">
+                      {category.name}
+                    </h2>
+                  </div>
 
                   <span className="text-xs text-slate-400 font-medium">
                     {filtered.length} позицій
