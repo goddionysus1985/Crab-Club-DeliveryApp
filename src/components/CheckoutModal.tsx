@@ -576,7 +576,7 @@ export const CheckoutModal: React.FC = () => {
                     }`}
                   >
                     <CreditCard className="w-5 h-5 text-amber-400" />
-                    <span>Терміналом кур'єру</span>
+                    <span>{orderType === 'takeaway' ? 'Карткою на касі' : 'Терміналом кур\'єру'}</span>
                     <span className="text-[10px] text-zinc-400 font-normal">При отриманні</span>
                   </motion.button>
 
@@ -591,7 +591,7 @@ export const CheckoutModal: React.FC = () => {
                     }`}
                   >
                     <Banknote className="w-5 h-5 text-purple-400" />
-                    <span>Готівкою кур'єру</span>
+                    <span>{orderType === 'takeaway' ? 'Готівкою на касі' : 'Готівкою кур\'єру'}</span>
                     <span className="text-[10px] text-zinc-400 font-normal">При отриманні</span>
                   </motion.button>
                 </div>

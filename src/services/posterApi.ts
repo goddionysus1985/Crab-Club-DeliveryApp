@@ -170,10 +170,11 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
   const changeNote = rawChange ? `Решта з: ${rawChange} ₴` : (order.cashChangeFrom && order.cashChangeFrom.trim().length > 0 ? `Решта з: ${order.cashChangeFrom}` : '');
 
   // Payment note for kitchen/courier receipt
+  const isTakeaway = order.orderType === 'takeaway';
   const paymentLabel = order.paymentMethod === 'cash'
-    ? `💵 Оплата: Готівкою кур'єру (до сплати ${order.total} ₴)`
+    ? (isTakeaway ? `💵 Оплата: Готівкою на касі (до сплати ${order.total} ₴)` : `💵 Оплата: Готівкою кур'єру (до сплати ${order.total} ₴)`)
     : order.paymentMethod === 'card_courier'
-    ? `💳 Оплата: Терміналом кур'єру (до сплати ${order.total} ₴)`
+    ? (isTakeaway ? `💳 Оплата: Карткою на касі (до сплати ${order.total} ₴)` : `💳 Оплата: Терміналом кур'єру (до сплати ${order.total} ₴)`)
     : `✅ Оплата: Оплачено онлайн на сайті (${order.total} ₴)`;
 
   const commentParts = [

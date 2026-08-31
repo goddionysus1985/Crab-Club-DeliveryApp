@@ -286,8 +286,8 @@ export const OrderTrackerModal: React.FC = () => {
                     <span className="text-zinc-400">Оплата:</span>
                     <span className="text-white font-medium">
                       {currentOrder.paymentMethod === 'card_online' && 'Онлайн картою'}
-                      {currentOrder.paymentMethod === 'card_courier' && 'Терміналом кур\'єру'}
-                      {currentOrder.paymentMethod === 'cash' && 'Готівкою кур\'єру'}
+                      {currentOrder.paymentMethod === 'card_courier' && (currentOrder.orderType === 'takeaway' ? 'Карткою на касі' : 'Терміналом кур\'єру')}
+                      {currentOrder.paymentMethod === 'cash' && (currentOrder.orderType === 'takeaway' ? 'Готівкою на касі' : 'Готівкою кур\'єру')}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm pt-1 border-t border-white/[0.06]">
