@@ -12165,44 +12165,7 @@ export const PRODUCTS: Product[] = [
   }
 ];
 
-export const REVIEWS: Review[] = [
-  {
-    "id": 1,
-    "author": "Ірина Василенко",
-    "rating": 5,
-    "date": "Вчора",
-    "dish": "Сет «Філадельфія Мікс» & Піца «Пепероні»",
-    "comment": "Замовляли на сімейне свято сет та дві піци. Доставили в центр за 12 хвилин, піца була дуже гаряча з хрустким бортиком, а в ролах лосось свіжий і товстий шар риби. Дуже дякуємо кухарям та кур'єру!",
-    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-  },
-  {
-    "id": 2,
-    "author": "Сергій Кравченко",
-    "rating": 5,
-    "date": "2 дні тому",
-    "dish": "Бургер «Crab Royal» з картоплею фрі",
-    "comment": "Найсоковитіший бургер у нашому районі! Булочка бріош м'яка, котлета зі справжньої яловичини, соус відмінний. Замовлення приїхало акуратно упакованим у фірмовий крафтовий бокс.",
-    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80"
-  },
-  {
-    "id": 3,
-    "author": "Олена Мороз",
-    "rating": 5,
-    "date": "4 дні тому",
-    "dish": "Круасан з лососем та авокадо & Капучино",
-    "comment": "Брали сніданки на самовивіз зі знижкою 10%. Круасан неймовірно ніжний і хрусткий, порція велика, кава ароматна. Приємний персонал і дуже зручний сайт для замовлення.",
-    "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80"
-  },
-  {
-    "id": 4,
-    "author": "Дмитро Поліщук",
-    "rating": 5,
-    "date": "Тиждень тому",
-    "dish": "WOK локшина з морепродуктами & Том Ям",
-    "comment": "Том Ям насичений, з великою кількістю креветок та кальмарів, гострота збалансована. Доставка приїхала точно вчасно в гарячій термосумці. Crab Club тепер наш фаворит!",
-    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80"
-  }
-];
+export const REVIEWS: Review[] = [];
 
 export const PROMO_CODES: Record<string, { discountPercent?: number; discountFixed?: number; description: string }> = {
   'CRABCLUB': { discountPercent: 10, description: 'Знижка 10% на все замовлення' },
