@@ -373,6 +373,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+    try {
+      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(18);
+      }
+    } catch {}
+
     showToast(`Додано: ${originalProduct.name}`, originalProduct.image, 'success');
   };
 

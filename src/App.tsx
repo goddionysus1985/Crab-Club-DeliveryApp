@@ -19,6 +19,7 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { NotificationToast } from './components/NotificationToast';
 import { ClosedNoticeModal } from './components/ClosedNoticeModal';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
+import { Preloader } from './components/Preloader';
 import { 
   SwimmingFishAnimation, 
   SwayingWheatAnimation, 
@@ -231,6 +232,9 @@ export const App: React.FC = () => {
 
       {/* Mobile Bottom Thumb Navigation Bar */}
       <MobileBottomNav />
+
+      {/* Brand Luxury Preloader */}
+      <Preloader />
 
       {/* Modals & Drawers */}
       <CartDrawer />
