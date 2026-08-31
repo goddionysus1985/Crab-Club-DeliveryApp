@@ -683,15 +683,21 @@ function getPosterCategoryIcon(name: string): string {
 function slugifyCategoryName(text: string): string {
   const cyrMap: Record<string, string> = {
     'кава': 'coffee',
-    'випічка': 'bakery',
-    'холодні напої': 'cold-drinks',
-    'напої': 'drinks',
-    'роли': 'rolls',
-    'піца': 'pizza',
-    'бургери': 'burgers',
-    'супи': 'soups',
-    'салати': 'salads',
-    'десерти': 'desserts'
+    'випіч': 'bakery',
+    'холодні': 'cold-drinks',
+    'напо': 'drinks',
+    'рол': 'rolls',
+    'суш': 'rolls',
+    'сет': 'sets',
+    'піц': 'pizza',
+    'бургер': 'burgers',
+    'суп': 'soups',
+    'салат': 'salads',
+    'десерт': 'desserts',
+    'паст': 'pasta',
+    'снідан': 'breakfast',
+    'закуск': 'snacks',
+    'гриль': 'grill'
   };
   const lower = text.toLowerCase().trim();
   for (const [cyr, lat] of Object.entries(cyrMap)) {
