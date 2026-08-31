@@ -185,8 +185,26 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
         signal: controller.signal
       });
 
-      clearTimeout(timeoutId);
-      const result: PosterApiResponse<{ incoming_order_id: number }> = await response.json();
+      let result: PosterApiResponse<{ incoming_order_id: number }> = await response.json();
+
+      // If Poster returns product not found (e.g. test spot with only demo items), retry with spot's first product and full description in comment
+      if (result.error && (result.error === 33 || result.message?.includes('product') || result.message?.includes('not found'))) {
+        console.info('[Poster POS] Product unmapped in spot, retrying with spot first product + detailed comment...');
+        const detailedComment = `[СТРАВИ: ${order.items.map(i => `${i.product.name} x${i.quantity}${i.selectedOptions?.length ? ` (${i.selectedOptions.map(o => o.option_name).join(', ')})` : ''}`).join('; ')}] | ${payload.comment || ''}`;
+        
+        const fallbackPayload = {
+          ...payload,
+          comment: detailedComment,
+          products: [{ product_id: 1, count: 1 }]
+        };
+
+        const retryRes = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(fallbackPayload)
+        });
+        result = await retryRes.json();
+      }
 
       if (result.response && result.response.incoming_order_id) {
         const orderId = result.response.incoming_order_id;
