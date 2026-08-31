@@ -10,10 +10,10 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api/poster': {
-        target: 'https://joinposter.com/api',
+        target: 'https://joinposter.com',
         changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/api\/poster/, '')
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/poster/, '/api')
       }
     }
   },

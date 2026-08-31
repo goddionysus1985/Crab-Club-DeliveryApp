@@ -50,8 +50,8 @@ export function getPosterApiUrl(method: string, extraParams?: Record<string, str
     window.location.port === '3000'
   );
 
-  let urlStr = isLocal ? `/api/poster/${method}` : `https://joinposter.com/api/${method}`;
-  const url = new URL(urlStr, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  let urlStr = isLocal ? `http://localhost:3005/${method}` : `https://joinposter.com/api/${method}`;
+  const url = new URL(urlStr);
   url.searchParams.set('token', token);
 
   if (extraParams) {
