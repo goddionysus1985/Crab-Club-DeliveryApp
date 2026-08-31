@@ -209,19 +209,8 @@ export const App: React.FC = () => {
       />
 
       {/* Main Menu Catalog Section */}
-      <main id="menu" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12">
+      <main id="menu" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-16">
         
-        {/* Live Poster POS Sync Status Banner */}
-        {isPosterLiveSynced && (
-          <div className="flex items-center justify-between p-3.5 px-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-semibold animate-in fade-in duration-300">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-              <span>Хмарне меню підтягнуто з каси Poster POS ({catalogProducts.length} позицій)</span>
-            </div>
-            <span className="text-[11px] text-emerald-300/90 bg-emerald-500/20 px-2.5 py-0.5 rounded-full font-mono">🟢 Live Sync</span>
-          </div>
-        )}
-
         {/* Favorites Section (if any saved) */}
         {favoriteProducts.length > 0 && (
           <section id="favorites" className="p-6 rounded-3xl bg-gradient-to-r from-crab-950/40 via-[#13131D] to-[#13131D] border border-crab-500/20 scroll-mt-44">
