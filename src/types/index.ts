@@ -164,4 +164,8 @@ export interface UserProfile {
   doorphone?: string;
   bonusBalance: number; // Cashback balance in UAH
   totalSpent: number; // Total spent in UAH
+  isLoggedIn?: boolean;
+  isVerified?: boolean;
+  telegramUsername?: string;
+  registeredAt?: string;
 }
