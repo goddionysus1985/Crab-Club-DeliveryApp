@@ -44,14 +44,15 @@ export interface PosterApiResponse<T = any> {
  */
 export function getPosterApiUrl(method: string, extraParams?: Record<string, string | number>): string {
   const token = POSTER_CONFIG.apiToken || '878574:81779496978a44fd04baad6f04b15fac';
-  const isLocal = typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1' ||
-    window.location.port === '3000'
-  );
+  let baseUrl = `https://joinposter.com/api`;
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.') || host.startsWith('10.') || host.startsWith('172.') || host.startsWith('26.')) {
+      baseUrl = `http://${host}:3005`;
+    }
+  }
 
-  let urlStr = isLocal ? `http://localhost:3005/${method}` : `https://joinposter.com/api/${method}`;
-  const url = new URL(urlStr);
+  const url = new URL(`${baseUrl}/${method}`);
   url.searchParams.set('token', token);
 
   if (extraParams) {

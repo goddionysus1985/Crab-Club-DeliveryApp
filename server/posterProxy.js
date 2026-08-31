@@ -13,8 +13,10 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Support both /api/poster/method and /method
   const subPath = req.url.replace(/^\/api\/poster/, '');
-  const targetUrl = `https://joinposter.com/api${subPath}`;
+  const cleanPath = subPath.startsWith('/') ? subPath : `/${subPath}`;
+  const targetUrl = `https://joinposter.com/api${cleanPath}`;
 
   try {
     const chunks = [];
@@ -41,6 +43,6 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`🦀 Poster POS CORS Proxy running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🦀 Poster POS CORS Proxy active on 0.0.0.0:${PORT}`);
 });
