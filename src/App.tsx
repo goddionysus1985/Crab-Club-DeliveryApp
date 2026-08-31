@@ -19,7 +19,6 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { NotificationToast } from './components/NotificationToast';
 import { ClosedNoticeModal } from './components/ClosedNoticeModal';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
-import { QuickReorderBanner } from './components/QuickReorderBanner';
 import { 
   SwimmingFishAnimation, 
   SwayingWheatAnimation, 
@@ -113,9 +112,6 @@ export const App: React.FC = () => {
         onSelectCategory={handleSelectCategory}
         onSelectSubcategory={handleSelectSubcategory}
       />
-
-      {/* Quick Reorder Banner (if past orders exist) */}
-      <QuickReorderBanner />
 
       {/* Anchor for scrolling back to menu */}
       <div id="menu-top-anchor" className="scroll-mt-16" />
