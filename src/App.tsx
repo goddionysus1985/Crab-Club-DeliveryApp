@@ -39,35 +39,34 @@ export const App: React.FC = () => {
   const isScrollingProgrammatically = useRef(false);
   const scrollTimeoutRef = useRef<number | null>(null);
 
-  // Instant Tab-Filter Category Handler
+  // Instant Tab-Filter Category Handler with accurate scroll
   const handleSelectCategory = (slug: string) => {
     setActiveCategory(slug);
     setActiveSubcategory('all');
 
-    // Ensure menu begins right below sticky header
-    const navEl = document.getElementById('menu-nav');
-    if (navEl) {
-      const headerEl = document.querySelector('header');
-      const headerH = headerEl ? headerEl.offsetHeight : 52;
-      const targetY = navEl.getBoundingClientRect().top + window.pageYOffset - headerH;
-      // Scroll to menu top if user is looking at hero or deep down
-      if (window.pageYOffset > targetY + 50 || window.pageYOffset < targetY - 100) {
+    // Ensure page scrolls cleanly to the start of the menu
+    requestAnimationFrame(() => {
+      const anchor = document.getElementById('menu-top-anchor') || document.getElementById('menu-nav');
+      if (anchor) {
+        const headerEl = document.querySelector('header');
+        const headerH = headerEl ? headerEl.offsetHeight : 52;
+        const targetY = anchor.getBoundingClientRect().top + window.pageYOffset - headerH;
         window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
       }
-    }
+    });
   };
 
   const handleSelectSubcategory = (subSlug: string) => {
     setActiveSubcategory(subSlug);
-    const navEl = document.getElementById('menu-nav');
-    if (navEl) {
-      const headerEl = document.querySelector('header');
-      const headerH = headerEl ? headerEl.offsetHeight : 52;
-      const targetY = navEl.getBoundingClientRect().top + window.pageYOffset - headerH;
-      if (window.pageYOffset > targetY + 50) {
+    requestAnimationFrame(() => {
+      const anchor = document.getElementById('menu-top-anchor') || document.getElementById('menu-nav');
+      if (anchor) {
+        const headerEl = document.querySelector('header');
+        const headerH = headerEl ? headerEl.offsetHeight : 52;
+        const targetY = anchor.getBoundingClientRect().top + window.pageYOffset - headerH;
         window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
       }
-    }
+    });
   };
 
   // Filter & Sort helper
