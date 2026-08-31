@@ -23,11 +23,14 @@ function posterProxyPlugin() {
           }
 
           try {
-            const chunks: any[] = [];
-            for await (const chunk of req) {
-              chunks.push(chunk);
+            let body: any = undefined;
+            if (req.method !== 'GET' && req.method !== 'HEAD') {
+              const chunks: any[] = [];
+              for await (const chunk of req) {
+                chunks.push(chunk);
+              }
+              body = chunks.length > 0 ? Buffer.concat(chunks) : undefined;
             }
-            const body = chunks.length > 0 ? Buffer.concat(chunks) : undefined;
 
             const fetchRes = await fetch(targetUrl, {
               method: req.method,
@@ -39,10 +42,12 @@ function posterProxyPlugin() {
             });
 
             const data = await fetchRes.text();
+            console.log(`[Vite Proxy] 🚀 ${req.method} /${posterMethod.split('?')[0]} -> Status: ${fetchRes.status}`);
             res.statusCode = fetchRes.status;
             res.setHeader('Content-Type', 'application/json');
             res.end(data);
           } catch (err: any) {
+            console.error(`[Vite Proxy Error] ${url}:`, err.message);
             res.statusCode = 500;
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ error: err.message }));

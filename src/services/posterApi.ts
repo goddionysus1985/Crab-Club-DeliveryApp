@@ -298,6 +298,7 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
 
     try {
       const endpoint = getPosterApiUrl('incomingOrders.createIncomingOrder');
+      console.log('[Poster POS Dispatch] 🚀 Надсилання замовлення в Poster POS API:', payload);
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -310,6 +311,7 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
       });
 
       let result: PosterApiResponse<{ incoming_order_id: number }> = await response.json();
+      console.log('[Poster POS Dispatch Response] 📥 Відповідь Poster API:', result);
 
       // If Poster returns product not found (e.g. test spot with only demo items), retry with spot's first product and full description in comment
       if (result.error && (result.error === 33 || result.message?.includes('product') || result.message?.includes('not found'))) {
@@ -328,6 +330,7 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
           body: JSON.stringify(fallbackPayload)
         });
         result = await retryRes.json();
+        console.log('[Poster POS Retry Response] 📥:', result);
       }
 
       if (result.response && result.response.incoming_order_id) {
@@ -344,11 +347,11 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
           message: `Замовлення надіслано в Poster POS (#${orderId})`
         };
       } else {
-        console.warn('[Poster POS] Помилка від Poster API, перемикання на резервний канал:', result);
+        console.warn('[Poster POS] ⚠️ Помилка від Poster API:', result);
       }
     } catch (error: any) {
       clearTimeout(timeoutId);
-      console.warn('[Poster POS] Таймаут або помилка зв\'язку з Poster POS. Запуск резервного каналу...', error);
+      console.warn('[Poster POS] ⚠️ Таймаут або помилка зв\'язку з Poster POS:', error);
     }
   }
 
