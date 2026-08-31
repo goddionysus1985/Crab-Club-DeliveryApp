@@ -10,10 +10,14 @@ export interface PaymentConfig {
   isSandbox: boolean;
 }
 
+const env = (import.meta as any).env || {};
+
 export const PAYMENT_CONFIG: PaymentConfig = {
-  merchantName: "CRAB CLUB OVIDIOPOL",
+  merchantName: env.VITE_RESTAURANT_NAME || "CRAB CLUB",
   currency: "UAH",
-  isSandbox: true,
+  monobankToken: env.VITE_MONOBANK_TOKEN || "",
+  wayforpayAccount: env.VITE_WAYFORPAY_MERCHANT_ACCOUNT || "",
+  isSandbox: !Boolean(env.VITE_MONOBANK_TOKEN || env.VITE_WAYFORPAY_MERCHANT_ACCOUNT),
 };
 
 export type CardType = 'visa' | 'mastercard' | 'prostir' | 'unknown';
