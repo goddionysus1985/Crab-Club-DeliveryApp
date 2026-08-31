@@ -30,6 +30,7 @@ import { useCart } from '../context/CartContext';
 import { PRODUCTS } from '../data/menuData';
 import { OrderDetails } from '../types';
 import { getPosterClientByPhone } from '../services/posterApi';
+import { TelegramLoginWidget, TelegramUser } from './TelegramLoginWidget';
 import { 
   requestTelegramAuthCode, 
   verifyTelegramAuthCode, 
@@ -52,15 +53,6 @@ export const ProfileModal: React.FC = () => {
     showToast
   } = useCart();
 
-  // Auth flow state (for non-logged in users)
-  const [authStep, setAuthStep] = useState<'phone' | 'code'>('phone');
-  const [authPhone, setAuthPhone] = useState(userProfile.phone || '');
-  const [authName, setAuthName] = useState(userProfile.name || '');
-  const [otpCode, setOtpCode] = useState('');
-  const [botDeepLink, setBotDeepLink] = useState<string>('');
-  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
-
   // Tabs for logged in users
   const [activeTab, setActiveTab] = useState<'history' | 'profile' | 'favorites'>('history');
 
@@ -76,106 +68,29 @@ export const ProfileModal: React.FC = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isSyncingPoster, setIsSyncingPoster] = useState(false);
 
-  // Trigger OTP Request
-  const handleRequestOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const phoneVal = validateAndFormatPhone(authPhone);
-    if (!phoneVal.isValid) {
-      showToast('Введіть коректний номер телефону (наприклад: +380 98 123 45 67)', undefined, 'error');
-      return;
-    }
-
-    setIsRequestingOtp(true);
+  // 1-Click Official Telegram Widget Login Handler
+  const handleTelegramWidgetAuth = async (user: TelegramUser) => {
     try {
-      const result = await requestTelegramAuthCode(phoneVal.formatted);
-      if (result.success) {
-        setAuthStep('code');
-        setBotDeepLink(result.botDeepLink);
-        setResendTimer(60);
-        showToast('Код надіслано в Telegram-бот! 📲', undefined, 'success');
-
-        // Countdown timer for resend
-        const timer = setInterval(() => {
-          setResendTimer(prev => {
-            if (prev <= 1) {
-              clearInterval(timer);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      } else {
-        showToast(result.message, undefined, 'error');
-      }
-    } finally {
-      setIsRequestingOtp(false);
-    }
-  };
-
-  // Verify Submitted OTP
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otpCode.length < 4) {
-      showToast('Введіть 4-значний код підтвердження', undefined, 'error');
-      return;
-    }
-
-    const verification = verifyTelegramAuthCode(authPhone, otpCode);
-    if (!verification.isValid) {
-      showToast(verification.error || 'Невірний код', undefined, 'error');
-      return;
-    }
-
-    // Success: Confetti + load/create Poster CRM client
-    try {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
     } catch {}
 
-    const clean = authPhone.replace(/\D/g, '');
-    let savedLocalName = '';
-    try {
-      savedLocalName = localStorage.getItem('crabclub_user_custom_name') || '';
-    } catch {}
-
-    let finalName = authName.trim() || name.trim() || userProfile.name.trim() || savedLocalName || 'Клієнт';
-    let bonusBalance = 50;
+    const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Клієнт';
 
     try {
-      const posterClient = await getPosterClientByPhone(clean);
-      if (posterClient) {
-        // Only use posterClient.firstname if user has not set a custom name
-        if (posterClient.firstname && posterClient.firstname !== 'Гість' && !authName && !savedLocalName) {
-          finalName = posterClient.firstname;
-        }
-        if (posterClient.bonus !== undefined) bonusBalance = posterClient.bonus;
-      }
-    } catch {}
-
-    try {
-      if (finalName && finalName !== 'Клієнт') {
-        localStorage.setItem('crabclub_user_custom_name', finalName);
-      }
+      localStorage.setItem('crabclub_user_custom_name', fullName);
     } catch {}
 
     updateUserProfile({
-      name: finalName,
-      phone: authPhone,
+      name: fullName,
+      telegramUsername: user.username,
       isLoggedIn: true,
       isVerified: true,
-      bonusBalance,
-      registeredAt: userProfile.registeredAt || new Date().toLocaleDateString('uk-UA')
+      bonusBalance: userProfile.bonusBalance || 50,
+      registeredAt: new Date().toLocaleDateString('uk-UA')
     });
 
-    setName(finalName);
-    setPhone(authPhone);
-    setAuthStep('phone');
-    setOtpCode('');
-
-    showToast(`🎉 Вітаємо, ${finalName}! Авторизація успішна`, undefined, 'success');
+    setName(fullName);
+    showToast(`🎉 Вітаємо, ${user.first_name}! Ви успішно увійшли через Telegram`, undefined, 'success');
   };
 
   // Logout
@@ -277,7 +192,7 @@ export const ProfileModal: React.FC = () => {
                     {userProfile.isLoggedIn ? (userProfile.name || 'Особистий кабінет') : 'Авторизація & Клуб'}
                   </h2>
                   <p className="text-xs text-zinc-400">
-                    {userProfile.isLoggedIn ? 'Бонуси, історія замовлень та кешбек' : 'Вхід через офіційний Telegram-бот'}
+                    {userProfile.isLoggedIn ? 'Бонуси, історія замовлень та кешбек' : 'Офіційний вхід в 1 клік через Telegram'}
                   </p>
                 </div>
               </div>
@@ -295,147 +210,48 @@ export const ProfileModal: React.FC = () => {
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 hide-scrollbar space-y-6">
 
-              {/* NON-LOGGED-IN: TELEGRAM AUTH FLOW */}
+              {/* NON-LOGGED-IN: OFFICIAL 1-CLICK TELEGRAM LOGIN */}
               {!userProfile.isLoggedIn ? (
-                <div className="max-w-md mx-auto py-4 space-y-6">
+                <div className="max-w-md mx-auto py-6 space-y-6">
                   
-                  {/* Telegram Bot Hero Banner */}
-                  <div className="p-5 rounded-3xl bg-gradient-to-br from-blue-600/20 via-sky-500/10 to-transparent border border-sky-500/30 text-center space-y-2">
-                    <div className="w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-400/40 text-sky-400 flex items-center justify-center mx-auto shadow-lg shadow-sky-500/20">
-                      <Send className="w-6 h-6" />
+                  {/* Telegram Bot Hero Card */}
+                  <div className="p-6 rounded-3xl bg-gradient-to-br from-[#161626] to-[#0F0F1A] border border-sky-500/30 text-center space-y-4 shadow-xl">
+                    <div className="w-14 h-14 rounded-2xl bg-sky-500/20 border border-sky-400/40 text-sky-400 flex items-center justify-center mx-auto shadow-lg shadow-sky-500/20">
+                      <Send className="w-7 h-7" />
                     </div>
-                    <h3 className="text-base font-bold text-white">
-                      Crab Club Verification Bot
-                    </h3>
-                    <p className="text-xs text-zinc-300 font-light leading-relaxed">
-                      Авторизуйтесь за номером телефону через Telegram для безпечного списання бонусів та збереження адрес доставки.
-                    </p>
+                    <div>
+                      <h3 className="text-base font-bold text-white mb-1">
+                        Вхід в 1 клік через Telegram
+                      </h3>
+                      <p className="text-xs text-zinc-300 font-light leading-relaxed max-w-sm mx-auto">
+                        Натисніть кнопку нижче для миттєвої та 100% безпечної авторизації через офіційний віджет Telegram.
+                      </p>
+                    </div>
+
+                    {/* Official Telegram Login Widget */}
+                    <div className="pt-3 pb-1 flex justify-center">
+                      <TelegramLoginWidget
+                        onAuth={handleTelegramWidgetAuth}
+                        buttonSize="large"
+                        cornerRadius={16}
+                      />
+                    </div>
                   </div>
 
-                  {authStep === 'phone' ? (
-                    <form onSubmit={handleRequestOtp} className="space-y-4">
-                      <div>
-                        <label className="text-xs text-zinc-300 font-medium flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Номер телефону:</span>
-                        </label>
-                        <input
-                          type="tel"
-                          required
-                          placeholder="+380 (__) ___-__-__"
-                          value={authPhone}
-                          onChange={(e) => setAuthPhone(e.target.value)}
-                          className="w-full mt-1.5 bg-white/[0.05] border border-white/15 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-sky-400"
-                        />
-                      </div>
+                  {/* Club Perks Badges */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-center">
+                      <Sparkles className="w-4 h-4 text-amber-400 mx-auto mb-1" />
+                      <div className="text-xs font-bold text-white">Кешбек 5%</div>
+                      <div className="text-[10px] text-zinc-500">На всі замовлення</div>
+                    </div>
 
-                      <div>
-                        <label className="text-xs text-zinc-300 font-medium flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Ваше ім'я (необов'язково):</span>
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Наприклад: Олена"
-                          value={authName}
-                          onChange={(e) => setAuthName(e.target.value)}
-                          className="w-full mt-1.5 bg-white/[0.05] border border-white/15 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-sky-400"
-                        />
-                      </div>
-
-                      <motion.button
-                        whileTap={{ scale: 0.97 }}
-                        type="submit"
-                        disabled={isRequestingOtp}
-                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-600/30 flex items-center justify-center gap-2"
-                      >
-                        <Send className="w-4 h-4" />
-                        <span>{isRequestingOtp ? 'Надсилаємо код...' : 'Отримати код через Telegram'}</span>
-                      </motion.button>
-
-                      <div className="pt-2 text-center">
-                        <a
-                          href="https://t.me/crabclub_bot"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-sky-400 hover:text-sky-300 font-medium inline-flex items-center gap-1"
-                        >
-                          <span>Відкрити бота @crabclub_bot у Telegram</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </a>
-                      </div>
-                    </form>
-                  ) : (
-                    <form onSubmit={handleVerifyOtp} className="space-y-4">
-                      <div className="text-center space-y-1">
-                        <span className="text-xs text-zinc-400">Код надіслано на номер:</span>
-                        <div className="text-sm font-bold text-white">{authPhone}</div>
-                      </div>
-
-                      {/* Open Telegram Bot Action Button */}
-                      <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/25 text-center space-y-2">
-                        <p className="text-xs text-zinc-300">
-                          Код надіслано в чат вашого Telegram-бота:
-                        </p>
-                        <a
-                          href={botDeepLink || 'https://t.me/crabclub_bot'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold shadow-md transition-colors"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          <span>Отримати код у @crabclub_bot</span>
-                        </a>
-                      </div>
-
-                      <div>
-                        <label className="text-xs text-zinc-300 font-medium text-center block mb-2">
-                          Введіть 4 цифри з повідомлення:
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={4}
-                          autoFocus
-                          required
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                          placeholder="••••"
-                          className="w-full text-center text-2xl tracking-[0.6em] font-mono bg-white/[0.06] border border-white/20 rounded-2xl py-3 text-white focus:outline-none focus:border-sky-400"
-                        />
-                      </div>
-
-                      <motion.button
-                        whileTap={{ scale: 0.97 }}
-                        type="submit"
-                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Підтвердити та увійти</span>
-                      </motion.button>
-
-                      <div className="flex items-center justify-between text-xs pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setAuthStep('phone')}
-                          className="text-zinc-400 hover:text-white"
-                        >
-                          Змінити номер
-                        </button>
-
-                        {resendTimer > 0 ? (
-                          <span className="text-zinc-500">Повторно через {resendTimer}с</span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleRequestOtp}
-                            className="text-sky-400 hover:text-sky-300 font-medium"
-                          >
-                            Надіслати код ще раз
-                          </button>
-                        )}
-                      </div>
-                    </form>
-                  )}
+                    <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-center">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 mx-auto mb-1" />
+                      <div className="text-xs font-bold text-white">Безпека бонусів</div>
+                      <div className="text-[10px] text-zinc-500">Захист каси Poster</div>
+                    </div>
+                  </div>
 
                 </div>
               ) : (
@@ -459,7 +275,9 @@ export const ProfileModal: React.FC = () => {
                               <span>Telegram</span>
                             </span>
                           </div>
-                          <div className="text-xs text-zinc-400 font-mono">{userProfile.phone}</div>
+                          <div className="text-xs text-zinc-400 font-mono">
+                            {userProfile.telegramUsername ? `@${userProfile.telegramUsername}` : userProfile.phone}
+                          </div>
                         </div>
                       </div>
 
@@ -597,6 +415,17 @@ export const ProfileModal: React.FC = () => {
                       </div>
 
                       <div>
+                        <label className="text-xs text-zinc-300 font-medium">Телефон:</label>
+                        <input
+                          type="tel"
+                          placeholder="+380..."
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div>
                         <label className="text-xs text-zinc-300 font-medium">Населений пункт:</label>
                         <select
                           value={city}
@@ -675,7 +504,7 @@ export const ProfileModal: React.FC = () => {
                           className="px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-semibold border border-white/10 flex items-center gap-1.5"
                         >
                           <RefreshCw className={`w-3.5 h-3.5 ${isSyncingPoster ? 'animate-spin text-amber-400' : ''}`} />
-                          <span>Синхронізувати з касою</span>
+                          <span>Оновити бонуси з каси</span>
                         </button>
 
                         <button
@@ -683,7 +512,7 @@ export const ProfileModal: React.FC = () => {
                           className="flex-1 py-2.5 rounded-2xl apple-button-primary text-white text-xs font-bold flex items-center justify-center gap-1.5"
                         >
                           <Save className="w-3.5 h-3.5" />
-                          <span>Зберегти адресу</span>
+                          <span>Зберегти</span>
                         </button>
                       </div>
                     </form>
