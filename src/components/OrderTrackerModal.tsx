@@ -13,20 +13,45 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { RESTAURANT_INFO } from '../data/menuData';
+import { fetchPosterOrderStatus } from '../services/posterApi';
 
 export const OrderTrackerModal: React.FC = () => {
   const { currentOrder, isOrderTrackerOpen, setIsOrderTrackerOpen } = useCart();
   const [currentStep, setCurrentStep] = useState<number>(1);
-  const [minutesLeft, setMinutesLeft] = useState<number>(42);
+  const [minutesLeft, setMinutesLeft] = useState<number>(40);
+  const [lastSyncText, setLastSyncText] = useState<string>('Онлайн-синхронізація з кухнею');
 
   useEffect(() => {
-    if (isOrderTrackerOpen) {
-      const timer = setInterval(() => {
-        setMinutesLeft(prev => Math.max(5, prev - 1));
-      }, 60000);
-      return () => clearInterval(timer);
-    }
-  }, [isOrderTrackerOpen]);
+    if (!isOrderTrackerOpen || !currentOrder) return;
+
+    // Check live Poster POS status
+    const pollStatus = async () => {
+      const orderIdNum = parseInt(currentOrder.orderNumber, 10);
+      if (orderIdNum) {
+        const liveStatus = await fetchPosterOrderStatus(orderIdNum);
+        if (liveStatus) {
+          setCurrentStep(liveStatus.stepIndex);
+          setLastSyncText(`Синхронізовано з касою: ${liveStatus.statusName}`);
+          if (liveStatus.stepIndex === 1) setMinutesLeft(35);
+          else if (liveStatus.stepIndex === 2) setMinutesLeft(20);
+          else if (liveStatus.stepIndex === 3) setMinutesLeft(10);
+          else if (liveStatus.stepIndex === 4) setMinutesLeft(0);
+        }
+      }
+    };
+
+    pollStatus();
+    const interval = setInterval(pollStatus, 12000); // Poll every 12s
+
+    const timer = setInterval(() => {
+      setMinutesLeft(prev => Math.max(0, prev - 1));
+    }, 60000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(timer);
+    };
+  }, [isOrderTrackerOpen, currentOrder]);
 
   if (!currentOrder) return null;
 
@@ -98,7 +123,7 @@ export const OrderTrackerModal: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-zinc-400">
-                    Оформлено о {currentOrder.date}
+                    Оформлено о {currentOrder.date} • <span className="text-emerald-400 font-medium">{lastSyncText}</span>
                   </p>
                 </div>
               </div>

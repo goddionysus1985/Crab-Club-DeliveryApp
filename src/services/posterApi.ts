@@ -21,6 +21,7 @@ export interface PosterIncomingOrderPayload {
   phone: string;
   first_name: string;
   service_mode: number; // 1 - in restaurant, 2 - take away, 3 - delivery
+  delivery_time?: string; // Format: 'YYYY-MM-DD HH:mm:ss' for kitchen pre-orders
   delivery_price?: number; // in kopecks (e.g. 5000 = 50.00 UAH)
   address?: string;
   comment?: string;
@@ -36,6 +37,30 @@ export interface PosterApiResponse<T = any> {
   response?: T;
   error?: number;
   message?: string;
+}
+
+/**
+ * Convert user scheduled delivery time into Poster API format ('YYYY-MM-DD HH:mm:ss')
+ */
+export function formatPosterDeliveryTime(scheduledTime?: string): string | undefined {
+  if (!scheduledTime) return undefined;
+  
+  const timeMatch = scheduledTime.match(/(\d{1,2}):(\d{2})/);
+  if (!timeMatch) return undefined;
+
+  const now = new Date();
+  const targetDate = new Date(now);
+
+  if (scheduledTime.toLowerCase().includes('завтра')) {
+    targetDate.setDate(targetDate.getDate() + 1);
+  }
+
+  const hours = parseInt(timeMatch[1], 10);
+  const minutes = parseInt(timeMatch[2], 10);
+  targetDate.setHours(hours, minutes, 0, 0);
+
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())} ${pad(hours)}:${pad(minutes)}:00`;
 }
 
 /**
@@ -109,6 +134,11 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
       currency: 'UAH'
     }
   };
+
+  const formattedDeliveryTime = formatPosterDeliveryTime(order.scheduledTime);
+  if (formattedDeliveryTime) {
+    payload.delivery_time = formattedDeliveryTime;
+  }
 
   return payload;
 }
@@ -296,6 +326,87 @@ export async function registerPosterClient(name: string, phone: string): Promise
     phone: cleanPhone,
     bonus: 0
   };
+}
+
+/**
+ * Deduct spent bonuses from client's CRM account
+ */
+export async function deductPosterClientBonus(clientId: number, bonusToSpend: number): Promise<boolean> {
+  if (!clientId || bonusToSpend <= 0) return false;
+
+  if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
+    try {
+      const endpoint = `https://joinposter.com/api/clients.changeClientBonus?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: clientId,
+          bonus: -Math.round(bonusToSpend * 100) // Negative delta in kopecks
+        })
+      });
+      const data = await res.json();
+      return !!(data.response);
+    } catch (e) {
+      console.warn('[Poster CRM] Error changing client bonus:', e);
+    }
+  }
+
+  return true;
+}
+
+export interface PosterOrderStatusResult {
+  incoming_order_id: number;
+  status: number; // 10: New, 20: Cooking, 30: Delivering, 40: Completed
+  statusName: string;
+  stepIndex: number; // 1 to 4
+  updatedAt?: string;
+}
+
+/**
+ * Query real-time kitchen status of an incoming order from Poster POS
+ */
+export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<PosterOrderStatusResult | null> {
+  if (!incomingOrderId) return null;
+
+  if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
+    try {
+      const endpoint = `https://joinposter.com/api/incomingOrders.getIncomingOrder?token=${encodeURIComponent(POSTER_CONFIG.apiToken)}&incoming_order_id=${incomingOrderId}`;
+      const res = await fetch(endpoint, {
+        headers: { 'Accept': 'application/json' }
+      });
+      const data: PosterApiResponse<any> = await res.json();
+      if (data.response) {
+        const orderData = data.response;
+        const status = Number(orderData.status || 10);
+        let stepIndex = 1;
+        let statusName = 'Прийнято рестораном';
+
+        if (status === 20 || orderData.status_name?.toLowerCase().includes('готу')) {
+          stepIndex = 2;
+          statusName = 'Шеф-кухар готує';
+        } else if (status === 30 || orderData.status_name?.toLowerCase().includes('достав') || orderData.status_name?.toLowerCase().includes('кур')) {
+          stepIndex = 3;
+          statusName = 'Кур\'єр у дорозі';
+        } else if (status === 40 || status === 50) {
+          stepIndex = 4;
+          statusName = 'Доставлено';
+        }
+
+        return {
+          incoming_order_id: incomingOrderId,
+          status,
+          statusName,
+          stepIndex,
+          updatedAt: orderData.updated_at
+        };
+      }
+    } catch (err) {
+      console.warn('[Poster POS Live Radar] Error polling status:', err);
+    }
+  }
+
+  return null;
 }
 
 /**

@@ -26,7 +26,7 @@ import {
   securityRateLimiter 
 } from '../utils/security';
 import { PaymentModal } from './PaymentModal';
-import { sendOrderToPoster } from '../services/posterApi';
+import { sendOrderToPoster, getPosterClientByPhone, deductPosterClientBonus } from '../services/posterApi';
 import { getRestaurantScheduleStatus } from '../utils/workHours';
 
 export const CheckoutModal: React.FC = () => {
@@ -44,6 +44,7 @@ export const CheckoutModal: React.FC = () => {
     setCurrentOrder,
     setIsOrderTrackerOpen,
     userProfile,
+    updateUserProfile,
     showToast
   } = useCart();
 
@@ -68,6 +69,18 @@ export const CheckoutModal: React.FC = () => {
     if (userProfile.house && !house) setHouse(userProfile.house);
     if (userProfile.apartment && !apartment) setApartment(userProfile.apartment);
   }, [userProfile]);
+
+  // Sync real-time Poster CRM bonus balance when valid phone is entered
+  useEffect(() => {
+    const clean = phone.replace(/\D/g, '');
+    if (clean.length >= 10) {
+      getPosterClientByPhone(clean).then(client => {
+        if (client && client.bonus > 0) {
+          updateUserProfile({ bonusBalance: client.bonus });
+        }
+      });
+    }
+  }, [phone]);
 
   // Bonus Points & Cashback
   const [useBonuses, setUseBonuses] = useState(false);
