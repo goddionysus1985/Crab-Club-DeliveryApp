@@ -64,6 +64,9 @@ interface CartContextType {
   setIsOrderTrackerOpen: (open: boolean) => void;
   isProfileOpen: boolean;
   setIsProfileOpen: (open: boolean) => void;
+  profileTab: 'profile' | 'history' | 'favorites';
+  setProfileTab: (tab: 'profile' | 'history' | 'favorites') => void;
+  openProfileModal: (tab?: 'profile' | 'history' | 'favorites') => void;
   activeProductModal: Product | null;
   setActiveProductModal: (p: Product | null) => void;
 
@@ -246,6 +249,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isOrderTrackerOpen, setIsOrderTrackerOpen] = useState<boolean>(false);
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
+  const [profileTab, setProfileTab] = useState<'profile' | 'history' | 'favorites'>('profile');
+
+  const openProfileModal = (tab: 'profile' | 'history' | 'favorites' = 'profile') => {
+    setProfileTab(tab);
+    setIsProfileOpen(true);
+  };
+
   const [activeProductModal, setActiveProductModalState] = useState<Product | null>(() => {
     try {
       const match = window.location.hash.match(/product[/-](\d+)/i);
@@ -547,6 +557,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsOrderTrackerOpen,
         isProfileOpen,
         setIsProfileOpen,
+        profileTab,
+        setProfileTab,
+        openProfileModal,
         activeProductModal,
         setActiveProductModal,
         userProfile,

@@ -30,7 +30,8 @@ export const Header: React.FC = () => {
     setIsOrderTrackerOpen,
     orderHistory,
     userProfile,
-    setIsProfileOpen
+    setIsProfileOpen,
+    openProfileModal
   } = useCart();
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -210,7 +211,7 @@ export const Header: React.FC = () => {
 
             {/* Personal Account / Profile Button (Desktop only) */}
             <button
-              onClick={() => setIsProfileOpen(true)}
+              onClick={() => openProfileModal('profile')}
               className="hidden lg:flex relative px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-amber-400 transition-all items-center gap-1.5"
               aria-label="Особистий кабінет"
               title="Особистий кабінет та історія замовлень"
@@ -226,11 +227,12 @@ export const Header: React.FC = () => {
               )}
             </button>
 
-            {/* Favorites Icon (Desktop only) */}
-            <a
-              href="#favorites"
+            {/* Favorites Button (Desktop only) */}
+            <button
+              onClick={() => openProfileModal('favorites')}
               className="hidden lg:flex relative p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-crab-400 transition-all"
               aria-label="Улюблені страви"
+              title="Обрані страви"
             >
               <Heart className={`w-4 h-4 ${favorites.length > 0 ? 'fill-crab-500 text-crab-500' : ''}`} />
               {favorites.length > 0 && (
@@ -238,7 +240,7 @@ export const Header: React.FC = () => {
                   {favorites.length}
                 </span>
               )}
-            </a>
+            </button>
 
 
             {/* Cart Button (Desktop only) */}
@@ -289,7 +291,7 @@ export const Header: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  setIsProfileOpen(true);
+                  openProfileModal('profile');
                 }}
                 className="px-3.5 py-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 flex items-center justify-between text-left border border-amber-500/25"
               >

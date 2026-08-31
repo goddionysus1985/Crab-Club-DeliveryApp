@@ -16,7 +16,8 @@ export const MobileBottomNav: React.FC = () => {
     total,
     setIsCartOpen, 
     setIsSearchOpen, 
-    setIsProfileOpen, 
+    setIsProfileOpen,
+    openProfileModal,
     favorites,
     userProfile
   } = useCart();
@@ -103,7 +104,7 @@ export const MobileBottomNav: React.FC = () => {
         {/* 4. Favorites Tab */}
         <motion.button
           whileTap={{ scale: 0.88 }}
-          onClick={() => setIsProfileOpen(true)}
+          onClick={() => openProfileModal('favorites')}
           className="flex flex-col items-center justify-center py-1.5 text-zinc-400 hover:text-white transition-colors relative"
         >
           <div className="p-1 rounded-xl relative">
@@ -122,7 +123,7 @@ export const MobileBottomNav: React.FC = () => {
         {/* 5. Profile Tab with Bonus preview */}
         <motion.button
           whileTap={{ scale: 0.88 }}
-          onClick={() => setIsProfileOpen(true)}
+          onClick={() => openProfileModal('profile')}
           className="flex flex-col items-center justify-center py-1.5 text-zinc-400 hover:text-white transition-colors relative"
         >
           <div className="p-1 rounded-xl relative">
