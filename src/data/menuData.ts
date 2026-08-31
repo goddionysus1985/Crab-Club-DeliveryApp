@@ -134,7 +134,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     "id": 27,
-    "name": "Меню: Роли",
+    "name": "Роли",
     "slug": "menyu-roli",
     "subcategories": [
       {
