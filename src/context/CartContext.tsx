@@ -238,7 +238,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast(`Страви з замовлення #${historicOrder.orderNumber} додано до кошика!`, undefined, 'success');
   };
 
-  const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('delivery');
+  const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('takeaway');
   const [promoCode, setPromoCode] = useState<string>('');
   const [promoDiscountPercent, setPromoDiscountPercent] = useState<number>(0);
   const [promoDiscountFixed, setPromoDiscountFixed] = useState<number>(0);
@@ -501,10 +501,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isMinOrderReached = subtotal >= minOrderAmount || cart.length === 0;
   const minOrderRemaining = Math.max(0, minOrderAmount - subtotal);
 
-  // Takeaway gives 10% discount
-  const takeawayDiscount = orderType === 'takeaway' ? Math.round(subtotal * 0.1) : 0;
-  const promoPercentDiscount = promoDiscountPercent > 0 ? Math.round((subtotal - takeawayDiscount) * (promoDiscountPercent / 100)) : 0;
-  const discount = Math.min(subtotal, takeawayDiscount + promoPercentDiscount + promoDiscountFixed);
+  // Promo discount calculation
+  const promoPercentDiscount = promoDiscountPercent > 0 ? Math.round(subtotal * (promoDiscountPercent / 100)) : 0;
+  const discount = Math.min(subtotal, promoPercentDiscount + promoDiscountFixed);
 
   // 5% Cashback calculation from net order subtotal
   const cashbackEarned = Math.round(Math.max(0, subtotal - discount) * 0.05);

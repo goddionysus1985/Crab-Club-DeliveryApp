@@ -85,7 +85,7 @@ export const ClosedNoticeModal: React.FC = () => {
             <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-left grid grid-cols-2 gap-2 text-[11px] sm:text-xs text-zinc-300">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Знижка -10% на самовивіз</span>
+                <span>Швидке приготування</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-emerald-400 shrink-0" />

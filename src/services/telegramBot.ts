@@ -15,7 +15,7 @@ export async function sendOrderToTelegram(order: OrderDetails, isFallback = fals
   const chatId = TELEGRAM_CHAT_ID;
 
   // Format order message
-  const serviceType = order.orderType === 'delivery' ? '🛵 ДОСТАВКА КУР\'ЄРОМ' : '🏬 САМОВИВІЗ (-10%)';
+  const serviceType = order.orderType === 'delivery' ? '🛵 ДОСТАВКА КУР\'ЄРОМ' : '🏬 САМОВИВІЗ З РЕСТОРАНУ';
   const payType = order.paymentMethod === 'card_online' ? '💳 Оплачено Онлайн' : order.paymentMethod === 'card_courier' ? '💳 Термінал при отриманні' : '💵 Готівка';
 
   const addressText = order.address ? `📍 *Адреса:* ${order.address.city}, вул. ${order.address.street}, буд. ${order.address.house}${order.address.apartment ? `, кв. ${order.address.apartment}` : ''}` : '📍 *Самовивіз з ресторану*';

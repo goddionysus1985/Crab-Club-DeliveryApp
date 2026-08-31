@@ -165,9 +165,6 @@ export const CartDrawer: React.FC = () => {
                     >
                       <Store className="w-3.5 h-3.5" />
                       <span>Самовивіз</span>
-                      <span className="px-1.5 py-0.2 rounded bg-amber-400 text-black text-[9px] font-black">
-                        -10%
-                      </span>
                     </button>
                   </div>
                 )}

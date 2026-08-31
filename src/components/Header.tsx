@@ -98,7 +98,7 @@ export const Header: React.FC = () => {
             </span>
             <span className="text-white/40 hidden lg:inline">|</span>
             <span className="hidden lg:inline text-amber-200 text-xs">
-              🎁 Знижка 10% на самовивіз
+              ✨ Зручний самовивіз з ресторану
             </span>
           </div>
 
