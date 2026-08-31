@@ -126,39 +126,11 @@ export const CATEGORIES: Category[] = [
     "icon": "Coffee"
   },
   {
-    "id": 23,
-    "name": "Холодні закуски",
-    "slug": "xolodni-zakuski",
-    "subcategories": [],
-    "icon": "Sparkles"
-  },
-  {
-    "id": 24,
-    "name": "Салати",
-    "slug": "salati",
-    "subcategories": [],
-    "icon": "Salad"
-  },
-  {
     "id": 8,
     "name": "Гарячі закуски",
     "slug": "gariachi-zakuski",
     "subcategories": [],
     "icon": "Flame"
-  },
-  {
-    "id": 25,
-    "name": "Гарячі страви",
-    "slug": "garyaci-stravi",
-    "subcategories": [],
-    "icon": "Soup"
-  },
-  {
-    "id": 15,
-    "name": "Пасти",
-    "slug": "pasti-wok",
-    "subcategories": [],
-    "icon": "Utensils"
   },
   {
     "id": 27,
@@ -227,6 +199,34 @@ export const CATEGORIES: Category[] = [
       }
     ],
     "icon": "Sandwich"
+  },
+  {
+    "id": 25,
+    "name": "Гарячі страви",
+    "slug": "garyaci-stravi",
+    "subcategories": [],
+    "icon": "Soup"
+  },
+  {
+    "id": 15,
+    "name": "Пасти",
+    "slug": "pasti-wok",
+    "subcategories": [],
+    "icon": "Utensils"
+  },
+  {
+    "id": 23,
+    "name": "Холодні закуски",
+    "slug": "xolodni-zakuski",
+    "subcategories": [],
+    "icon": "Sparkles"
+  },
+  {
+    "id": 24,
+    "name": "Салати",
+    "slug": "salati",
+    "subcategories": [],
+    "icon": "Salad"
   },
   {
     "id": 9,
