@@ -277,10 +277,15 @@ export async function getPosterClientByPhone(phone: string): Promise<PosterClien
     }
   }
 
-  // Simulation mode: if no live token yet, generate a simulated bonus balance
+  // Simulation / Local persistence fallback
+  let savedName = '';
+  try {
+    savedName = localStorage.getItem('crabclub_user_custom_name') || '';
+  } catch {}
+
   return {
     client_id: 1001,
-    firstname: 'Гість',
+    firstname: savedName || '',
     phone: cleanPhone,
     bonus: 50,
     discount_per: 0

@@ -136,14 +136,28 @@ export const ProfileModal: React.FC = () => {
     } catch {}
 
     const clean = authPhone.replace(/\D/g, '');
-    let finalName = authName || 'Клієнт';
+    let savedLocalName = '';
+    try {
+      savedLocalName = localStorage.getItem('crabclub_user_custom_name') || '';
+    } catch {}
+
+    let finalName = authName.trim() || name.trim() || userProfile.name.trim() || savedLocalName || 'Клієнт';
     let bonusBalance = 50;
 
     try {
       const posterClient = await getPosterClientByPhone(clean);
       if (posterClient) {
-        if (posterClient.firstname) finalName = posterClient.firstname;
-        if (posterClient.bonus) bonusBalance = posterClient.bonus;
+        // Only use posterClient.firstname if user has not set a custom name
+        if (posterClient.firstname && posterClient.firstname !== 'Гість' && !authName && !savedLocalName) {
+          finalName = posterClient.firstname;
+        }
+        if (posterClient.bonus !== undefined) bonusBalance = posterClient.bonus;
+      }
+    } catch {}
+
+    try {
+      if (finalName && finalName !== 'Клієнт') {
+        localStorage.setItem('crabclub_user_custom_name', finalName);
       }
     } catch {}
 
@@ -153,7 +167,7 @@ export const ProfileModal: React.FC = () => {
       isLoggedIn: true,
       isVerified: true,
       bonusBalance,
-      registeredAt: new Date().toLocaleDateString('uk-UA')
+      registeredAt: userProfile.registeredAt || new Date().toLocaleDateString('uk-UA')
     });
 
     setName(finalName);
@@ -182,15 +196,21 @@ export const ProfileModal: React.FC = () => {
     try {
       const client = await getPosterClientByPhone(phone);
       if (client) {
-        setName(client.firstname || name);
+        // Keep current custom name if already customized
+        const currentCustom = name.trim() || userProfile.name.trim();
+        const resolvedName = currentCustom && currentCustom !== 'Гість' && currentCustom !== 'Клієнт'
+          ? currentCustom
+          : (client.firstname && client.firstname !== 'Гість' ? client.firstname : currentCustom || 'Клієнт');
+
+        setName(resolvedName);
         updateUserProfile({
-          name: client.firstname || name,
+          name: resolvedName,
           phone: client.phone || phone,
           bonusBalance: client.bonus
         });
-        showToast(`🎉 Профіль синхронізовано з касою! Баланс: ${client.bonus} ₴`, undefined, 'success');
+        showToast(`🎉 Баланс бонусів оновлено: ${client.bonus} ₴`, undefined, 'success');
       } else {
-        showToast('Профіль не знайдено в базі каси, але дані збережено', undefined, 'info');
+        showToast('Профіль збережено', undefined, 'info');
       }
     } catch (err) {
       showToast('Помилка зв\'язку з сервером лояльності', undefined, 'error');
@@ -201,8 +221,14 @@ export const ProfileModal: React.FC = () => {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      if (name.trim()) {
+        localStorage.setItem('crabclub_user_custom_name', name.trim());
+      }
+    } catch {}
+
     updateUserProfile({
-      name,
+      name: name.trim(),
       phone,
       city,
       street,
