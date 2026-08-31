@@ -224,7 +224,7 @@ export const App: React.FC = () => {
       <InstagramFeed />
 
       {/* Footer */}
-      <Footer />
+      <Footer onSelectCategory={handleSelectCategory} />
 
       {/* Floating Speed Dials & Contacts */}
       <FloatingContacts />

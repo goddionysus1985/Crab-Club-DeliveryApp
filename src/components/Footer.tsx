@@ -24,7 +24,22 @@ const TikTokIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" })
   </svg>
 );
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onSelectCategory?: (slug: string) => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
+  const handleCategoryClick = (slug: string) => {
+    if (onSelectCategory) {
+      onSelectCategory(slug);
+    } else {
+      const el = document.getElementById(`category-${slug}`) || document.getElementById('menu-nav');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
   return (
     <footer id="contacts" className="bg-[#07070A] border-t border-white/10 text-slate-400 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -107,12 +122,13 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2 text-xs">
               {CATEGORIES.slice(0, 6).map((cat) => (
                 <li key={cat.id}>
-                  <a
-                    href={`#category-${cat.slug}`}
-                    className="hover:text-amber-400 transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => handleCategoryClick(cat.slug)}
+                    className="hover:text-amber-400 text-left transition-colors cursor-pointer"
                   >
                     {cat.name}
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -126,12 +142,13 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2 text-xs">
               {CATEGORIES.slice(6).map((cat) => (
                 <li key={cat.id}>
-                  <a
-                    href={`#category-${cat.slug}`}
-                    className="hover:text-amber-400 transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => handleCategoryClick(cat.slug)}
+                    className="hover:text-amber-400 text-left transition-colors cursor-pointer"
                   >
                     {cat.name}
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>
