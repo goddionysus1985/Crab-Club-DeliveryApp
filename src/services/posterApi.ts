@@ -113,14 +113,17 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
   const first_name = nameParts[0] || 'Гість';
   const last_name = nameParts.slice(1).join(' ') || undefined;
 
-  const cleanCity = (order.address?.city || 'смт. Овідіополь').replace(/\s*\([^)]*\)/g, '').trim();
+  const cleanCity = (order.address?.city || 'смт. Овідіополь')
+    .replace(/\s*\(.*?\)/g, '')
+    .replace(/—.*$/g, '')
+    .trim() || 'смт. Овідіополь';
   const street = (order.address?.street || '').trim();
   const house = (order.address?.house || '').trim();
   const apartment = (order.address?.apartment || '').trim();
   const floor = (order.address?.floor || '').trim();
   const doorphone = (order.address?.doorphone || '').trim();
 
-  const address1 = [street ? `вул. ${street}` : '', house ? `буд. ${house}` : ''].filter(Boolean).join(', ');
+  const address1 = [street ? `вул. ${street}` : '', house ? `буд. ${house}` : ''].filter(Boolean).join(', ') || cleanCity;
   const address2 = [apartment ? `кв. ${apartment}` : '', floor ? `пов. ${floor}` : '', doorphone ? `код/домофон ${doorphone}` : ''].filter(Boolean).join(', ');
   const fullAddress = [cleanCity, address1, address2].filter(Boolean).join(', ');
 
@@ -162,14 +165,34 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     return posterProd;
   });
 
+  // Clean numeric cash change
+  const rawChange = String(order.cashChangeFrom || '').replace(/[^\d]/g, '');
+  const changeNote = rawChange ? `Решта з: ${rawChange} ₴` : (order.cashChangeFrom && order.cashChangeFrom.trim().length > 0 ? `Решта з: ${order.cashChangeFrom}` : '');
+
+  // Payment note for kitchen/courier receipt
+  const paymentLabel = order.paymentMethod === 'cash'
+    ? `💵 Оплата: Готівкою кур'єру (до сплати ${order.total} ₴)`
+    : order.paymentMethod === 'card_courier'
+    ? `💳 Оплата: Терміналом кур'єру (до сплати ${order.total} ₴)`
+    : `✅ Оплата: Оплачено онлайн на сайті (${order.total} ₴)`;
+
   const commentParts = [
+    paymentLabel,
+    changeNote,
     order.comment,
     order.cutleryCount ? `Приборів: ${order.cutleryCount} шт` : '',
     order.scheduledTime ? `Час доставки: ${order.scheduledTime}` : '',
-    order.cashChangeFrom ? `Решта з: ${order.cashChangeFrom} ₴` : '',
     order.promoCode ? `Промокод: ${order.promoCode}` : '',
     doorphone ? `Домофон: ${doorphone}` : ''
   ].filter(Boolean);
+
+  // In Poster API: only provide payment object if user actually prepaid online on the website.
+  // For cash or courier card, omitting payment leaves the order payable at the terminal (До сплати: 542 ₴)!
+  const payment = order.paymentMethod === 'card_online' ? {
+    type: 1,
+    sum: Math.round(order.total * 100),
+    currency: 'UAH'
+  } : undefined;
 
   const payload: PosterIncomingOrderPayload = {
     spot_id: POSTER_CONFIG.defaultSpotId || 1,
@@ -182,11 +205,7 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     client_address,
     comment: commentParts.join(' | '),
     products,
-    payment: {
-      type: order.paymentMethod === 'cash' ? 0 : 1,
-      sum: Math.round(order.total * 100),
-      currency: 'UAH'
-    }
+    payment
   };
 
   const formattedDeliveryTime = formatPosterDeliveryTime(order.scheduledTime);
