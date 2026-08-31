@@ -27,7 +27,7 @@ export const RESTAURANT_INFO: RestaurantInfo = {
       "zone": "Овідіополь",
       "price": 100,
       "freeFromAmount": 1000,
-      "time": "35–50 хв",
+      "time": "15–30 хв",
       "description": "Всі райони смт. Овідіополь"
     },
     {
