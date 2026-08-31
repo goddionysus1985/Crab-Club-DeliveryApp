@@ -4,7 +4,6 @@
  */
 
 export const TELEGRAM_AUTH_CONFIG = {
-  botToken: '8876828349:AAGRzgX60aFsEYD5MRiE5rePRHeCkC7jXQ0',
   botUsername: 'crabclub_bot',
   supportChat: 'https://t.me/crabclub_bot'
 };

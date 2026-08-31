@@ -4,7 +4,7 @@
  * Run command: node server/telegramBotService.js
  */
 
-const BOT_TOKEN = '8876828349:AAGRzgX60aFsEYD5MRiE5rePRHeCkC7jXQ0';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8876828349:AAGRzgX60aFsEYD5MRiE5rePRHeCkC7jXQ0';
 let offset = 0;
 
 console.log('🦀 Crab Club Telegram Bot Daemon starting up...');
