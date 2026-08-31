@@ -9,6 +9,7 @@ import { POSTER_CONFIG } from '../config/poster';
 export interface PosterIncomingProduct {
   product_id: number;
   count: number;
+  price?: number;
   modification?: Array<{
     m: number; // modification option ID
     a: number; // count
@@ -20,10 +21,21 @@ export interface PosterIncomingOrderPayload {
   spot_id: number;
   phone: string;
   first_name: string;
+  last_name?: string;
   service_mode: number; // 1 - in restaurant, 2 - take away, 3 - delivery
   delivery_time?: string; // Format: 'YYYY-MM-DD HH:mm:ss' for kitchen pre-orders
   delivery_price?: number; // in kopecks (e.g. 5000 = 50.00 UAH)
   address?: string;
+  client_address?: {
+    country?: string;
+    city?: string;
+    address1?: string;
+    address2?: string;
+    comment?: string;
+    lat?: number;
+    lng?: number;
+    zip_code?: string;
+  };
   comment?: string;
   products: PosterIncomingProduct[];
   payment?: {
@@ -95,33 +107,44 @@ export function formatPosterDeliveryTime(scheduledTime?: string): string | undef
  */
 export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrderPayload {
   // Service mode: 2 = takeaway, 3 = delivery
-  const service_mode = order.orderType === 'delivery' ? 3 : 2;
+  const service_mode = order.orderType === 'takeaway' ? 2 : 3;
 
-  // Build address string if delivery
-  let fullAddress = '';
-  if (order.orderType === 'delivery' && order.address) {
-    const parts = [
-      order.address.city,
-      `вул. ${order.address.street}`,
-      `буд. ${order.address.house}`,
-      order.address.apartment ? `кв. ${order.address.apartment}` : '',
-      order.address.floor ? `поверх ${order.address.floor}` : '',
-      order.address.doorphone ? `домофон ${order.address.doorphone}` : ''
-    ].filter(Boolean);
-    fullAddress = parts.join(', ');
-  }
+  const nameParts = (order.customerName || 'Гість').trim().split(/\s+/);
+  const first_name = nameParts[0] || 'Гість';
+  const last_name = nameParts.slice(1).join(' ') || undefined;
 
-  // Format products list with Poster product IDs and modifier options
+  const cleanCity = (order.address?.city || 'смт. Овідіополь').replace(/\s*\([^)]*\)/g, '').trim();
+  const street = (order.address?.street || '').trim();
+  const house = (order.address?.house || '').trim();
+  const apartment = (order.address?.apartment || '').trim();
+  const floor = (order.address?.floor || '').trim();
+  const doorphone = (order.address?.doorphone || '').trim();
+
+  const address1 = [street ? `вул. ${street}` : '', house ? `буд. ${house}` : ''].filter(Boolean).join(', ');
+  const address2 = [apartment ? `кв. ${apartment}` : '', floor ? `пов. ${floor}` : '', doorphone ? `код/домофон ${doorphone}` : ''].filter(Boolean).join(', ');
+  const fullAddress = [cleanCity, address1, address2].filter(Boolean).join(', ');
+
+  const client_address = order.orderType === 'delivery' ? {
+    country: 'Україна',
+    city: cleanCity,
+    address1: address1 || cleanCity,
+    address2: address2 || '',
+    comment: order.comment || ''
+  } : undefined;
+
+  // Format products list with Poster product IDs, count, price in kopecks, and modifier options
   const products: PosterIncomingProduct[] = order.items.map((item: CartItem) => {
+    const extraPrice = item.selectedOptions?.reduce((sum, o) => sum + (o.price || 0), 0) || 0;
+    const unitPrice = (Number(item.product.price) || 0) + extraPrice;
+
     const posterProd: PosterIncomingProduct = {
-      product_id: item.product.id,
-      count: item.quantity,
+      product_id: Number(item.product.id),
+      count: Number(item.quantity) || 1,
+      price: Math.round(unitPrice * 100),
       comment: item.comment || undefined
     };
 
-    // If options were chosen, map them
     if (item.selectedOptions && item.selectedOptions.length > 0) {
-      // Find matching modifier option IDs from product definition
       const mods: Array<{ m: number; a: number }> = [];
       item.selectedOptions.forEach(opt => {
         item.product.modifications?.forEach(group => {
@@ -139,21 +162,25 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     return posterProd;
   });
 
-  // Prepare full payload
+  const commentParts = [
+    order.comment,
+    order.cutleryCount ? `Приборів: ${order.cutleryCount} шт` : '',
+    order.scheduledTime ? `Час доставки: ${order.scheduledTime}` : '',
+    order.cashChangeFrom ? `Решта з: ${order.cashChangeFrom} ₴` : '',
+    order.promoCode ? `Промокод: ${order.promoCode}` : '',
+    doorphone ? `Домофон: ${doorphone}` : ''
+  ].filter(Boolean);
+
   const payload: PosterIncomingOrderPayload = {
     spot_id: POSTER_CONFIG.defaultSpotId || 1,
-    phone: order.phone.replace(/[^\d+]/g, ''),
-    first_name: order.customerName,
+    phone: order.phone.replace(/[^\d+]/g, '').replace(/^\+/, ''),
+    first_name,
+    last_name,
     service_mode,
     delivery_price: Math.round((order.deliveryFee || 0) * 100),
     address: fullAddress || undefined,
-    comment: [
-      order.comment,
-      order.cutleryCount ? `Приборів: ${order.cutleryCount} шт` : '',
-      order.scheduledTime ? `Час доставки: ${order.scheduledTime}` : '',
-      order.cashChangeFrom ? `Решта з: ${order.cashChangeFrom} ₴` : '',
-      order.promoCode ? `Промокод: ${order.promoCode}` : ''
-    ].filter(Boolean).join(' | '),
+    client_address,
+    comment: commentParts.join(' | '),
     products,
     payment: {
       type: order.paymentMethod === 'cash' ? 0 : 1,
@@ -168,6 +195,76 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
   }
 
   return payload;
+}
+
+/**
+ * Sync customer profile & structured address directly into Poster CRM
+ */
+export async function syncUserProfileToPoster(profile: {
+  name?: string;
+  phone?: string;
+  city?: string;
+  street?: string;
+  house?: string;
+  apartment?: string;
+  floor?: string;
+  doorphone?: string;
+}): Promise<boolean> {
+  if (!POSTER_CONFIG.isLiveMode || !POSTER_CONFIG.apiToken || !profile.phone) return false;
+
+  try {
+    const cleanPhone = profile.phone.replace(/[^\d+]/g, '').replace(/^\+/, '');
+    if (cleanPhone.length < 9) return false;
+
+    const nameParts = (profile.name || 'Гість').trim().split(/\s+/);
+    const firstname = nameParts[0] || 'Гість';
+    const lastname = nameParts.slice(1).join(' ') || '';
+
+    const cleanCity = (profile.city || 'смт. Овідіополь').replace(/\s*\([^)]*\)/g, '').trim();
+    const street = (profile.street || '').trim();
+    const house = (profile.house || '').trim();
+    const apartment = (profile.apartment || '').trim();
+    const floor = (profile.floor || '').trim();
+    const doorphone = (profile.doorphone || '').trim();
+
+    const address1 = [street ? `вул. ${street}` : '', house ? `буд. ${house}` : ''].filter(Boolean).join(', ');
+    const address2 = [apartment ? `кв. ${apartment}` : '', floor ? `пов. ${floor}` : '', doorphone ? `код/домофон ${doorphone}` : ''].filter(Boolean).join(', ');
+    const fullAddress = [cleanCity, address1, address2].filter(Boolean).join(', ');
+
+    const client = await getPosterClientByPhone(cleanPhone);
+
+    const clientPayload: any = {
+      phone: '+' + cleanPhone,
+      firstname,
+      lastname,
+      country: 'Україна',
+      city: cleanCity,
+      address: fullAddress || address1 || cleanCity,
+      comment: 'Клієнт Crab Club Delivery'
+    };
+
+    if (client && client.client_id) {
+      clientPayload.client_id = client.client_id;
+      clientPayload.client_name = profile.name || firstname;
+      const endpoint = getPosterApiUrl('clients.updateClient');
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(clientPayload)
+      });
+    } else {
+      const endpoint = getPosterApiUrl('clients.createClient');
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(clientPayload)
+      });
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Poster CRM Sync]', err);
+    return false;
+  }
 }
 
 import { sendOrderToTelegram } from './telegramBot';

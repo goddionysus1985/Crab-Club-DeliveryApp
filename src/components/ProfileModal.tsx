@@ -22,7 +22,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
 import { PRODUCTS } from '../data/menuData';
-import { getPosterClientByPhone } from '../services/posterApi';
+import { getPosterClientByPhone, syncUserProfileToPoster } from '../services/posterApi';
 import { validateAndFormatPhone, validateCustomerName } from '../utils/security';
 
 export const ProfileModal: React.FC = () => {
@@ -175,7 +175,19 @@ export const ProfileModal: React.FC = () => {
       doorphone
     });
 
-    showToast('✅ Дані профілю та адресу успішно збережено!', undefined, 'success');
+    // Auto sync updated address directly to Poster CRM
+    syncUserProfileToPoster({
+      name: finalName,
+      phone,
+      city,
+      street,
+      house,
+      apartment,
+      floor,
+      doorphone
+    }).catch(() => {});
+
+    showToast('✅ Дані профілю та адресу збережено і синхронізовано з касою!', undefined, 'success');
   };
 
   const favoriteProductsList = PRODUCTS.filter(p => favorites.includes(p.id));
