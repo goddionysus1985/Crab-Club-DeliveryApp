@@ -221,47 +221,22 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
       });
     }
 
-    if (isDirectPosterProduct && selectedMods.length > 1) {
-      // Multiple modifiers on a direct Poster item: register each modifier line in Poster
-      const basePrice = Number(item.product.price) || 0;
-      selectedMods.forEach((mod, idx) => {
-        const linePriceUah = idx === 0 ? (basePrice + mod.price) : mod.price;
-        products.push({
-          product_id: resolvedProductId,
-          count: Number(item.quantity) || 1,
-          price: Math.round(linePriceUah * 100),
-          modificator_id: mod.id,
-          comment: item.comment || undefined
-        });
-      });
-    } else if (isDirectPosterProduct && selectedMods.length === 1) {
-      // Single modifier on direct Poster item
-      products.push({
-        product_id: resolvedProductId,
-        count: Number(item.quantity) || 1,
-        price: Math.round(unitPrice * 100),
-        modificator_id: selectedMods[0].id,
-        comment: item.comment || undefined
-      });
-    } else {
-      // Direct item without modifiers OR fallback mapped item
-      const optNotes = item.selectedOptions?.map(o => `${o.option_name}${o.price > 0 ? ` (+${o.price}₴)` : ''}`).join(', ');
-      const fullItemDesc = `${item.product.name}${optNotes ? ` [${optNotes}]` : ''}${item.comment ? ` (${item.comment})` : ''}`;
-      
-      let prodComment: string | undefined = undefined;
-      if (!isDirectPosterProduct) {
-        prodComment = `[СТРАВА: ${fullItemDesc}]`;
-      } else if (optNotes || item.comment) {
-        prodComment = [optNotes, item.comment].filter(Boolean).join(' | ');
-      }
+    const optNotes = item.selectedOptions?.map(o => `${o.option_name}${o.price > 0 ? ` (+${o.price}₴)` : ''}`).join(', ');
+    const itemKitchenNotes = [optNotes, item.comment].filter(Boolean).join(' | ');
 
-      products.push({
-        product_id: resolvedProductId || 1,
-        count: Number(item.quantity) || 1,
-        price: Math.round(unitPrice * 100),
-        comment: prodComment
-      });
+    const prodEntry: PosterIncomingProduct = {
+      product_id: resolvedProductId || 1,
+      count: Number(item.quantity) || 1,
+      price: Math.round(unitPrice * 100),
+      comment: (!isDirectPosterProduct ? `[СТРАВА: ${item.product.name}${itemKitchenNotes ? ` — ${itemKitchenNotes}` : ''}]` : itemKitchenNotes) || undefined
+    };
+
+    // If item has modifiers, pass the primary modificator_id so Poster POS registers the dish variant
+    if (selectedMods.length > 0) {
+      prodEntry.modificator_id = selectedMods[0].id;
     }
+
+    products.push(prodEntry);
   });
 
   // Clean numeric cash change (only for delivery with cash)
