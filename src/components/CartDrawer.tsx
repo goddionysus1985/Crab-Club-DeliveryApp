@@ -7,15 +7,9 @@ import {
   Minus, 
   Trash2, 
   Sparkles, 
-  ArrowRight, 
-  Truck, 
-  Store, 
-  Tag, 
-  Check,
-  Moon
+  ArrowRight
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { PRODUCTS, RESTAURANT_INFO } from '../data/menuData';
 import { getRestaurantScheduleStatus } from '../utils/workHours';
 import { validateCartAvailability } from '../services/posterApi';
 
@@ -29,27 +23,13 @@ export const CartDrawer: React.FC = () => {
     updateQuantity,
     clearCart,
     subtotal,
-    discount,
-    deliveryFee,
-    total,
-    freeDeliveryThreshold,
-    amountNeededForFreeDelivery,
-    freeDeliveryProgress,
-    orderType,
-    setOrderType,
-    promoCode,
-    promoMessage,
-    applyPromoCode,
-    removePromoCode,
     addToCart,
-    cashbackEarned,
     isMinOrderReached,
     minOrderRemaining,
     showToast,
     catalogProducts
   } = useCart();
 
-  const [inputPromo, setInputPromo] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const scheduleStatus = getRestaurantScheduleStatus();
 
@@ -58,13 +38,6 @@ export const CartDrawer: React.FC = () => {
     (p.category_url.includes('napoyi') || p.category_url.includes('deserti') || p.category_url.includes('vypichka') || p.category_name.toLowerCase().includes('напо') || p.category_name.toLowerCase().includes('випіч')) &&
     !cart.some(item => item.product.id === p.id)
   ).slice(0, 4);
-
-  const handleApplyPromo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputPromo.trim()) {
-      applyPromoCode(inputPromo);
-    }
-  };
 
   const handleProceedToCheckout = async () => {
     const check = await validateCartAvailability(cart);
@@ -138,66 +111,6 @@ export const CartDrawer: React.FC = () => {
                     </motion.button>
                   </div>
                 </div>
-
-                {/* Delivery Mode Toggle (Delivery / Takeaway -10%) */}
-                {cart.length > 0 && (
-                  <div className="grid grid-cols-2 gap-1.5 bg-[#171724] p-1 rounded-2xl border border-white/[0.06] mt-3">
-                    <button
-                      type="button"
-                      onClick={() => setOrderType('delivery')}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                        orderType === 'delivery'
-                          ? 'apple-button-primary text-white shadow-md'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <Truck className="w-3.5 h-3.5" />
-                      <span>Доставка</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setOrderType('takeaway')}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                        orderType === 'takeaway'
-                          ? 'apple-button-primary text-white shadow-md'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <Store className="w-3.5 h-3.5" />
-                      <span>Самовивіз</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Free Delivery Dynamic Progress Tracker */}
-                {cart.length > 0 && orderType === 'delivery' && (
-                  <div className="mt-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                    <div className="flex justify-between items-center text-[11px] mb-1.5 font-medium">
-                      {amountNeededForFreeDelivery > 0 ? (
-                        <span className="text-zinc-300 flex items-center gap-1">
-                          <Sparkles className="w-3 h-3 text-amber-400" />
-                          <span>Додайте ще <strong className="text-amber-400 font-bold">{amountNeededForFreeDelivery} ₴</strong> для безкоштовної доставки</span>
-                        </span>
-                      ) : (
-                        <span className="text-emerald-400 font-bold flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Вітаємо! У вас безкоштовна доставка 🎉</span>
-                        </span>
-                      )}
-                      <span className="text-zinc-400 font-bold">{freeDeliveryProgress}%</span>
-                    </div>
-
-                    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-gradient-to-r from-amber-500 via-emerald-500 to-emerald-400 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${freeDeliveryProgress}%` }}
-                        transition={{ duration: 0.5, ease: 'easeOut' }}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Scrollable Cart Items List */}
@@ -340,69 +253,6 @@ export const CartDrawer: React.FC = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Promo Code & Cashback section inside scrollable area */}
-                {cart.length > 0 && (
-                  <div className="pt-3 border-t border-white/[0.06] space-y-2.5">
-                    {/* Promo Code Box */}
-                    {promoCode ? (
-                      <div className="flex items-center justify-between p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400">
-                        <div className="flex items-center gap-2">
-                          <Check className="w-4 h-4" />
-                          <span>Промокод <strong>{promoCode}</strong> застосовано!</span>
-                        </div>
-                        <button
-                          onClick={removePromoCode}
-                          className="text-zinc-400 hover:text-white"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <form onSubmit={handleApplyPromo} className="flex gap-2">
-                        <div className="relative flex-1">
-                          <Tag className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            value={inputPromo}
-                            onChange={(e) => setInputPromo(e.target.value)}
-                            placeholder="Промокод (CRABCLUB)"
-                            className="w-full bg-white/[0.04] border border-white/10 rounded-2xl pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 uppercase focus:outline-none focus:border-amber-400"
-                          />
-                        </div>
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          type="submit"
-                          className="px-3.5 py-2 rounded-2xl apple-button-secondary text-white text-xs font-semibold"
-                        >
-                          Застосувати
-                        </motion.button>
-                      </form>
-                    )}
-
-                    {/* Cashback Earned Badge */}
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-300">
-                      <span className="flex items-center gap-1.5 font-medium">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Кешбек 5% на бонусний рахунок:</span>
-                      </span>
-                      <span className="font-bold text-amber-400">+{cashbackEarned} ₴</span>
-                    </div>
-
-                    {/* Closed Outside Work Hours Notice */}
-                    {!scheduleStatus.isOpen && (
-                      <div className="p-3 rounded-2xl bg-purple-950/50 border border-purple-500/30 text-purple-200 text-xs flex items-start gap-2.5">
-                        <Moon className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold block text-white">Ресторан зараз зачинено ({scheduleStatus.workHoursText})</span>
-                          <span className="text-zinc-300 font-light text-[11px]">
-                            Приймаємо попередні замовлення на {scheduleStatus.nextOpenTimeText.toLowerCase()}.
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Ultra-Compact Bottom Sticky Checkout Bar */}
@@ -420,18 +270,11 @@ export const CartDrawer: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <div className="min-w-0 pr-1">
                       <span className="text-[10px] text-zinc-400 uppercase tracking-wider block font-semibold">
-                        Разом:
+                        Сума страв:
                       </span>
                       <div className="font-display font-black text-xl sm:text-2xl text-amber-300 tracking-tight leading-none">
-                        {total} <span className="text-sm font-bold text-white">₴</span>
+                        {subtotal} <span className="text-sm font-bold text-white">₴</span>
                       </div>
-                      <span className="text-[10px] text-zinc-400 block truncate mt-0.5">
-                        {orderType === 'takeaway' 
-                          ? 'Самовивіз з ресторану' 
-                          : deliveryFee === 0 
-                          ? 'Безкоштовна доставка' 
-                          : `+${deliveryFee} ₴ доставка`}
-                      </span>
                     </div>
 
                     <motion.button
@@ -444,7 +287,7 @@ export const CartDrawer: React.FC = () => {
                         {!isMinOrderReached
                           ? `Ще на ${minOrderRemaining} ₴`
                           : scheduleStatus.isOpen
-                          ? 'Оформити замовлення'
+                          ? 'Перейти до оформлення'
                           : 'Передзамовлення'}
                       </span>
                       <ArrowRight className="w-4 h-4 shrink-0" />
