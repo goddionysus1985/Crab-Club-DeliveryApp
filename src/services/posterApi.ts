@@ -173,10 +173,14 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     };
   }
 
-  // Format products list with Poster product IDs, count, price in kopecks, and modifier options
-  const products: PosterIncomingProduct[] = order.items.map((item: CartItem) => {
-    const extraPrice = item.selectedOptions?.reduce((sum, o) => sum + (o.price || 0), 0) || 0;
-    const unitPrice = (Number(item.product.price) || 0) + extraPrice;
+  // Format products list
+  const products: PosterIncomingProduct[] = [];
+
+  order.items.forEach(item => {
+    let unitPrice = item.totalPrice / (item.quantity || 1);
+    if (isNaN(unitPrice) || unitPrice < 0) {
+      unitPrice = Number(item.product.price);
+    }
 
     let resolvedProductId = Number(item.product.id);
     const itemNameNorm = (item.product.name || '').toLowerCase().trim();
@@ -204,56 +208,73 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
       }
     }
 
-    const optNotes = item.selectedOptions?.map(o => `${o.option_name}${o.price > 0 ? ` (+${o.price}₴)` : ''}`).join(', ');
-    const fullItemDesc = `${item.product.name}${optNotes ? ` [${optNotes}]` : ''}${item.comment ? ` (${item.comment})` : ''}`;
-    
-    let prodComment: string | undefined = undefined;
-    if (!isDirectPosterProduct) {
-      prodComment = `[СТРАВА: ${fullItemDesc}]`;
-    } else if (optNotes || item.comment) {
-      prodComment = [optNotes, item.comment].filter(Boolean).join(' | ');
-    }
-
-    let directModificatorId: number | undefined = undefined;
-    if (isDirectPosterProduct && item.selectedOptions && item.selectedOptions.length > 0) {
+    // Match all selected modifiers from the product definition
+    const selectedMods: ModificationOption[] = [];
+    if (item.selectedOptions && item.selectedOptions.length > 0) {
       item.selectedOptions.forEach(opt => {
         item.product.modifications?.forEach(group => {
-          const matchedOpt = group.options.find(o => o.name === opt.option_name || String(o.id) === String(opt.option_name));
-          if (matchedOpt && matchedOpt.id > 0) {
-            directModificatorId = matchedOpt.id;
+          const matched = group.options.find(o => o.name === opt.option_name || String(o.id) === String(opt.option_name));
+          if (matched && matched.id > 0 && !selectedMods.some(m => m.id === matched.id)) {
+            selectedMods.push(matched);
           }
         });
       });
     }
 
-    const posterProd: PosterIncomingProduct = {
-      product_id: resolvedProductId || 1,
-      count: Number(item.quantity) || 1,
-      price: Math.round(unitPrice * 100),
-      comment: prodComment
-    };
+    if (isDirectPosterProduct && selectedMods.length > 1) {
+      // Multiple modifiers on a direct Poster item: register each modifier line in Poster
+      const basePrice = Number(item.product.price) || 0;
+      selectedMods.forEach((mod, idx) => {
+        const linePriceUah = idx === 0 ? (basePrice + mod.price) : mod.price;
+        products.push({
+          product_id: resolvedProductId,
+          count: Number(item.quantity) || 1,
+          price: Math.round(linePriceUah * 100),
+          modificator_id: mod.id,
+          comment: item.comment || undefined
+        });
+      });
+    } else if (isDirectPosterProduct && selectedMods.length === 1) {
+      // Single modifier on direct Poster item
+      products.push({
+        product_id: resolvedProductId,
+        count: Number(item.quantity) || 1,
+        price: Math.round(unitPrice * 100),
+        modificator_id: selectedMods[0].id,
+        comment: item.comment || undefined
+      });
+    } else {
+      // Direct item without modifiers OR fallback mapped item
+      const optNotes = item.selectedOptions?.map(o => `${o.option_name}${o.price > 0 ? ` (+${o.price}₴)` : ''}`).join(', ');
+      const fullItemDesc = `${item.product.name}${optNotes ? ` [${optNotes}]` : ''}${item.comment ? ` (${item.comment})` : ''}`;
+      
+      let prodComment: string | undefined = undefined;
+      if (!isDirectPosterProduct) {
+        prodComment = `[СТРАВА: ${fullItemDesc}]`;
+      } else if (optNotes || item.comment) {
+        prodComment = [optNotes, item.comment].filter(Boolean).join(' | ');
+      }
 
-    if (directModificatorId !== undefined && directModificatorId > 0) {
-      posterProd.modificator_id = directModificatorId;
+      products.push({
+        product_id: resolvedProductId || 1,
+        count: Number(item.quantity) || 1,
+        price: Math.round(unitPrice * 100),
+        comment: prodComment
+      });
     }
-
-    return posterProd;
   });
 
   // Clean numeric cash change (only for delivery with cash)
   const rawChange = String(order.cashChangeFrom || '').replace(/[^\d]/g, '');
   const changeNote = (!isTakeaway && rawChange) ? `Решта з: ${rawChange} ₴` : '';
 
-  // Summary of items for the cashier / kitchen receipt
-  const itemsListSummary = order.items.map(i => `${i.quantity}x ${i.product.name}`).join(' | ');
-
+  // Order general comments (Clean, concise)
   const commentParts = [
     order.comment,
     changeNote,
     order.cutleryCount ? `Приборів: ${order.cutleryCount} шт` : '',
     order.scheduledTime ? `Час: ${order.scheduledTime}` : '',
-    order.promoCode ? `Промокод: ${order.promoCode}` : '',
-    itemsListSummary ? `Замовлення: ${itemsListSummary}` : ''
+    order.promoCode ? `Промокод: ${order.promoCode}` : ''
   ].filter(Boolean);
 
   // In Poster API: only provide payment object if user actually prepaid online on the website.
