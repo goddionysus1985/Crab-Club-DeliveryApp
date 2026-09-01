@@ -128,7 +128,8 @@ export interface OrderDetails {
   date: string;
   customerName: string;
   phone: string;
-  orderType: 'delivery' | 'takeaway';
+  orderType: 'delivery' | 'takeaway' | 'dinein';
+  tableNumber?: string;
   address?: {
     city: string;
     street: string;

@@ -95,6 +95,9 @@ export const CheckoutModal: React.FC = () => {
   const availableBonuses = userProfile.bonusBalance || 0;
   const bonusDeductible = useBonuses ? Math.min(availableBonuses, Math.max(0, subtotal - discount)) : 0;
 
+  // Table number for dine-in
+  const [tableNumber, setTableNumber] = useState('');
+
   // Time & payment: if restaurant closed, default to scheduled
   const [deliveryTimeType, setDeliveryTimeType] = useState<'asap' | 'scheduled'>(scheduleStatus.isOpen ? 'asap' : 'scheduled');
   const [scheduledTime, setScheduledTime] = useState(scheduleStatus.isOpen ? '18:00' : '11:00');
@@ -110,6 +113,9 @@ export const CheckoutModal: React.FC = () => {
   const getZoneDeliveryDetails = (selectedCity: string, sub: number) => {
     if (orderType === 'takeaway') {
       return { fee: 0, threshold: 0, isFree: true, zoneName: 'Самовивіз', basePrice: 0 };
+    }
+    if (orderType === 'dinein') {
+      return { fee: 0, threshold: 0, isFree: true, zoneName: 'В закладі', basePrice: 0 };
     }
     if (selectedCity.includes('Центр')) {
       const isFree = sub >= 500;
@@ -245,6 +251,7 @@ export const CheckoutModal: React.FC = () => {
       customerName: nameValidation.sanitized,
       phone: phoneValidation.formatted,
       orderType,
+      tableNumber: orderType === 'dinein' ? cleanRawText(tableNumber, 20) || undefined : undefined,
       address: orderType === 'delivery' ? {
         city: cleanRawText(city, 50),
         street: sanitizedStreet,
@@ -331,34 +338,84 @@ export const CheckoutModal: React.FC = () => {
             {/* Scrollable Form Body */}
             <form onSubmit={handleSubmitOrder} className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
               
-              {/* Order Type Switcher (Delivery / Takeaway) */}
-              <div className="grid grid-cols-2 gap-2 bg-[#171724] p-1.5 rounded-2xl border border-white/[0.06]">
+              {/* Order Type Switcher (Delivery / Takeaway / In-house) */}
+              <div className="grid grid-cols-3 gap-1.5 bg-[#171724] p-1.5 rounded-2xl border border-white/[0.06]">
                 <button
                   type="button"
                   onClick={() => setOrderType('delivery')}
-                  className={`py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                  className={`py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
                     orderType === 'delivery'
                       ? 'apple-button-primary text-white shadow-md'
                       : 'text-zinc-400 hover:text-white'
                   }`}
                 >
-                  <Truck className="w-4 h-4" />
-                  <span>Кур'єрська доставка</span>
+                  <Truck className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Доставка</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setOrderType('takeaway')}
-                  className={`py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                  className={`py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
                     orderType === 'takeaway'
                       ? 'apple-button-primary text-white shadow-md'
                       : 'text-zinc-400 hover:text-white'
                   }`}
                 >
-                  <Store className="w-4 h-4" />
-                  <span>Самовивіз</span>
+                  <Store className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Самовивіз</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderType('dinein')}
+                  className={`py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    orderType === 'dinein'
+                      ? 'apple-button-primary text-white shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <UtensilsCrossed className="w-4 h-4 shrink-0" />
+                  <span className="truncate">В закладі</span>
                 </button>
               </div>
+
+              {/* Dine-In / In-Restaurant Info & Table Number */}
+              {orderType === 'dinein' && (
+                <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/[0.06] space-y-3">
+                  <div className="flex items-center gap-2 text-amber-400">
+                    <UtensilsCrossed className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Обслуговування у закладі:</span>
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Ваше замовлення приготують та подадуть у закладі Crab Club: <strong className="text-white">смт. Овідіополь, вул. Шевченка, 1</strong>.
+                  </p>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-zinc-400">Номер столика (за бажанням, якщо ви вже у залі):</label>
+                    <input
+                      type="text"
+                      maxLength={20}
+                      value={tableNumber}
+                      onChange={(e) => setTableNumber(e.target.value)}
+                      placeholder="Наприклад: Стіл №3"
+                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Takeaway Info */}
+              {orderType === 'takeaway' && (
+                <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/[0.06] space-y-2">
+                  <div className="flex items-center gap-2 text-emerald-400">
+                    <Store className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Самовивіз з ресторану:</span>
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Заберіть своє свіжоприготоване замовлення на касі Crab Club: <strong className="text-white">смт. Овідіополь, вул. Шевченка, 1</strong>.
+                  </p>
+                </div>
+              )}
 
               {/* Contact Details */}
               <div className="space-y-3">
@@ -772,10 +829,15 @@ export const CheckoutModal: React.FC = () => {
                       )}
                     </span>
                   </div>
+                ) : orderType === 'takeaway' ? (
+                  <div className="flex justify-between items-center text-zinc-300">
+                    <span>Отримання замовлення:</span>
+                    <span className="font-semibold text-emerald-400">Самовивіз з каси (0 ₴)</span>
+                  </div>
                 ) : (
                   <div className="flex justify-between items-center text-zinc-300">
                     <span>Отримання замовлення:</span>
-                    <span className="font-semibold text-emerald-400">Самовивіз (0 ₴)</span>
+                    <span className="font-semibold text-amber-400">В закладі / За столик (0 ₴)</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center pt-2 border-t border-white/[0.06] text-amber-300/90 text-[11px]">

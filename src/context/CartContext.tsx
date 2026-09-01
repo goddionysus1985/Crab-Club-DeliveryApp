@@ -43,8 +43,8 @@ interface CartContextType {
   setBonusToUse: (amount: number) => void;
 
   // Order type
-  orderType: 'delivery' | 'takeaway';
-  setOrderType: (type: 'delivery' | 'takeaway') => void;
+  orderType: 'delivery' | 'takeaway' | 'dinein';
+  setOrderType: (type: 'delivery' | 'takeaway' | 'dinein') => void;
 
   // Promo
   promoCode: string;
@@ -303,7 +303,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return stopList.has(productId);
   };
 
-  const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('takeaway');
+  const [orderType, setOrderType] = useState<'delivery' | 'takeaway' | 'dinein'>('delivery');
   const [promoCode, setPromoCode] = useState<string>('');
   const [promoDiscountPercent, setPromoDiscountPercent] = useState<number>(0);
   const [promoDiscountFixed, setPromoDiscountFixed] = useState<number>(0);
@@ -582,7 +582,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const amountNeededForFreeDelivery = Math.max(0, freeDeliveryThreshold - subtotal);
   const freeDeliveryProgress = Math.min(100, Math.round((subtotal / freeDeliveryThreshold) * 100));
 
-  const deliveryFee = orderType === 'takeaway' || subtotal >= freeDeliveryThreshold || subtotal === 0 ? 0 : 50;
+  const deliveryFee = orderType !== 'delivery' || subtotal >= freeDeliveryThreshold || subtotal === 0 ? 0 : 50;
   const total = Math.max(0, subtotal - discount + deliveryFee - bonusToUse);
 
   return (

@@ -19,7 +19,8 @@ import {
   Award,
   Gift,
   Truck,
-  Store
+  Store,
+  UtensilsCrossed
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
@@ -577,11 +578,18 @@ export const ProfileModal: React.FC = () => {
                                   Замовлення #{histOrder.orderNumber}
                                 </span>
                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                                  histOrder.orderType === 'takeaway'
+                                  histOrder.orderType === 'dinein'
+                                    ? 'bg-purple-500/10 text-purple-300 border-purple-500/25'
+                                    : histOrder.orderType === 'takeaway'
                                     ? 'bg-amber-500/10 text-amber-300 border-amber-500/25'
                                     : 'bg-sky-500/10 text-sky-300 border-sky-500/25'
                                 }`}>
-                                  {histOrder.orderType === 'takeaway' ? (
+                                  {histOrder.orderType === 'dinein' ? (
+                                    <>
+                                      <UtensilsCrossed className="w-3 h-3" />
+                                      <span>В закладі</span>
+                                    </>
+                                  ) : histOrder.orderType === 'takeaway' ? (
                                     <>
                                       <Store className="w-3 h-3" />
                                       <span>Самовивіз</span>

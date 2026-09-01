@@ -212,20 +212,28 @@ export function invalidatePosterProductsCache(): void {
  * Format order details into official Poster POS incoming order payload
  */
 export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrderPayload {
-  // Service mode per official Poster POS API docs: 0=dine-in, 1=takeout/самовивіз, 2=delivery/доставка
-  const service_mode = order.orderType === 'takeaway' ? 1 : 2;
+  // Service mode per official Poster POS API docs:
+  // 1 = Dine-in (В закладі / За столиком)
+  // 2 = Takeaway / Takeout (Самовивіз / На виніс)
+  // 3 = Delivery (Кур'єрська доставка)
+  let service_mode = 3;
+  if (order.orderType === 'dinein') {
+    service_mode = 1;
+  } else if (order.orderType === 'takeaway') {
+    service_mode = 2;
+  }
 
   const nameParts = (order.customerName || 'Гість').trim().split(/\s+/);
   const first_name = nameParts[0] || 'Гість';
   const last_name = nameParts.slice(1).join(' ') || undefined;
 
-  const isTakeaway = order.orderType === 'takeaway';
+  const isDelivery = order.orderType === 'delivery';
+  const isDineIn = order.orderType === 'dinein';
 
   // Only construct delivery address if orderType is delivery
-  let fullAddress: string | undefined = undefined;
   let client_address: any = undefined;
 
-  if (!isTakeaway) {
+  if (isDelivery) {
     const cleanCity = (order.address?.city || 'смт. Овідіополь')
       .replace(/\s*\(.*?\)/g, '')
       .replace(/—.*$/g, '')
@@ -239,7 +247,6 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     const streetAndHouse = [street ? `вул. ${street}` : '', house ? `буд. ${house}` : ''].filter(Boolean).join(', ');
     const address1 = [cleanCity, streetAndHouse].filter(Boolean).join(', ') || cleanCity;
     const address2 = [apartment ? `кв. ${apartment}` : '', floor ? `пов. ${floor}` : '', doorphone ? `код/домофон ${doorphone}` : ''].filter(Boolean).join(', ');
-    fullAddress = [address1, address2].filter(Boolean).join(', ');
 
     client_address = {
       country: 'Україна',
@@ -361,10 +368,11 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
 
   // Clean numeric cash change (only for delivery with cash)
   const rawChange = String(order.cashChangeFrom || '').replace(/[^\d]/g, '');
-  const changeNote = (!isTakeaway && rawChange) ? `Решта з: ${rawChange} ₴` : '';
+  const changeNote = (isDelivery && rawChange) ? `Решта з: ${rawChange} ₴` : '';
 
   // Order general comments (Clean, concise)
   const commentParts = [
+    isDineIn && order.tableNumber ? `Стіл: ${order.tableNumber}` : '',
     order.comment,
     changeNote,
     order.cutleryCount ? `Приборів: ${order.cutleryCount} шт` : '',
@@ -386,8 +394,8 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     first_name,
     last_name,
     service_mode,
-    delivery_price: isTakeaway ? 0 : Math.round((order.deliveryFee || 0) * 100),
-    client_address: isTakeaway ? undefined : client_address,
+    delivery_price: isDelivery ? Math.round((order.deliveryFee || 0) * 100) : 0,
+    client_address: isDelivery ? client_address : undefined,
     comment: commentParts.join(' | ') || undefined,
     products,
     payment
@@ -761,7 +769,9 @@ export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<P
       if (data.response) {
         const orderData = data.response;
         const status = Number(orderData.status);
-        const isTakeaway = Number(orderData.service_mode) === 1;
+        const mode = Number(orderData.service_mode);
+        const isDineIn = mode === 1;
+        const isTakeaway = mode === 2;
         let stepIndex = 1;
         let statusName = 'Прийнято рестораном';
 
@@ -773,10 +783,10 @@ export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<P
           statusName = 'Шеф-кухар готує на кухні';
         } else if (status === 2 || status === 3) {
           stepIndex = 3;
-          statusName = isTakeaway ? 'Готово до видачі на касі' : 'Кур\'єр у дорозі';
+          statusName = isDineIn ? 'Готово, подається за столик' : isTakeaway ? 'Готово до видачі на касі' : 'Кур\'єр у дорозі';
         } else if (status === 7) {
           stepIndex = 4;
-          statusName = isTakeaway ? 'Замовлення видано' : 'Успішно доставлено';
+          statusName = isDineIn ? 'Подано за столик' : isTakeaway ? 'Замовлення видано' : 'Успішно доставлено';
         } else if (status === 8 || status === 9) {
           stepIndex = 1;
           statusName = 'Замовлення скасовано';
