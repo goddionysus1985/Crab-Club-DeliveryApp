@@ -256,16 +256,11 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     };
   }
 
-  // Format products list with automatic deduplication for Poster POS (error 99 & error 32 protection)
-  const products: PosterIncomingProduct[] = [];
-  const usedProductModKeys = new Set<string>();
+  // Format products list with full modifier fidelity for Poster POS
+  const productEntriesMap = new Map<string, PosterIncomingProduct>();
 
   order.items.forEach(item => {
-    let unitPrice = item.totalPrice / (item.quantity || 1);
-    if (isNaN(unitPrice) || unitPrice < 0) {
-      unitPrice = Number(item.product.price);
-    }
-
+    const qty = Number(item.quantity) || 1;
     let resolvedProductId = Number(item.product.id);
     const itemNameNorm = (item.product.name || '').toLowerCase().trim();
     let isDirectPosterProduct = false;
@@ -283,7 +278,6 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
         }
       }
 
-      // If this specific dish ID isn't directly registered in Poster account yet, use a valid Poster product ID as carrier
       if (!isDirectPosterProduct) {
         const fallbackPosterItem = livePosterProductsCache.find(p => Number(p.product_id) === 6) || livePosterProductsCache[0];
         if (fallbackPosterItem) {
@@ -298,73 +292,51 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
       item.selectedOptions.forEach(opt => {
         item.product.modifications?.forEach(group => {
           const matched = group.options.find(o => o.name === opt.option_name || String(o.id) === String(opt.option_name));
-          if (matched && matched.id > 0 && !selectedMods.some(m => m.id === matched.id)) {
+          if (matched && matched.id > 0) {
             selectedMods.push(matched);
           }
         });
       });
     }
 
-    // Collect all available modifier IDs for this product in Poster
-    const allProductModIds: number[] = [];
-    item.product.modifications?.forEach(group => {
-      group.options.forEach(o => {
-        if (o.id && o.id > 0 && !allProductModIds.includes(o.id)) {
-          allProductModIds.push(o.id);
+    if (selectedMods.length > 0) {
+      // Send every selected modifier option directly as a named modification line in Poster
+      selectedMods.forEach(mod => {
+        const modKey = `${resolvedProductId}_${mod.id}`;
+        const modPrice = mod.price ? Math.round(mod.price * 100) : 0;
+        if (productEntriesMap.has(modKey)) {
+          productEntriesMap.get(modKey)!.count += qty;
+        } else {
+          productEntriesMap.set(modKey, {
+            product_id: resolvedProductId || 1,
+            modificator_id: mod.id,
+            count: qty,
+            price: modPrice
+          });
         }
       });
-    });
-
-    const optNotes = item.selectedOptions?.map(o => `${o.option_name}${o.price > 0 ? ` (+${o.price}₴)` : ''}`).join(', ');
-    const itemKitchenNotes = [optNotes, item.comment].filter(Boolean).join(' | ');
-
-    // Determine safe modificator_id that is NOT duplicated in this order
-    let chosenModId: number | undefined = undefined;
-
-    if (selectedMods.length > 0) {
-      // Find the first selected mod that hasn't been used yet for this product_id
-      const unusedSelected = selectedMods.find(m => !usedProductModKeys.has(`${resolvedProductId}_${m.id}`));
-      chosenModId = unusedSelected ? unusedSelected.id : selectedMods[0].id;
-    } else if (allProductModIds.length > 0) {
-      // Product requires a modificator_id in Poster (error 32 prevention) - pick an unused modifier
-      const unusedMod = allProductModIds.find(id => !usedProductModKeys.has(`${resolvedProductId}_${id}`));
-      chosenModId = unusedMod || allProductModIds[0];
-    }
-
-    let itemKey = `${resolvedProductId}_${chosenModId || 0}`;
-
-    // If key is STILL duplicated, find ANY unused modifier ID from this product
-    if (usedProductModKeys.has(itemKey) && allProductModIds.length > 0) {
-      const availableMod = allProductModIds.find(id => !usedProductModKeys.has(`${resolvedProductId}_${id}`));
-      if (availableMod) {
-        chosenModId = availableMod;
-        itemKey = `${resolvedProductId}_${chosenModId}`;
-      }
-    }
-
-    // If exact same product + modifier combination already exists in products array, merge quantity!
-    const existingIndex = products.findIndex(p => p.product_id === resolvedProductId && (p.modificator_id || 0) === (chosenModId || 0));
-    if (existingIndex >= 0) {
-      products[existingIndex].count += Number(item.quantity) || 1;
-      if (itemKitchenNotes && !products[existingIndex].comment?.includes(itemKitchenNotes)) {
-        products[existingIndex].comment = [products[existingIndex].comment, itemKitchenNotes].filter(Boolean).join(' | ');
-      }
     } else {
-      usedProductModKeys.add(itemKey);
-      const prodEntry: PosterIncomingProduct = {
-        product_id: resolvedProductId || 1,
-        count: Number(item.quantity) || 1,
-        price: Math.round(unitPrice * 100),
-        comment: (!isDirectPosterProduct ? `[СТРАВА: ${item.product.name}${itemKitchenNotes ? ` — ${itemKitchenNotes}` : ''}]` : itemKitchenNotes) || undefined
-      };
-
-      if (chosenModId !== undefined && chosenModId > 0) {
-        prodEntry.modificator_id = chosenModId;
+      // Standard product without extra modifiers
+      // In Poster POS, if a dish is a variant group (e.g. ID 11) that requires a base ID (ID 6), use ID 6
+      let baseProdId = resolvedProductId;
+      if (resolvedProductId === 11) {
+        baseProdId = 6;
       }
-
-      products.push(prodEntry);
+      const baseKey = `${baseProdId}_0`;
+      const basePrice = Math.round(Number(item.product.price) * 100);
+      if (productEntriesMap.has(baseKey)) {
+        productEntriesMap.get(baseKey)!.count += qty;
+      } else {
+        productEntriesMap.set(baseKey, {
+          product_id: baseProdId || 1,
+          count: qty,
+          price: basePrice
+        });
+      }
     }
   });
+
+  const products = Array.from(productEntriesMap.values());
 
   // Clean numeric cash change (only for delivery with cash)
   const rawChange = String(order.cashChangeFrom || '').replace(/[^\d]/g, '');
