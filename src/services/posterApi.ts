@@ -5,6 +5,7 @@
 
 import { OrderDetails, CartItem, Product, ModificationGroup, ModificationOption, Category, SubCategory } from '../types';
 import { POSTER_CONFIG } from '../config/poster';
+import { CATEGORIES, PRODUCTS } from '../data/menuData';
 
 export interface PosterIncomingProduct {
   product_id: number;
@@ -929,6 +930,7 @@ function slugifyCategoryName(text: string): string {
 
 /**
  * Fetch and build full live catalog directly from Poster POS API
+ * Preserves the full rich restaurant catalog while synchronizing live prices and items from Poster POS
  */
 export async function fetchLivePosterCatalog(): Promise<{
   categories: Category[];
@@ -938,45 +940,40 @@ export async function fetchLivePosterCatalog(): Promise<{
 
   try {
     const productsEndpoint = getPosterApiUrl('menu.getProducts');
-    const categoriesEndpoint = getPosterApiUrl('menu.getCategories');
-
-    const [productsRes, categoriesRes] = await Promise.all([
-      fetch(productsEndpoint),
-      fetch(categoriesEndpoint)
-    ]);
-
+    const productsRes = await fetch(productsEndpoint);
     const productsData = await productsRes.json();
-    const categoriesData = await categoriesRes.json();
 
     if (productsData.response && Array.isArray(productsData.response) && productsData.response.length > 0) {
-      // Build category map
-      const categoryMap = new Map<string, { id: number; name: string; slug: string }>();
+      // Update in-memory cache for mapping order items
+      livePosterProductsCache = productsData.response;
+      productsCacheExpiry = Date.now() + PRODUCTS_CACHE_TTL;
 
-      const mappedCategories: Category[] = (categoriesData.response || []).map((c: any) => {
-        const slug = slugifyCategoryName(c.category_name || `cat-${c.category_id}`);
-        categoryMap.set(String(c.category_id), { id: Number(c.category_id), name: c.category_name, slug });
-        return {
-          id: Number(c.category_id),
-          name: String(c.category_name),
-          slug,
-          icon: getPosterCategoryIcon(c.category_name),
-          subcategories: []
-        };
-      });
-
-      const mappedProducts: Product[] = productsData.response.map((p: any) => {
-        const catInfo = categoryMap.get(String(p.menu_category_id || p.category_id));
-        const base = mapPosterRawProduct(p);
-        return {
-          ...base,
-          category_name: catInfo ? catInfo.name : p.category_name || 'Меню',
-          category_url: catInfo ? catInfo.slug : 'all'
-        };
+      // Start with the rich Crab Club catalog (PRODUCTS) and enrich with live Poster data
+      const mergedProducts: Product[] = PRODUCTS.map(item => {
+        const exactMatch = productsData.response.find((p: any) => 
+          Number(p.product_id) === Number(item.id) ||
+          (p.product_name && p.product_name.toLowerCase().trim() === item.name.toLowerCase().trim())
+        );
+        if (exactMatch) {
+          let livePrice = exactMatch.price;
+          if (typeof livePrice === 'object' && livePrice !== null) {
+            const vals = Object.values(livePrice);
+            livePrice = vals.length > 0 ? vals[0] : item.price;
+          }
+          const parsed = Number(livePrice);
+          if (parsed > 0) {
+            return {
+              ...item,
+              price: parsed > 1000 ? Math.round(parsed / 100) : parsed
+            };
+          }
+        }
+        return item;
       });
 
       return {
-        categories: mappedCategories,
-        products: mappedProducts
+        categories: CATEGORIES,
+        products: mergedProducts
       };
     }
   } catch (err) {
