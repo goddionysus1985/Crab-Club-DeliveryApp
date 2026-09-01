@@ -3,15 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
   CheckCircle2, 
-  Clock, 
   ChefHat, 
   Truck, 
   PackageCheck, 
-  Phone, 
-  Sparkles,
+  Phone,
   ShoppingBag,
   Store,
-  Star
+  Star,
+  UtensilsCrossed
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { RESTAURANT_INFO } from '../data/menuData';
@@ -72,8 +71,6 @@ function sendBrowserNotification(title: string, body: string) {
 export const OrderTrackerModal: React.FC = () => {
   const { currentOrder, isOrderTrackerOpen, setIsOrderTrackerOpen, showToast, updateUserProfile } = useCart();
   const [currentStep, setCurrentStep] = useState<number>(1);
-  const [minutesLeft, setMinutesLeft] = useState<number>(40);
-  const [lastSyncText, setLastSyncText] = useState<string>('Онлайн-синхронізація з кухнею');
 
   useEffect(() => {
     if (!isOrderTrackerOpen || !currentOrder) return;
@@ -118,12 +115,7 @@ export const OrderTrackerModal: React.FC = () => {
             previousStep = liveStatus.stepIndex;
           }
           setCurrentStep(liveStatus.stepIndex);
-          setLastSyncText(`Каса: ${liveStatus.statusName}`);
-          if (liveStatus.stepIndex === 1) setMinutesLeft(35);
-          else if (liveStatus.stepIndex === 2) setMinutesLeft(20);
-          else if (liveStatus.stepIndex === 3) setMinutesLeft(10);
-          else if (liveStatus.stepIndex === 4) {
-            setMinutesLeft(0);
+          if (liveStatus.stepIndex === 4) {
             isCompleted = true; // Terminate polling
             return;
           }
@@ -142,48 +134,40 @@ export const OrderTrackerModal: React.FC = () => {
 
     pollStatus();
 
-    const timer = setInterval(() => {
-      setMinutesLeft(prev => Math.max(0, prev - 1));
-    }, 60000);
-
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
-      clearInterval(timer);
     };
   }, [isOrderTrackerOpen, currentOrder]);
 
   if (!currentOrder) return null;
 
   const isTakeaway = currentOrder.orderType === 'takeaway';
+  const isDineIn = currentOrder.orderType === 'dinein';
 
   const steps = [
     {
       id: 1,
       title: 'Прийнято рестораном',
       desc: 'Замовлення надійшло в касу',
-      icon: CheckCircle2,
-      time: currentOrder.date
+      icon: CheckCircle2
     },
     {
       id: 2,
       title: 'Шеф-кухар готує',
       desc: 'Свіжі морепродукти та страви',
-      icon: ChefHat,
-      time: '+10 хв'
+      icon: ChefHat
     },
     {
       id: 3,
-      title: isTakeaway ? 'Очікує на касі' : 'Кур\'єр у дорозі',
-      desc: isTakeaway ? 'Завітайте до закладу та заберіть' : 'В дорозі в термобоксах',
-      icon: isTakeaway ? ShoppingBag : Truck,
-      time: '+20 хв'
+      title: isDineIn ? 'Подача страви' : isTakeaway ? 'Очікує на касі' : 'Кур\'єр у дорозі',
+      desc: isDineIn ? 'Страва подається за столик' : isTakeaway ? 'Завітайте до закладу та заберіть' : 'В дорозі в термобоксах',
+      icon: isDineIn ? UtensilsCrossed : isTakeaway ? ShoppingBag : Truck
     },
     {
       id: 4,
-      title: isTakeaway ? 'Видано' : 'Доставлено',
+      title: isDineIn ? 'Подано' : isTakeaway ? 'Видано' : 'Доставлено',
       desc: 'Смачного від Crab Club!',
-      icon: PackageCheck,
-      time: isTakeaway ? 'Готово' : '~35 хв'
+      icon: PackageCheck
     }
   ];
 
@@ -212,19 +196,14 @@ export const OrderTrackerModal: React.FC = () => {
             <div className="p-4 sm:p-6 border-b border-white/[0.08] flex items-center justify-between bg-gradient-to-r from-crab-950/60 to-[#141422]/90 backdrop-blur-xl">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 shadow-sm">
-                  <Sparkles className="w-5 h-5" />
+                  <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                      Замовлення #{currentOrder.orderNumber}
-                    </h2>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 animate-pulse">
-                      Live з каси
-                    </span>
-                  </div>
+                  <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                    Замовлення #{currentOrder.orderNumber}
+                  </h2>
                   <p className="text-xs text-zinc-400">
-                    Оформлено о {currentOrder.date} • <span className="text-emerald-400 font-medium">{lastSyncText}</span>
+                    Оформлено о {currentOrder.date}
                   </p>
                 </div>
               </div>
@@ -242,35 +221,10 @@ export const OrderTrackerModal: React.FC = () => {
             {/* Content */}
             <div className="overflow-y-auto p-4 sm:p-6 space-y-6 flex-1">
               
-              {/* Estimated Time Card */}
-              <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-500/10 via-crab-600/10 to-transparent border border-amber-500/20 flex items-center justify-between shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner">
-                    <Clock className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">
-                      {isTakeaway ? 'Орієнтовний час приготування:' : 'Орієнтовний час доставки:'}
-                    </span>
-                    <div className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-                      {currentStep >= 4 ? 'Готово!' : `~ ${minutesLeft} хвилин`}
-                    </div>
-                  </div>
-                </div>
-
-                <a
-                  href={`tel:${RESTAURANT_INFO.phone_raw}`}
-                  className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl apple-button-secondary text-white text-xs font-semibold"
-                >
-                  <Phone className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Зв'язатись</span>
-                </a>
-              </div>
-
               {/* Stepper Steps */}
               <div className="space-y-4">
                 <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                  {isTakeaway ? 'Етапи приготування та видачі:' : 'Етапи приготування та доставки:'}
+                  {isDineIn ? 'Етапи приготування та подачі:' : isTakeaway ? 'Етапи приготування та видачі:' : 'Етапи приготування та доставки:'}
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
@@ -291,7 +245,7 @@ export const OrderTrackerModal: React.FC = () => {
                             : 'bg-white/[0.02] border-white/[0.06] text-zinc-500'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="mb-2">
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
                             isCurrent
                               ? 'apple-button-primary text-white shadow-md'
@@ -301,7 +255,6 @@ export const OrderTrackerModal: React.FC = () => {
                           }`}>
                             <Icon className="w-4 h-4" />
                           </div>
-                          <span className="text-[10px] font-bold text-zinc-400">{step.time}</span>
                         </div>
 
                         <div className="font-bold text-xs text-white mb-0.5">

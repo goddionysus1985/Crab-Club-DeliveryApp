@@ -95,9 +95,6 @@ export const CheckoutModal: React.FC = () => {
   const availableBonuses = userProfile.bonusBalance || 0;
   const bonusDeductible = useBonuses ? Math.min(availableBonuses, Math.max(0, subtotal - discount)) : 0;
 
-  // Table number for dine-in
-  const [tableNumber, setTableNumber] = useState('');
-
   // Time & payment: if restaurant closed, default to scheduled
   const [deliveryTimeType, setDeliveryTimeType] = useState<'asap' | 'scheduled'>(scheduleStatus.isOpen ? 'asap' : 'scheduled');
   const [scheduledTime, setScheduledTime] = useState(scheduleStatus.isOpen ? '18:00' : '11:00');
@@ -251,7 +248,6 @@ export const CheckoutModal: React.FC = () => {
       customerName: nameValidation.sanitized,
       phone: phoneValidation.formatted,
       orderType,
-      tableNumber: orderType === 'dinein' ? cleanRawText(tableNumber, 20) || undefined : undefined,
       address: orderType === 'delivery' ? {
         city: cleanRawText(city, 50),
         street: sanitizedStreet,
@@ -380,27 +376,16 @@ export const CheckoutModal: React.FC = () => {
                 </button>
               </div>
 
-              {/* Dine-In / In-Restaurant Info & Table Number */}
+              {/* Dine-In / In-Restaurant Info */}
               {orderType === 'dinein' && (
-                <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/[0.06] space-y-3">
+                <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/[0.06] space-y-2">
                   <div className="flex items-center gap-2 text-amber-400">
                     <UtensilsCrossed className="w-4 h-4" />
                     <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Обслуговування у закладі:</span>
                   </div>
                   <p className="text-xs text-zinc-400 leading-relaxed">
-                    Ваше замовлення приготують та подадуть у закладі Crab Club: <strong className="text-white">смт. Овідіополь, вул. Шевченка, 1</strong>.
+                    Ваше замовлення приготують для вас у закладі Crab Club: <strong className="text-white">смт. Овідіополь, вул. Шевченка, 1</strong>.
                   </p>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-zinc-400">Номер столика (за бажанням, якщо ви вже у залі):</label>
-                    <input
-                      type="text"
-                      maxLength={20}
-                      value={tableNumber}
-                      onChange={(e) => setTableNumber(e.target.value)}
-                      placeholder="Наприклад: Стіл №3"
-                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
                 </div>
               )}
 
