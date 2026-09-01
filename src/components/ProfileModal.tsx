@@ -17,7 +17,9 @@ import {
   RefreshCw,
   LogOut,
   Award,
-  Gift
+  Gift,
+  Truck,
+  Store
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
@@ -560,56 +562,140 @@ export const ProfileModal: React.FC = () => {
                       <p className="text-[11px] text-zinc-400 font-light">Оформіть замовлення та отримуйте кешбек 5% на ваш баланс!</p>
                     </div>
                   ) : (
-                    orderHistory.map((histOrder) => (
-                      <div
-                        key={histOrder.orderId}
-                        className="apple-card p-3.5 rounded-2xl border border-white/[0.08] space-y-2.5"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-bold text-xs text-white">Замовлення #{histOrder.orderNumber}</span>
-                            <div className="text-[10px] text-zinc-400">{histOrder.date} • {histOrder.items.length} страв</div>
+                    orderHistory.map((histOrder) => {
+                      const totalItemsCount = histOrder.items.reduce((acc, it) => acc + (it.quantity || 1), 0);
+                      return (
+                        <div
+                          key={histOrder.orderId}
+                          className="apple-card p-4 rounded-3xl border border-white/[0.08] hover:border-white/15 transition-all space-y-3"
+                        >
+                          {/* Header: Number, Order Type, Date, Total */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-sm text-white tracking-tight">
+                                  Замовлення #{histOrder.orderNumber}
+                                </span>
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                  histOrder.orderType === 'takeaway'
+                                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/25'
+                                    : 'bg-sky-500/10 text-sky-300 border-sky-500/25'
+                                }`}>
+                                  {histOrder.orderType === 'takeaway' ? (
+                                    <>
+                                      <Store className="w-3 h-3" />
+                                      <span>Самовивіз</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Truck className="w-3 h-3" />
+                                      <span>Доставка</span>
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 font-light">
+                                <Clock className="w-3 h-3 text-zinc-500" />
+                                <span>{histOrder.date}</span>
+                                <span>•</span>
+                                <span>{totalItemsCount} {totalItemsCount === 1 ? 'страва' : totalItemsCount < 5 ? 'страви' : 'страв'}</span>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <div className="text-base font-black text-amber-400 font-display leading-tight">
+                                {histOrder.total} ₴
+                              </div>
+                              <div className="text-[10px] text-zinc-400 mt-0.5">
+                                {histOrder.paymentMethod === 'card_online'
+                                  ? 'Оплачено онлайн'
+                                  : histOrder.paymentMethod === 'card_courier'
+                                  ? 'Картка при отриманні'
+                                  : 'Готівка'}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="font-black text-sm text-amber-400">{histOrder.total} ₴</span>
+
+                          {/* Concise Dishes List */}
+                          <div className="p-3 rounded-2xl bg-black/35 border border-white/5 space-y-2">
+                            <div className="space-y-1.5">
+                              {histOrder.items.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs text-zinc-200">
+                                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                                    {item.product?.image && (
+                                      <img
+                                        src={item.product.image}
+                                        alt={item.product.name}
+                                        className="w-5 h-5 rounded-md object-cover shrink-0 border border-white/10"
+                                      />
+                                    )}
+                                    <span className="truncate font-medium text-white/90">
+                                      {item.product?.name || 'Страва'}
+                                    </span>
+                                    {item.selectedOptions && item.selectedOptions.length > 0 && (
+                                      <span className="text-[10px] text-zinc-400 truncate hidden sm:inline">
+                                        ({item.selectedOptions.map(opt => opt.option_name).join(', ')})
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-zinc-400 text-[11px] font-mono shrink-0">
+                                    ×{item.quantity}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Delivery Address (if delivery) */}
+                            {histOrder.orderType === 'delivery' && histOrder.address && (
+                              <div className="pt-2 border-t border-white/5 flex items-center gap-1.5 text-[11px] text-zinc-400 truncate">
+                                <MapPin className="w-3 h-3 text-rose-400 shrink-0" />
+                                <span className="truncate">
+                                  {histOrder.address.city}, {histOrder.address.street} {histOrder.address.house}
+                                  {histOrder.address.apartment ? `, кв. ${histOrder.address.apartment}` : ''}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCurrentOrder(histOrder);
+                                setIsProfileOpen(false);
+                                setIsOrderTrackerOpen(true);
+                              }}
+                              className="flex-1 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white text-xs font-semibold border border-white/10 flex items-center justify-center gap-1.5 transition-colors"
+                            >
+                              <Clock className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Статус / Трекер</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                addOrderItemsToCart(histOrder);
+                                setIsProfileOpen(false);
+                                setIsCartOpen(true);
+                                try {
+                                  confetti({
+                                    particleCount: 50,
+                                    spread: 60,
+                                    origin: { y: 0.7 }
+                                  });
+                                } catch {}
+                                showToast(`🎉 Страви із замовлення #${histOrder.orderNumber} додано в кошик!`, undefined, 'success');
+                              }}
+                              className="flex-1 py-2 rounded-xl apple-button-primary text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-crab-600/30 transition-transform active:scale-[0.98]"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Повторити замовлення</span>
+                            </button>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-2 pt-1.5 border-t border-white/5">
-                          <button
-                            onClick={() => {
-                              setCurrentOrder(histOrder);
-                              setIsProfileOpen(false);
-                              setIsOrderTrackerOpen(true);
-                            }}
-                            className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-medium border border-white/10 flex items-center justify-center gap-1"
-                          >
-                            <Clock className="w-3 h-3" />
-                            <span>Трекер</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              addOrderItemsToCart(histOrder);
-                              setIsProfileOpen(false);
-                              setIsCartOpen(true);
-                              try {
-                                confetti({
-                                  particleCount: 50,
-                                  spread: 60,
-                                  origin: { y: 0.7 }
-                                });
-                              } catch {}
-                              showToast(`🎉 Страви із замовлення #${histOrder.orderNumber} додано в кошик!`, undefined, 'success');
-                            }}
-                            className="flex-1 py-1.5 rounded-xl apple-button-primary text-white text-xs font-bold flex items-center justify-center gap-1 shadow-md shadow-crab-600/30"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            <span>Повторити</span>
-                          </button>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               )}
