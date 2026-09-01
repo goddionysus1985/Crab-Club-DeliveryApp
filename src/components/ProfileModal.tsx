@@ -471,7 +471,6 @@ export const ProfileModal: React.FC = () => {
                           <label className="text-[11px] text-zinc-300 font-medium">Вулиця:</label>
                           <input
                             type="text"
-                            placeholder="Шевченка"
                             value={street}
                             onChange={(e) => setStreet(e.target.value)}
                             className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
@@ -482,7 +481,6 @@ export const ProfileModal: React.FC = () => {
                           <label className="text-[11px] text-zinc-300 font-medium">Будинок:</label>
                           <input
                             type="text"
-                            placeholder="12/A"
                             value={house}
                             onChange={(e) => setHouse(e.target.value)}
                             className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
@@ -495,7 +493,6 @@ export const ProfileModal: React.FC = () => {
                           <label className="text-[11px] text-zinc-300 font-medium">Кв.:</label>
                           <input
                             type="text"
-                            placeholder="4"
                             value={apartment}
                             onChange={(e) => setApartment(e.target.value)}
                             className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
@@ -505,7 +502,6 @@ export const ProfileModal: React.FC = () => {
                           <label className="text-[11px] text-zinc-300 font-medium">Поверх:</label>
                           <input
                             type="text"
-                            placeholder="2"
                             value={floor}
                             onChange={(e) => setFloor(e.target.value)}
                             className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
@@ -515,7 +511,6 @@ export const ProfileModal: React.FC = () => {
                           <label className="text-[11px] text-zinc-300 font-medium">Домофон:</label>
                           <input
                             type="text"
-                            placeholder="4K"
                             value={doorphone}
                             onChange={(e) => setDoorphone(e.target.value)}
                             className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"

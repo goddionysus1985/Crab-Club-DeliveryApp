@@ -355,8 +355,7 @@ export const CheckoutModal: React.FC = () => {
                       maxLength={50}
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Олександр"
-                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
+                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
                     />
                   </div>
 
@@ -368,8 +367,7 @@ export const CheckoutModal: React.FC = () => {
                       maxLength={20}
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+380 (__) ___ __ __"
-                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
+                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
                     />
                   </div>
                 </div>
@@ -413,8 +411,7 @@ export const CheckoutModal: React.FC = () => {
                           maxLength={100}
                           value={street}
                           onChange={(e) => setStreet(e.target.value)}
-                          placeholder="вул. Шевченка"
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
+                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
                         />
                       </div>
 
@@ -426,8 +423,7 @@ export const CheckoutModal: React.FC = () => {
                           maxLength={20}
                           value={house}
                           onChange={(e) => setHouse(e.target.value)}
-                          placeholder="12/A"
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
+                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
                         />
                       </div>
                     </div>
@@ -440,8 +436,7 @@ export const CheckoutModal: React.FC = () => {
                           maxLength={10}
                           value={apartment}
                           onChange={(e) => setApartment(e.target.value)}
-                          placeholder="12"
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none"
+                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-sm text-white focus:outline-none"
                         />
                       </div>
 
@@ -452,8 +447,7 @@ export const CheckoutModal: React.FC = () => {
                           maxLength={10}
                           value={floor}
                           onChange={(e) => setFloor(e.target.value)}
-                          placeholder="3"
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none"
+                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-sm text-white focus:outline-none"
                         />
                       </div>
 
@@ -464,8 +458,7 @@ export const CheckoutModal: React.FC = () => {
                           maxLength={10}
                           value={doorphone}
                           onChange={(e) => setDoorphone(e.target.value)}
-                          placeholder="45"
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none"
+                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-sm text-white focus:outline-none"
                         />
                       </div>
                     </div>
@@ -598,8 +591,7 @@ export const CheckoutModal: React.FC = () => {
                       maxLength={50}
                       value={cashChangeFrom}
                       onChange={(e) => setCashChangeFrom(e.target.value)}
-                      placeholder="Наприклад: з 1000 грн або без решти"
-                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none"
+                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2 text-xs text-white focus:outline-none"
                     />
                   </div>
                 )}
@@ -638,8 +630,7 @@ export const CheckoutModal: React.FC = () => {
                     maxLength={250}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder="Код дверей, передзвонити за 5 хв..."
-                    className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none"
                   />
                 </div>
               </div>
