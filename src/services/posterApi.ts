@@ -102,6 +102,26 @@ export function formatPosterDeliveryTime(scheduledTime?: string): string | undef
   return `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())} ${pad(hours)}:${pad(minutes)}:00`;
 }
 
+// Live product cache from Poster
+let livePosterProductsCache: Array<{ product_id: string | number; product_name: string; price: any }> = [];
+
+export async function getLivePosterProductsList(): Promise<Array<{ product_id: number; product_name: string; price: any }>> {
+  if (livePosterProductsCache.length > 0) {
+    return livePosterProductsCache as any;
+  }
+  try {
+    const endpoint = getPosterApiUrl('menu.getProducts');
+    const res = await fetch(endpoint);
+    const data = await res.json();
+    if (data.response && Array.isArray(data.response)) {
+      livePosterProductsCache = data.response;
+    }
+  } catch (e) {
+    console.warn('[Poster Products Cache]', e);
+  }
+  return livePosterProductsCache as any;
+}
+
 /**
  * Format order details into official Poster POS incoming order payload
  */
@@ -140,8 +160,22 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     const extraPrice = item.selectedOptions?.reduce((sum, o) => sum + (o.price || 0), 0) || 0;
     const unitPrice = (Number(item.product.price) || 0) + extraPrice;
 
+    let resolvedProductId = Number(item.product.id);
+    const itemNameNorm = (item.product.name || '').toLowerCase().trim();
+
+    if (livePosterProductsCache.length > 0) {
+      const exactMatch = livePosterProductsCache.find(p => Number(p.product_id) === resolvedProductId);
+      if (!exactMatch) {
+        const nameMatch = livePosterProductsCache.find(p => p.product_name.toLowerCase().trim() === itemNameNorm) ||
+                          livePosterProductsCache.find(p => p.product_name.toLowerCase().includes(itemNameNorm) || itemNameNorm.includes(p.product_name.toLowerCase()));
+        if (nameMatch) {
+          resolvedProductId = Number(nameMatch.product_id);
+        }
+      }
+    }
+
     const posterProd: PosterIncomingProduct = {
-      product_id: Number(item.product.id),
+      product_id: resolvedProductId || 1,
       count: Number(item.quantity) || 1,
       price: Math.round(unitPrice * 100),
       comment: item.comment || undefined
@@ -309,6 +343,9 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
     };
   }
 
+  // 1. Ensure live products list is available for accurate item resolution
+  await getLivePosterProductsList();
+
   const payload = buildPosterOrderPayload(order);
 
   // 2. Primary Channel: Live Poster POS API with 7-second timeout
@@ -332,26 +369,6 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
 
       let result: PosterApiResponse<{ incoming_order_id: number }> = await response.json();
       console.log('[Poster POS Dispatch Response] 📥 Відповідь Poster API:', result);
-
-      // If Poster returns product not found (e.g. test spot with only demo items), retry with spot's first product and full description in comment
-      if (result.error && (result.error === 33 || result.message?.includes('product') || result.message?.includes('not found'))) {
-        console.info('[Poster POS] Product unmapped in spot, retrying with spot first product + detailed comment...');
-        const detailedComment = `[СТРАВИ: ${order.items.map(i => `${i.product.name} x${i.quantity}${i.selectedOptions?.length ? ` (${i.selectedOptions.map(o => o.option_name).join(', ')})` : ''}`).join('; ')}] | ${payload.comment || ''}`;
-        
-        const fallbackPayload = {
-          ...payload,
-          comment: detailedComment,
-          products: [{ product_id: 1, count: 1 }]
-        };
-
-        const retryRes = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify(fallbackPayload)
-        });
-        result = await retryRes.json();
-        console.log('[Poster POS Retry Response] 📥:', result);
-      }
 
       if (result.response && result.response.incoming_order_id) {
         const orderId = result.response.incoming_order_id;
