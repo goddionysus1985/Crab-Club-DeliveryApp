@@ -83,7 +83,7 @@ export const CheckoutModal: React.FC = () => {
     const clean = phone.replace(/\D/g, '');
     if (clean.length >= 10) {
       getPosterClientByPhone(clean).then(client => {
-        if (client && client.bonus > 0) {
+        if (client && client.bonus !== undefined) {
           updateUserProfile({ bonusBalance: client.bonus });
         }
       });

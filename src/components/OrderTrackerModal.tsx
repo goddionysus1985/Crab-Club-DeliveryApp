@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { RESTAURANT_INFO } from '../data/menuData';
-import { fetchPosterOrderStatus } from '../services/posterApi';
+import { fetchPosterOrderStatus, getPosterClientByPhone } from '../services/posterApi';
 
 // Pleasant Web Audio API melodic chime for status changes
 function playOrderSuccessChime() {
@@ -40,13 +40,13 @@ function playOrderSuccessChime() {
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(659.25, now + 0.12); // E5
-    osc2.frequency.exponentialRampToValueAtTime(1318.5, now + 0.28); // E6
-    gain2.gain.setValueAtTime(0.15, now + 0.12);
+    osc2.frequency.setValueAtTime(659.25, now + 0.1); // E5
+    osc2.frequency.exponentialRampToValueAtTime(1318.5, now + 0.25); // E6
+    gain2.gain.setValueAtTime(0.12, now + 0.1);
     gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
     osc2.connect(gain2);
     gain2.connect(ctx.destination);
-    osc2.start(now + 0.12);
+    osc2.start(now + 0.1);
     osc2.stop(now + 0.6);
 
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
@@ -56,7 +56,7 @@ function playOrderSuccessChime() {
 }
 
 export const OrderTrackerModal: React.FC = () => {
-  const { currentOrder, isOrderTrackerOpen, setIsOrderTrackerOpen, showToast } = useCart();
+  const { currentOrder, isOrderTrackerOpen, setIsOrderTrackerOpen, showToast, updateUserProfile } = useCart();
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [minutesLeft, setMinutesLeft] = useState<number>(40);
   const [lastSyncText, setLastSyncText] = useState<string>('Онлайн-синхронізація з кухнею');
@@ -75,6 +75,17 @@ export const OrderTrackerModal: React.FC = () => {
           if (liveStatus.stepIndex > previousStep) {
             playOrderSuccessChime();
             showToast(`Статус оновлено: ${liveStatus.statusName}`, undefined, 'success');
+            
+            // If order completed and paid in Poster, refresh real bonus balance from Poster CRM
+            if (liveStatus.stepIndex === 4 && currentOrder.phone) {
+              const cleanPhone = currentOrder.phone.replace(/\D/g, '');
+              getPosterClientByPhone(cleanPhone).then(client => {
+                if (client && client.bonus !== undefined) {
+                  updateUserProfile({ bonusBalance: client.bonus });
+                }
+              });
+            }
+
             previousStep = liveStatus.stepIndex;
           }
           setCurrentStep(liveStatus.stepIndex);

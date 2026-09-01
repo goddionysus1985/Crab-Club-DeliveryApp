@@ -90,14 +90,14 @@ export const ProfileModal: React.FC = () => {
     const finalName = nameVal.isValid ? nameVal.sanitized : (loginName.trim() || 'Гість');
 
     setIsLoggingIn(true);
-    let bonusBalance = userProfile.bonusBalance || 50;
+    let bonusBalance = 0;
 
     try {
-      // Query Poster CRM by phone for bonuses & existing profile
+      // Query Poster CRM by phone for real bonuses & existing profile
       const clean = phoneVal.formatted.replace(/\D/g, '');
       const posterClient = await getPosterClientByPhone(clean);
-      if (posterClient) {
-        if (posterClient.bonus !== undefined) bonusBalance = posterClient.bonus;
+      if (posterClient && posterClient.bonus !== undefined) {
+        bonusBalance = posterClient.bonus;
       }
     } catch {}
 

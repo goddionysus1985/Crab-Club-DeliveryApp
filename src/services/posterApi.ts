@@ -571,7 +571,7 @@ export async function getPosterClientByPhone(phone: string): Promise<PosterClien
     client_id: 1001,
     firstname: savedName || '',
     phone: cleanPhone,
-    bonus: 50,
+    bonus: 0,
     discount_per: 0
   };
 }
