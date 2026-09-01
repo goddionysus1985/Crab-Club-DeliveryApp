@@ -26,12 +26,14 @@ import {
   securityRateLimiter 
 } from '../utils/security';
 import { PaymentModal } from './PaymentModal';
+import { PRODUCTS } from '../data/menuData';
 import { sendOrderToPoster, getPosterClientByPhone, deductPosterClientBonus } from '../services/posterApi';
 import { getRestaurantScheduleStatus } from '../utils/workHours';
 
 export const CheckoutModal: React.FC = () => {
   const {
     cart,
+    addToCart,
     isCheckoutOpen,
     setIsCheckoutOpen,
     clearCart,
@@ -519,16 +521,35 @@ export const CheckoutModal: React.FC = () => {
                 </div>
 
                 {deliveryTimeType === 'scheduled' && (
-                  <div className="pt-2 flex items-center gap-3">
-                    <label className="text-xs text-zinc-400">Оберіть час:</label>
-                    <input
-                      type="time"
-                      value={scheduledTime}
-                      min="10:00"
-                      max="22:00"
-                      onChange={(e) => setScheduledTime(e.target.value)}
-                      className="bg-[#181826] border border-white/15 rounded-2xl px-4 py-2 text-sm text-white focus:outline-none"
-                    />
+                  <div className="pt-2 space-y-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] text-zinc-400">Швидкий вибір:</span>
+                      {['13:00', '15:00', '17:00', '18:30', '19:30', '20:30'].map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setScheduledTime(t)}
+                          className={`px-2.5 py-1 rounded-xl text-xs font-semibold transition-all ${
+                            scheduledTime === t
+                              ? 'bg-amber-400 text-slate-950 font-bold shadow-sm'
+                              : 'bg-white/5 text-zinc-300 hover:text-white border border-white/10'
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3 pt-1">
+                      <label className="text-xs text-zinc-400">Або вкажіть вручну:</label>
+                      <input
+                        type="time"
+                        value={scheduledTime}
+                        min="10:00"
+                        max="22:00"
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="bg-[#181826] border border-white/15 rounded-2xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -668,6 +689,42 @@ export const CheckoutModal: React.FC = () => {
                   >
                     {useBonuses ? 'Списано ✓' : 'Списати'}
                   </button>
+                </div>
+              )}
+
+              {/* Quick Upsell Section */}
+              {PRODUCTS.filter(p => 
+                (p.category_url.includes('napoyi') || p.category_url.includes('deserti') || p.category_name.toLowerCase().includes('напо') || p.category_name.toLowerCase().includes('випіч')) &&
+                !cart.some(item => item.product.id === p.id)
+              ).slice(0, 3).length > 0 && (
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-2.5">
+                  <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Додати напій або десерт до замовлення?</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {PRODUCTS.filter(p => 
+                      (p.category_url.includes('napoyi') || p.category_url.includes('deserti') || p.category_name.toLowerCase().includes('напо') || p.category_name.toLowerCase().includes('випіч')) &&
+                      !cart.some(item => item.product.id === p.id)
+                    ).slice(0, 3).map(item => (
+                      <div key={item.id} className="p-2 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-semibold text-white truncate">{item.name}</div>
+                          <div className="text-[11px] font-bold text-amber-400">{item.price} ₴</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            addToCart(item, 1);
+                            showToast(`Додано: ${item.name}`, item.image, 'success');
+                          }}
+                          className="px-2.5 py-1 rounded-lg apple-button-primary text-white text-xs font-bold shrink-0 shadow-sm"
+                        >
+                          + Додати
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

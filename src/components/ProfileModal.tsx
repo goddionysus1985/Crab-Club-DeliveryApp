@@ -29,6 +29,7 @@ export const ProfileModal: React.FC = () => {
   const { 
     isProfileOpen, 
     setIsProfileOpen, 
+    setIsCartOpen,
     profileTab,
     setProfileTab,
     userProfile, 
@@ -590,11 +591,20 @@ export const ProfileModal: React.FC = () => {
                           <button
                             onClick={() => {
                               addOrderItemsToCart(histOrder);
+                              setIsProfileOpen(false);
+                              setIsCartOpen(true);
+                              try {
+                                confetti({
+                                  particleCount: 50,
+                                  spread: 60,
+                                  origin: { y: 0.7 }
+                                });
+                              } catch {}
                               showToast(`🎉 Страви із замовлення #${histOrder.orderNumber} додано в кошик!`, undefined, 'success');
                             }}
-                            className="flex-1 py-1.5 rounded-xl apple-button-primary text-white text-xs font-bold flex items-center justify-center gap-1"
+                            className="flex-1 py-1.5 rounded-xl apple-button-primary text-white text-xs font-bold flex items-center justify-center gap-1 shadow-md shadow-crab-600/30"
                           >
-                            <RotateCcw className="w-3 h-3" />
+                            <RotateCcw className="w-3.5 h-3.5" />
                             <span>Повторити</span>
                           </button>
                         </div>

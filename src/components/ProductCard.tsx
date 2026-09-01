@@ -15,10 +15,12 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({ product }) => {
     cart, 
     toggleFavorite, 
     isFavorite, 
-    setActiveProductModal 
+    setActiveProductModal,
+    isProductStopped 
   } = useCart();
 
   const isFav = isFavorite(product.id);
+  const isStopped = isProductStopped ? isProductStopped(product.id) : false;
   const hasModifiers = product.modifications && product.modifications.length > 0;
 
   // Find in cart
@@ -27,6 +29,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({ product }) => {
 
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isStopped) return;
     if (hasModifiers) {
       setActiveProductModal(product);
     } else {
@@ -89,7 +92,13 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({ product }) => {
 
         {/* Sleek Apple Glass Badges */}
         <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 flex flex-wrap gap-1 max-w-[80%] z-10 pointer-events-none">
-          {product.popular && (
+          {isStopped && (
+            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-rose-600/90 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-black tracking-wide shadow-md animate-pulse">
+              <span>⛔ Закінчилось</span>
+            </span>
+          )}
+
+          {product.popular && !isStopped && (
             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] sm:text-[10px] font-black tracking-wide shadow-md">
               <Flame className="w-2.5 h-2.5 fill-slate-950" />
               <span>ХІТ</span>
@@ -157,7 +166,15 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({ product }) => {
             </span>
           </div>
 
-          {quantityInCart > 0 && !hasModifiers ? (
+          {isStopped ? (
+            <button
+              type="button"
+              disabled
+              className="px-3 py-1.5 rounded-xl sm:rounded-2xl text-[11px] font-bold bg-white/5 border border-white/10 text-zinc-500 cursor-not-allowed"
+            >
+              Закінчилось
+            </button>
+          ) : quantityInCart > 0 && !hasModifiers ? (
             <div
               onClick={(e) => e.stopPropagation()}
               className="flex items-center bg-[#1D1D2B] border border-white/10 rounded-xl sm:rounded-2xl p-0.5 sm:p-1 gap-0.5 sm:gap-1 shadow-inner"

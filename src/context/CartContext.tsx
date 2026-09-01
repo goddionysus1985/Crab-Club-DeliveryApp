@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem, Product, OrderDetails, UserProfile } from '../types';
 import { RESTAURANT_INFO, PROMO_CODES, PRODUCTS } from '../data/menuData';
+import { fetchPosterStopList } from '../services/posterApi';
 import { 
   verifyAndSanitizeCart, 
   sanitizePromoCode, 
@@ -88,6 +89,10 @@ interface CartContextType {
   toast: Toast | null;
   showToast: (text: string, image?: string, type?: 'success' | 'info' | 'error') => void;
   hideToast: () => void;
+
+  // Stop List (Live Kitchen Out of Stock Sync)
+  stopList: Set<number>;
+  isProductStopped: (productId: number) => boolean;
 
   // Helpers
   getItemQuantityInCart: (productId: number) => number;
@@ -238,6 +243,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast(`Страви з замовлення #${historicOrder.orderNumber} додано до кошика!`, undefined, 'success');
   };
 
+  const [stopList, setStopList] = useState<Set<number>>(new Set());
+
+  // Periodically poll Poster POS stop-list in real-time (every 30s)
+  useEffect(() => {
+    let isMounted = true;
+    const loadStopList = async () => {
+      try {
+        const list = await fetchPosterStopList();
+        if (isMounted) setStopList(new Set(list));
+      } catch {}
+    };
+
+    loadStopList();
+    const interval = setInterval(loadStopList, 30000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const isProductStopped = (productId: number): boolean => {
+    return stopList.has(productId);
+  };
+
   const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('takeaway');
   const [promoCode, setPromoCode] = useState<string>('');
   const [promoDiscountPercent, setPromoDiscountPercent] = useState<number>(0);
@@ -356,6 +385,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ) => {
     if (!product || !product.id) {
       showToast('Цей товар наразі недоступний', undefined, 'error');
+      return;
+    }
+
+    if (isProductStopped(product.id)) {
+      showToast(`Страва "${product.name}" тимчасово на стопі`, undefined, 'error');
       return;
     }
 
@@ -572,6 +606,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast,
         showToast,
         hideToast,
+        stopList,
+        isProductStopped,
         getItemQuantityInCart,
       }}
     >

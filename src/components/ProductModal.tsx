@@ -19,7 +19,8 @@ export const ProductModal: React.FC = () => {
     setActiveProductModal, 
     addToCart, 
     toggleFavorite, 
-    isFavorite 
+    isFavorite,
+    isProductStopped 
   } = useCart();
 
   const [quantity, setQuantity] = useState(1);
@@ -28,6 +29,7 @@ export const ProductModal: React.FC = () => {
 
   const product = activeProductModal;
   const isFav = product ? isFavorite(product.id) : false;
+  const isStopped = product && isProductStopped ? isProductStopped(product.id) : false;
 
   // Calculate extra cost from modifiers
   const extraCost = Object.values(selectedOptions).reduce((sum, opt) => sum + opt.price, 0);
@@ -258,19 +260,29 @@ export const ProductModal: React.FC = () => {
               </div>
 
               {/* Add to Cart Button */}
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={handleAddToCart}
-                className="flex-1 py-3 sm:py-3.5 px-4 sm:px-6 rounded-2xl apple-button-primary text-white font-bold text-xs sm:text-base flex items-center justify-between gap-2 shadow-xl shadow-crab-600/30 shrink-0"
-              >
-                <span className="truncate">
-                  <span>Додати</span>
-                  <span className="hidden xs:inline"> до замовлення</span>
-                </span>
-                <span className="font-display font-black text-amber-300 shrink-0">
-                  {totalPrice} ₴
-                </span>
-              </motion.button>
+              {isStopped ? (
+                <button
+                  type="button"
+                  disabled
+                  className="flex-1 py-3 sm:py-3.5 px-4 sm:px-6 rounded-2xl bg-white/5 border border-white/10 text-zinc-500 font-bold text-xs sm:text-base cursor-not-allowed text-center"
+                >
+                  ⛔ Страва тимчасово на стопі
+                </button>
+              ) : (
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleAddToCart}
+                  className="flex-1 py-3 sm:py-3.5 px-4 sm:px-6 rounded-2xl apple-button-primary text-white font-bold text-xs sm:text-base flex items-center justify-between gap-2 shadow-xl shadow-crab-600/30 shrink-0"
+                >
+                  <span className="truncate">
+                    <span>Додати</span>
+                    <span className="hidden xs:inline"> до замовлення</span>
+                  </span>
+                  <span className="font-display font-black text-amber-300 shrink-0">
+                    {totalPrice} ₴
+                  </span>
+                </motion.button>
+              )}
             </div>
 
           </motion.div>
