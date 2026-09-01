@@ -168,8 +168,7 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
       country: 'Україна',
       city: cleanCity,
       address1: address1 || cleanCity,
-      address2: address2 || '',
-      comment: order.comment || ''
+      address2: address2 || ''
     };
   }
 
