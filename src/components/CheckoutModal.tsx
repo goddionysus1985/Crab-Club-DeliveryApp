@@ -145,6 +145,7 @@ export const CheckoutModal: React.FC = () => {
       const res = await sendOrderToPoster(order);
       if (res && res.posterIncomingOrderId) {
         finalOrder.posterIncomingOrderId = res.posterIncomingOrderId;
+        finalOrder.orderNumber = String(res.posterIncomingOrderId);
       }
     } catch (err) {
       console.warn('[Poster POS]', err);
