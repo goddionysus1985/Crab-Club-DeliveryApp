@@ -752,16 +752,23 @@ export const CheckoutModal: React.FC = () => {
                     <span>-{bonusDeductible} ₴</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center">
-                  <span>Доставка ({zoneDetails.zoneName}):</span>
-                  <span className="font-semibold text-white">
-                    {finalDeliveryFee === 0 ? (
-                      <span className="text-emerald-400 font-bold">Безкоштовно</span>
-                    ) : (
-                      `${finalDeliveryFee} ₴`
-                    )}
-                  </span>
-                </div>
+                {orderType === 'delivery' ? (
+                  <div className="flex justify-between items-center">
+                    <span>Доставка ({zoneDetails.zoneName}):</span>
+                    <span className="font-semibold text-white">
+                      {finalDeliveryFee === 0 ? (
+                        <span className="text-emerald-400 font-bold">Безкоштовно</span>
+                      ) : (
+                        `${finalDeliveryFee} ₴`
+                      )}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center text-zinc-300">
+                    <span>Отримання замовлення:</span>
+                    <span className="font-semibold text-emerald-400">Самовивіз (0 ₴)</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-2 border-t border-white/[0.06] text-amber-300/90 text-[11px]">
                   <span className="flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-amber-400" />

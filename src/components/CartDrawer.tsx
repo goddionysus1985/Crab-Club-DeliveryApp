@@ -426,7 +426,11 @@ export const CartDrawer: React.FC = () => {
                         {total} <span className="text-sm font-bold text-white">₴</span>
                       </div>
                       <span className="text-[10px] text-zinc-400 block truncate mt-0.5">
-                        {deliveryFee === 0 ? 'Безкоштовна доставка' : `+${deliveryFee} ₴ доставка`}
+                        {orderType === 'takeaway' 
+                          ? 'Самовивіз з ресторану' 
+                          : deliveryFee === 0 
+                          ? 'Безкоштовна доставка' 
+                          : `+${deliveryFee} ₴ доставка`}
                       </span>
                     </div>
 

@@ -30,6 +30,7 @@ import { fetchLivePosterCatalog } from './services/posterApi';
 import { useCart } from './context/CartContext';
 import { Product, Category } from './types';
 import { Heart, Sparkles, CheckCircle2 } from 'lucide-react';
+import { initGlobalHaptics } from './utils/haptics';
 
 export const App: React.FC = () => {
   const { favorites, setActiveProductModal, catalogProducts, catalogCategories } = useCart();
@@ -87,6 +88,12 @@ export const App: React.FC = () => {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [setActiveProductModal]);
+
+  // Global pleasant haptic tactile feedback on any tap / button click
+  useEffect(() => {
+    const cleanupHaptics = initGlobalHaptics();
+    return cleanupHaptics;
+  }, []);
 
   // Instant Tab-Filter Category Handler with accurate scroll & URL Hash update
   const handleSelectCategory = (slug: string) => {
