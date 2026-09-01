@@ -90,7 +90,7 @@ export const CheckoutModal: React.FC = () => {
   // Time & payment: if restaurant closed, default to scheduled
   const [deliveryTimeType, setDeliveryTimeType] = useState<'asap' | 'scheduled'>(scheduleStatus.isOpen ? 'asap' : 'scheduled');
   const [scheduledTime, setScheduledTime] = useState(scheduleStatus.isOpen ? '18:00' : '11:00');
-  const [paymentMethod, setPaymentMethod] = useState<'card_online' | 'card_courier' | 'cash'>('card_online');
+  const [paymentMethod, setPaymentMethod] = useState<'card_online' | 'card_courier' | 'cash'>('cash');
   const [cashChangeFrom, setCashChangeFrom] = useState('');
   const [cutleryCount, setCutleryCount] = useState(1);
   const [comment, setComment] = useState('');

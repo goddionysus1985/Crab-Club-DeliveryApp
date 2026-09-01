@@ -133,27 +133,35 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
   const first_name = nameParts[0] || 'Гість';
   const last_name = nameParts.slice(1).join(' ') || undefined;
 
-  const cleanCity = (order.address?.city || 'смт. Овідіополь')
-    .replace(/\s*\(.*?\)/g, '')
-    .replace(/—.*$/g, '')
-    .trim() || 'смт. Овідіополь';
-  const street = (order.address?.street || '').trim();
-  const house = (order.address?.house || '').trim();
-  const apartment = (order.address?.apartment || '').trim();
-  const floor = (order.address?.floor || '').trim();
-  const doorphone = (order.address?.doorphone || '').trim();
+  const isTakeaway = order.orderType === 'takeaway';
 
-  const address1 = [street ? `вул. ${street}` : '', house ? `буд. ${house}` : ''].filter(Boolean).join(', ') || cleanCity;
-  const address2 = [apartment ? `кв. ${apartment}` : '', floor ? `пов. ${floor}` : '', doorphone ? `код/домофон ${doorphone}` : ''].filter(Boolean).join(', ');
-  const fullAddress = [cleanCity, address1, address2].filter(Boolean).join(', ');
+  // Only construct delivery address if orderType is delivery
+  let fullAddress: string | undefined = undefined;
+  let client_address: any = undefined;
 
-  const client_address = order.orderType === 'delivery' ? {
-    country: 'Україна',
-    city: cleanCity,
-    address1: address1 || cleanCity,
-    address2: address2 || '',
-    comment: order.comment || ''
-  } : undefined;
+  if (!isTakeaway) {
+    const cleanCity = (order.address?.city || 'смт. Овідіополь')
+      .replace(/\s*\(.*?\)/g, '')
+      .replace(/—.*$/g, '')
+      .trim() || 'смт. Овідіополь';
+    const street = (order.address?.street || '').trim();
+    const house = (order.address?.house || '').trim();
+    const apartment = (order.address?.apartment || '').trim();
+    const floor = (order.address?.floor || '').trim();
+    const doorphone = (order.address?.doorphone || '').trim();
+
+    const address1 = [street ? `вул. ${street}` : '', house ? `буд. ${house}` : ''].filter(Boolean).join(', ') || cleanCity;
+    const address2 = [apartment ? `кв. ${apartment}` : '', floor ? `пов. ${floor}` : '', doorphone ? `код/домофон ${doorphone}` : ''].filter(Boolean).join(', ');
+    fullAddress = [cleanCity, address1, address2].filter(Boolean).join(', ');
+
+    client_address = {
+      country: 'Україна',
+      city: cleanCity,
+      address1: address1 || cleanCity,
+      address2: address2 || '',
+      comment: order.comment || ''
+    };
+  }
 
   // Format products list with Poster product IDs, count, price in kopecks, and modifier options
   const products: PosterIncomingProduct[] = order.items.map((item: CartItem) => {
@@ -199,30 +207,20 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     return posterProd;
   });
 
-  // Clean numeric cash change
+  // Clean numeric cash change (only for delivery with cash)
   const rawChange = String(order.cashChangeFrom || '').replace(/[^\d]/g, '');
-  const changeNote = rawChange ? `Решта з: ${rawChange} ₴` : (order.cashChangeFrom && order.cashChangeFrom.trim().length > 0 ? `Решта з: ${order.cashChangeFrom}` : '');
-
-  // Payment note for kitchen/courier receipt
-  const isTakeaway = order.orderType === 'takeaway';
-  const paymentLabel = order.paymentMethod === 'cash'
-    ? (isTakeaway ? `💵 Оплата: Готівкою на касі (до сплати ${order.total} ₴)` : `💵 Оплата: Готівкою кур'єру (до сплати ${order.total} ₴)`)
-    : order.paymentMethod === 'card_courier'
-    ? (isTakeaway ? `💳 Оплата: Карткою на касі (до сплати ${order.total} ₴)` : `💳 Оплата: Терміналом кур'єру (до сплати ${order.total} ₴)`)
-    : `✅ Оплата: Оплачено онлайн на сайті (${order.total} ₴)`;
+  const changeNote = (!isTakeaway && rawChange) ? `Решта з: ${rawChange} ₴` : '';
 
   const commentParts = [
-    paymentLabel,
-    changeNote,
     order.comment,
+    changeNote,
     order.cutleryCount ? `Приборів: ${order.cutleryCount} шт` : '',
-    order.scheduledTime ? `Час доставки: ${order.scheduledTime}` : '',
-    order.promoCode ? `Промокод: ${order.promoCode}` : '',
-    doorphone ? `Домофон: ${doorphone}` : ''
+    order.scheduledTime ? `Час: ${order.scheduledTime}` : '',
+    order.promoCode ? `Промокод: ${order.promoCode}` : ''
   ].filter(Boolean);
 
   // In Poster API: only provide payment object if user actually prepaid online on the website.
-  // For cash or courier card, omitting payment leaves the order payable at the terminal (До сплати: 542 ₴)!
+  // For cash or card at the cashier/courier, omitting payment leaves the order payable at the terminal (До сплати: 679 ₴)!
   const payment = order.paymentMethod === 'card_online' ? {
     type: 1,
     sum: Math.round(order.total * 100),
@@ -235,10 +233,10 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     first_name,
     last_name,
     service_mode,
-    delivery_price: Math.round((order.deliveryFee || 0) * 100),
-    address: fullAddress || undefined,
+    delivery_price: isTakeaway ? 0 : Math.round((order.deliveryFee || 0) * 100),
+    address: fullAddress,
     client_address,
-    comment: commentParts.join(' | '),
+    comment: commentParts.join(' | ') || undefined,
     products,
     payment
   };
