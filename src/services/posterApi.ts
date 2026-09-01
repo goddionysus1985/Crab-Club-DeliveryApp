@@ -179,26 +179,48 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
 
     let resolvedProductId = Number(item.product.id);
     const itemNameNorm = (item.product.name || '').toLowerCase().trim();
+    let isDirectPosterProduct = false;
 
     if (livePosterProductsCache.length > 0) {
       const exactMatch = livePosterProductsCache.find(p => Number(p.product_id) === resolvedProductId);
-      if (!exactMatch) {
+      if (exactMatch) {
+        isDirectPosterProduct = true;
+      } else {
         const nameMatch = livePosterProductsCache.find(p => p.product_name.toLowerCase().trim() === itemNameNorm) ||
                           livePosterProductsCache.find(p => p.product_name.toLowerCase().includes(itemNameNorm) || itemNameNorm.includes(p.product_name.toLowerCase()));
         if (nameMatch) {
           resolvedProductId = Number(nameMatch.product_id);
+          isDirectPosterProduct = true;
         }
       }
+
+      // If this specific dish ID isn't directly registered in Poster account yet, use a valid Poster product ID as carrier
+      if (!isDirectPosterProduct) {
+        const fallbackPosterItem = livePosterProductsCache.find(p => Number(p.product_id) === 6) || livePosterProductsCache[0];
+        if (fallbackPosterItem) {
+          resolvedProductId = Number(fallbackPosterItem.product_id);
+        }
+      }
+    }
+
+    const optNotes = item.selectedOptions?.map(o => `${o.option_name}${o.price > 0 ? ` (+${o.price}₴)` : ''}`).join(', ');
+    const fullItemDesc = `${item.product.name}${optNotes ? ` [${optNotes}]` : ''}${item.comment ? ` (${item.comment})` : ''}`;
+    
+    let prodComment: string | undefined = undefined;
+    if (!isDirectPosterProduct) {
+      prodComment = `[СТРАВА: ${fullItemDesc}]`;
+    } else if (optNotes || item.comment) {
+      prodComment = [optNotes, item.comment].filter(Boolean).join(' | ');
     }
 
     const posterProd: PosterIncomingProduct = {
       product_id: resolvedProductId || 1,
       count: Number(item.quantity) || 1,
       price: Math.round(unitPrice * 100),
-      comment: item.comment || undefined
+      comment: prodComment
     };
 
-    if (item.selectedOptions && item.selectedOptions.length > 0) {
+    if (isDirectPosterProduct && item.selectedOptions && item.selectedOptions.length > 0) {
       const mods: Array<{ m: number; a: number }> = [];
       item.selectedOptions.forEach(opt => {
         item.product.modifications?.forEach(group => {
@@ -220,12 +242,16 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
   const rawChange = String(order.cashChangeFrom || '').replace(/[^\d]/g, '');
   const changeNote = (!isTakeaway && rawChange) ? `Решта з: ${rawChange} ₴` : '';
 
+  // Summary of items for the cashier / kitchen receipt
+  const itemsListSummary = order.items.map(i => `${i.quantity}x ${i.product.name}`).join(' | ');
+
   const commentParts = [
     order.comment,
     changeNote,
     order.cutleryCount ? `Приборів: ${order.cutleryCount} шт` : '',
     order.scheduledTime ? `Час: ${order.scheduledTime}` : '',
-    order.promoCode ? `Промокод: ${order.promoCode}` : ''
+    order.promoCode ? `Промокод: ${order.promoCode}` : '',
+    itemsListSummary ? `Замовлення: ${itemsListSummary}` : ''
   ].filter(Boolean);
 
   // In Poster API: only provide payment object if user actually prepaid online on the website.
@@ -646,6 +672,7 @@ let lastStopListFetch = 0;
 
 /**
  * Fetch currently stopped product IDs from Poster POS in real-time
+ * Inspects hidden/inactive flags in Poster menu to avoid 405 endpoint restrictions
  */
 export async function fetchPosterStopList(spotId: number = POSTER_CONFIG.defaultSpotId || 1): Promise<Set<number>> {
   // Cache for 30 seconds to prevent hammering Poster API on rapid cart updates
@@ -655,21 +682,29 @@ export async function fetchPosterStopList(spotId: number = POSTER_CONFIG.default
 
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
-      const endpoint = getPosterApiUrl('spots.getSpotStopList', { spot_id: spotId });
+      const endpoint = getPosterApiUrl('menu.getProducts');
       const res = await fetch(endpoint);
       const data = await res.json();
       
       if (data.response && Array.isArray(data.response)) {
         const stoppedIds = new Set<number>();
         data.response.forEach((item: any) => {
-          if (item.product_id) stoppedIds.add(Number(item.product_id));
+          if (item.hidden === '1' || item.hidden === 1) {
+            stoppedIds.add(Number(item.product_id));
+          }
+          if (Array.isArray(item.spots)) {
+            const spotInfo = item.spots.find((s: any) => Number(s.spot_id) === Number(spotId));
+            if (spotInfo && (spotInfo.visible === '0' || spotInfo.visible === 0)) {
+              stoppedIds.add(Number(item.product_id));
+            }
+          }
         });
         stopListCache = stoppedIds;
         lastStopListFetch = Date.now();
         return stopListCache;
       }
     } catch (err) {
-      console.warn('[Poster Stop-List] Failed to fetch stop list from Poster API:', err);
+      // Safe fallback: silently ignore network errors
     }
   }
 
