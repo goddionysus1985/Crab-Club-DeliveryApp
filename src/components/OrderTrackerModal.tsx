@@ -55,6 +55,20 @@ function playOrderSuccessChime() {
   } catch {}
 }
 
+// Native Web Browser Push / Desktop Notification
+function sendBrowserNotification(title: string, body: string) {
+  try {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification(title, {
+          body,
+          icon: 'https://img.postershop.me/21253/48ff3a5a-f1f0-4892-8331-602d1b6620bb_image.png'
+        });
+      }
+    }
+  } catch {}
+}
+
 export const OrderTrackerModal: React.FC = () => {
   const { currentOrder, isOrderTrackerOpen, setIsOrderTrackerOpen, showToast, updateUserProfile } = useCart();
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -64,6 +78,13 @@ export const OrderTrackerModal: React.FC = () => {
   useEffect(() => {
     if (!isOrderTrackerOpen || !currentOrder) return;
 
+    // Request notification permissions for background order updates
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      try {
+        Notification.requestPermission();
+      } catch {}
+    }
+
     let previousStep = currentStep;
     let isCompleted = false;
     let pollCount = 0;
@@ -71,13 +92,8 @@ export const OrderTrackerModal: React.FC = () => {
 
     // Check live Poster POS status
     const pollStatus = async () => {
-      // Don't poll if order is already completed or if document is in background
+      // Don't poll if order is already completed
       if (isCompleted) return;
-      if (typeof document !== 'undefined' && document.hidden) {
-        // Schedule next check without network request
-        scheduleNextPoll();
-        return;
-      }
 
       const orderId = currentOrder.posterIncomingOrderId || parseInt(currentOrder.orderNumber, 10);
       if (orderId) {
@@ -87,6 +103,7 @@ export const OrderTrackerModal: React.FC = () => {
           if (liveStatus.stepIndex > previousStep) {
             playOrderSuccessChime();
             showToast(`Статус оновлено: ${liveStatus.statusName}`, undefined, 'success');
+            sendBrowserNotification('🦀 Crab Club Delivery', `Замовлення #${currentOrder.orderNumber}: ${liveStatus.statusName}`);
             
             // If order completed and paid in Poster, refresh real bonus balance from Poster CRM
             if (liveStatus.stepIndex === 4 && currentOrder.phone) {
