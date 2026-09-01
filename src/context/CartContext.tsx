@@ -193,19 +193,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return updated;
       });
 
-      // Update cashback and bonus balance
+      // Update cashback and bonus balance without overwriting permanent profile address
       const newBonusBalance = Math.max(0, userProfile.bonusBalance - (order.bonusUsed || 0) + (order.bonusEarned || 0));
       const newTotalSpent = (userProfile.totalSpent || 0) + order.total;
 
       updateUserProfile({
-        name: order.customerName || userProfile.name,
-        phone: order.phone || userProfile.phone,
-        city: order.address?.city || userProfile.city,
-        street: order.address?.street || userProfile.street,
-        house: order.address?.house || userProfile.house,
-        apartment: order.address?.apartment || userProfile.apartment,
-        floor: order.address?.floor || userProfile.floor,
-        doorphone: order.address?.doorphone || userProfile.doorphone,
+        name: userProfile.name || order.customerName,
+        phone: userProfile.phone || order.phone,
         bonusBalance: newBonusBalance,
         totalSpent: newTotalSpent
       });

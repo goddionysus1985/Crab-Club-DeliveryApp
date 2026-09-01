@@ -63,14 +63,19 @@ export const CheckoutModal: React.FC = () => {
   const [floor, setFloor] = useState(userProfile.floor || '');
   const [doorphone, setDoorphone] = useState(userProfile.doorphone || '');
 
-  // Keep fields synced with userProfile if modified in profile modal
+  // Initialize fields with permanent profile address whenever checkout opens
   useEffect(() => {
-    if (userProfile.name && !customerName) setCustomerName(userProfile.name);
-    if (userProfile.phone && !phone) setPhone(userProfile.phone);
-    if (userProfile.street && !street) setStreet(userProfile.street);
-    if (userProfile.house && !house) setHouse(userProfile.house);
-    if (userProfile.apartment && !apartment) setApartment(userProfile.apartment);
-  }, [userProfile]);
+    if (isCheckoutOpen) {
+      if (userProfile.name) setCustomerName(userProfile.name);
+      if (userProfile.phone) setPhone(userProfile.phone);
+      if (userProfile.city) setCity(userProfile.city);
+      if (userProfile.street) setStreet(userProfile.street);
+      if (userProfile.house) setHouse(userProfile.house);
+      if (userProfile.apartment) setApartment(userProfile.apartment);
+      if (userProfile.floor) setFloor(userProfile.floor);
+      if (userProfile.doorphone) setDoorphone(userProfile.doorphone);
+    }
+  }, [isCheckoutOpen, userProfile]);
 
   // Sync real-time Poster CRM bonus balance when valid phone is entered
   useEffect(() => {
