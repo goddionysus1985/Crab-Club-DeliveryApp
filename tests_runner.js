@@ -120,12 +120,12 @@ const address1 = [city1, streetAndHouse].join(', ');
 assert.strictEqual(address1, 'смт. Овідіополь, вул. Вертелецького, буд. 29', 'address1 must include city and street+house');
 console.log('✅ ТЕСТ 2 ПРОЙДЕНО: Формування address1 з населеним пунктом для Poster POS');
 
-// Test 3: Takeaway has no address and no payment sent
+// Test 3: Takeaway service_mode=1 per official Poster POS API docs (0=dine-in, 1=takeout, 2=delivery)
 assert.strictEqual(takeawayOrder.orderType, 'takeaway');
 const isTakeaway = takeawayOrder.orderType === 'takeaway';
-const takeawayServiceMode = isTakeaway ? 2 : 3;
-assert.strictEqual(takeawayServiceMode, 2, 'Takeaway service_mode must be 2');
-console.log('✅ ТЕСТ 3 ПРОЙДЕНО: service_mode = 2 для самовивозу');
+const takeawayServiceMode = isTakeaway ? 1 : 2; // FIXED: was 2:3, now correct per Poster docs
+assert.strictEqual(takeawayServiceMode, 1, 'Takeaway service_mode must be 1 (Poster POS API: 1=takeout)');
+console.log('✅ ТЕСТ 3 ПРОЙДЕНО: service_mode = 1 для самовивозу (відповідно до офіційного Poster API)');
 
 // Test 4: Payment is undefined for cash / terminal to prevent 0 UAH receipt bug
 const cashPayment = deliveryOrder.paymentMethod === 'card_online' ? { type: 1, sum: 22000 } : undefined;

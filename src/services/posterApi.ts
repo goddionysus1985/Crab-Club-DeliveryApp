@@ -24,7 +24,7 @@ export interface PosterIncomingOrderPayload {
   phone: string;
   first_name: string;
   last_name?: string;
-  service_mode: number; // 1 - in restaurant, 2 - take away, 3 - delivery
+  service_mode: number; // 0 - dine-in, 1 - takeout/самовивіз, 2 - delivery/доставка
   delivery_time?: string; // Format: 'YYYY-MM-DD HH:mm:ss' for kitchen pre-orders
   delivery_price?: number; // in kopecks (e.g. 5000 = 50.00 UAH)
   address?: string;
@@ -40,6 +40,7 @@ export interface PosterIncomingOrderPayload {
   };
   comment?: string;
   products: PosterIncomingProduct[];
+  client_id?: number; // Links order to Poster CRM client for loyalty tracking
   payment?: {
     type: number; // 0 - cash, 1 - card
     sum: number; // in kopecks (total * 100)
@@ -135,8 +136,8 @@ export function invalidatePosterProductsCache(): void {
  * Format order details into official Poster POS incoming order payload
  */
 export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrderPayload {
-  // Service mode: 2 = takeaway, 3 = delivery
-  const service_mode = order.orderType === 'takeaway' ? 2 : 3;
+  // Service mode per official Poster POS API docs: 0=dine-in, 1=takeout/самовивіз, 2=delivery/доставка
+  const service_mode = order.orderType === 'takeaway' ? 1 : 2;
 
   const nameParts = (order.customerName || 'Гість').trim().split(/\s+/);
   const first_name = nameParts[0] || 'Гість';
@@ -453,6 +454,20 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
 
   const payload = buildPosterOrderPayload(order);
 
+  // Attach Poster CRM client_id to link the order to the customer's loyalty profile
+  // This allows the cashier to see loyalty info and enables Poster POS to accrue bonuses correctly
+  if (order.phone) {
+    try {
+      const cleanPhone = order.phone.replace(/\D/g, '');
+      const client = await getPosterClientByPhone(cleanPhone);
+      if (client?.client_id) {
+        payload.client_id = client.client_id;
+      }
+    } catch {
+      // Non-fatal: order still proceeds without client linkage
+    }
+  }
+
   // Primary Channel: Live Poster POS API with 7-second timeout
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     const controller = new AbortController();
@@ -668,7 +683,7 @@ export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<P
       if (data.response) {
         const orderData = data.response;
         const status = Number(orderData.status);
-        const isTakeaway = Number(orderData.service_mode) === 2;
+        const isTakeaway = Number(orderData.service_mode) === 1;
         let stepIndex = 1;
         let statusName = 'Прийнято рестораном';
 
