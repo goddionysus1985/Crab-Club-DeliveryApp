@@ -45,16 +45,17 @@ export const CartDrawer: React.FC = () => {
     cashbackEarned,
     isMinOrderReached,
     minOrderRemaining,
-    showToast
+    showToast,
+    catalogProducts
   } = useCart();
 
   const [inputPromo, setInputPromo] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const scheduleStatus = getRestaurantScheduleStatus();
 
-  // Find drinks and desserts for upsell
-  const upsellProducts = PRODUCTS.filter(p => 
-    (p.category_url.includes('napoyi') || p.category_url.includes('deserti')) &&
+  // Find drinks and desserts for upsell from active catalog
+  const upsellProducts = catalogProducts.filter(p => 
+    (p.category_url.includes('napoyi') || p.category_url.includes('deserti') || p.category_url.includes('vypichka') || p.category_name.toLowerCase().includes('напо') || p.category_name.toLowerCase().includes('випіч')) &&
     !cart.some(item => item.product.id === p.id)
   ).slice(0, 4);
 

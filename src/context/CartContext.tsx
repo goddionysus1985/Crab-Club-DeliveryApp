@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { CartItem, Product, OrderDetails, UserProfile } from '../types';
-import { RESTAURANT_INFO, PROMO_CODES, PRODUCTS } from '../data/menuData';
-import { fetchPosterStopList } from '../services/posterApi';
+import { CartItem, Product, Category, OrderDetails, UserProfile } from '../types';
+import { RESTAURANT_INFO, PROMO_CODES, PRODUCTS, CATEGORIES } from '../data/menuData';
+import { fetchPosterStopList, fetchLivePosterCatalog } from '../services/posterApi';
 import { 
   verifyAndSanitizeCart, 
   sanitizePromoCode, 
@@ -93,6 +93,12 @@ interface CartContextType {
   // Stop List (Live Kitchen Out of Stock Sync)
   stopList: Set<number>;
   isProductStopped: (productId: number) => boolean;
+
+  // Live Catalog
+  catalogProducts: Product[];
+  setCatalogProducts: React.Dispatch<React.SetStateAction<Product[]>>;
+  catalogCategories: Category[];
+  setCatalogCategories: React.Dispatch<React.SetStateAction<Category[]>>;
 
   // Helpers
   getItemQuantityInCart: (productId: number) => number;
@@ -236,6 +242,27 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     showToast(`Страви з замовлення #${historicOrder.orderNumber} додано до кошика!`, undefined, 'success');
   };
+
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>(PRODUCTS);
+  const [catalogCategories, setCatalogCategories] = useState<Category[]>(CATEGORIES);
+
+  // Live Sync with Poster POS API on launch
+  useEffect(() => {
+    let isMounted = true;
+    async function syncPosterCatalog() {
+      try {
+        const live = await fetchLivePosterCatalog();
+        if (isMounted && live && live.products && live.products.length > 0) {
+          setCatalogProducts(live.products);
+          setCatalogCategories(live.categories);
+        }
+      } catch (err) {
+        console.warn('[Poster Live Sync] Failed to sync catalog:', err);
+      }
+    }
+    syncPosterCatalog();
+    return () => { isMounted = false; };
+  }, []);
 
   const [stopList, setStopList] = useState<Set<number>>(new Set());
 
@@ -602,6 +629,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hideToast,
         stopList,
         isProductStopped,
+        catalogProducts,
+        setCatalogProducts,
+        catalogCategories,
+        setCatalogCategories,
         getItemQuantityInCart,
       }}
     >

@@ -47,7 +47,8 @@ export const CheckoutModal: React.FC = () => {
     setIsOrderTrackerOpen,
     userProfile,
     updateUserProfile,
-    showToast
+    showToast,
+    catalogProducts
   } = useCart();
 
   const scheduleStatus = getRestaurantScheduleStatus();
@@ -698,7 +699,7 @@ export const CheckoutModal: React.FC = () => {
               )}
 
               {/* Quick Upsell Section */}
-              {PRODUCTS.filter(p => 
+              {catalogProducts.filter(p => 
                 (p.category_url.includes('napoyi') || p.category_url.includes('deserti') || p.category_name.toLowerCase().includes('напо') || p.category_name.toLowerCase().includes('випіч')) &&
                 !cart.some(item => item.product.id === p.id)
               ).slice(0, 3).length > 0 && (
@@ -708,7 +709,7 @@ export const CheckoutModal: React.FC = () => {
                     <span>Додати напій або десерт до замовлення?</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {PRODUCTS.filter(p => 
+                    {catalogProducts.filter(p => 
                       (p.category_url.includes('napoyi') || p.category_url.includes('deserti') || p.category_name.toLowerCase().includes('напо') || p.category_name.toLowerCase().includes('випіч')) &&
                       !cart.some(item => item.product.id === p.id)
                     ).slice(0, 3).map(item => (

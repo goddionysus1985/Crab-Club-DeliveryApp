@@ -925,47 +925,37 @@ export function mapPosterRawProduct(raw: any): Product {
 
 function getPosterCategoryIcon(name: string): string {
   const n = name.toLowerCase();
-  if (n.includes('кава') || n.includes('coffee') || n.includes('чай')) return '☕';
-  if (n.includes('випіч') || n.includes('круас') || n.includes('хліб')) return '🥐';
-  if (n.includes('напо') || n.includes('вода') || n.includes('сік')) return '🥤';
-  if (n.includes('рол') || n.includes('суші') || n.includes('сет')) return '🍣';
-  if (n.includes('піц')) return '🍕';
-  if (n.includes('бургер')) return '🍔';
-  if (n.includes('суп')) return '🍲';
-  if (n.includes('салат')) return '🥗';
-  if (n.includes('десерт')) return '🍰';
-  return '🍽️';
+  if (n.includes('кава') || n.includes('coffee') || n.includes('чай')) return 'Coffee';
+  if (n.includes('випіч') || n.includes('круас') || n.includes('хліб')) return 'Cake';
+  if (n.includes('напо') || n.includes('вода') || n.includes('сік') || n.includes('холодні')) return 'GlassWater';
+  if (n.includes('рол') || n.includes('суші') || n.includes('сет')) return 'Fish';
+  if (n.includes('піц')) return 'Pizza';
+  if (n.includes('бургер')) return 'Sandwich';
+  if (n.includes('суп')) return 'Soup';
+  if (n.includes('салат')) return 'Salad';
+  if (n.includes('десерт')) return 'Cake';
+  return 'Utensils';
 }
 
 function slugifyCategoryName(text: string): string {
-  const cyrMap: Record<string, string> = {
-    'кава': 'coffee',
-    'випіч': 'bakery',
-    'холодні': 'cold-drinks',
-    'напо': 'drinks',
-    'рол': 'rolls',
-    'суш': 'rolls',
-    'сет': 'sets',
-    'піц': 'pizza',
-    'бургер': 'burgers',
-    'суп': 'soups',
-    'салат': 'salads',
-    'десерт': 'desserts',
-    'паст': 'pasta',
-    'снідан': 'breakfast',
-    'закуск': 'snacks',
-    'гриль': 'grill'
-  };
   const lower = text.toLowerCase().trim();
-  for (const [cyr, lat] of Object.entries(cyrMap)) {
-    if (lower.includes(cyr)) return lat;
-  }
+  if (lower.includes('кава')) return 'kava';
+  if (lower.includes('випіч')) return 'vypichka';
+  if (lower.includes('напо') || lower.includes('холодні')) return 'xolodni-napoyi';
+  if (lower.includes('бургер')) return 'burger-menyu';
+  if (lower.includes('рол') || lower.includes('суш')) return 'roli';
+  if (lower.includes('піц')) return 'pica';
+  if (lower.includes('паст') || lower.includes('вок') || lower.includes('wok')) return 'pasti-wok';
+  if (lower.includes('салат')) return 'salati';
+  if (lower.includes('десерт')) return 'deserti';
+  if (lower.includes('закуск')) return 'xolodni-zakuski';
+  if (lower.includes('гаряч') || lower.includes('суп')) return 'garyaci-stravi';
   return lower.replace(/[^a-z0-9а-яіїє]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'menu';
 }
 
 /**
  * Fetch and build full live catalog directly from Poster POS API
- * Preserves the full rich restaurant catalog while synchronizing live prices and items from Poster POS
+ * Strictly returns ONLY the categories and products that exist in the connected Poster POS account
  */
 export async function fetchLivePosterCatalog(): Promise<{
   categories: Category[];
@@ -975,40 +965,55 @@ export async function fetchLivePosterCatalog(): Promise<{
 
   try {
     const productsEndpoint = getPosterApiUrl('menu.getProducts');
-    const productsRes = await fetch(productsEndpoint);
-    const productsData = await productsRes.json();
+    const categoriesEndpoint = getPosterApiUrl('menu.getCategories');
 
-    if (productsData.response && Array.isArray(productsData.response) && productsData.response.length > 0) {
+    const [productsRes, categoriesRes] = await Promise.all([
+      fetch(productsEndpoint),
+      fetch(categoriesEndpoint)
+    ]);
+
+    const productsData = await productsRes.json();
+    const categoriesData = await categoriesRes.json();
+
+    if (productsData.response && Array.isArray(productsData.response)) {
       // Update in-memory cache for mapping order items
       livePosterProductsCache = productsData.response;
       productsCacheExpiry = Date.now() + PRODUCTS_CACHE_TTL;
 
-      // Start with the rich Crab Club catalog (PRODUCTS) and enrich with live Poster data
-      const mergedProducts: Product[] = PRODUCTS.map(item => {
-        const exactMatch = productsData.response.find((p: any) => 
-          Number(p.product_id) === Number(item.id) ||
-          (p.product_name && p.product_name.toLowerCase().trim() === item.name.toLowerCase().trim())
-        );
-        if (exactMatch) {
-          let livePrice = exactMatch.price;
-          if (typeof livePrice === 'object' && livePrice !== null) {
-            const vals = Object.values(livePrice);
-            livePrice = vals.length > 0 ? vals[0] : item.price;
-          }
-          const parsed = Number(livePrice);
-          if (parsed > 0) {
-            return {
-              ...item,
-              price: parsed > 1000 ? Math.round(parsed / 100) : parsed
-            };
-          }
-        }
-        return item;
-      });
+      const categoryMap = new Map<string, { id: number; name: string; slug: string; icon: string }>();
+
+      const activeCategories: Category[] = (categoriesData.response || [])
+        .filter((c: any) => c.category_hidden !== '1' && c.category_hidden !== 1)
+        .map((c: any) => {
+          const slug = slugifyCategoryName(c.category_name || `cat-${c.category_id}`);
+          const icon = getPosterCategoryIcon(c.category_name);
+          categoryMap.set(String(c.category_id), { id: Number(c.category_id), name: c.category_name, slug, icon });
+          return {
+            id: Number(c.category_id),
+            name: String(c.category_name),
+            slug,
+            icon,
+            subcategories: []
+          };
+        });
+
+      // Filter only visible / non-hidden products from Poster POS
+      const activeProducts: Product[] = productsData.response
+        .filter((p: any) => p.hidden !== '1' && p.hidden !== 1)
+        .map((p: any) => {
+          const catInfo = categoryMap.get(String(p.menu_category_id || p.category_id));
+          const base = mapPosterRawProduct(p);
+          return {
+            ...base,
+            category_pos_id: catInfo ? catInfo.id : Number(p.menu_category_id || 1),
+            category_name: catInfo ? catInfo.name : (p.category_name || 'Меню'),
+            category_url: catInfo ? catInfo.slug : 'all'
+          };
+        });
 
       return {
-        categories: CATEGORIES,
-        products: mergedProducts
+        categories: activeCategories,
+        products: activeProducts
       };
     }
   } catch (err) {

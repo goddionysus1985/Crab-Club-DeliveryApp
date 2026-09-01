@@ -32,32 +32,7 @@ import { Product, Category } from './types';
 import { Heart, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const { favorites, setActiveProductModal } = useCart();
-  const [catalogProducts, setCatalogProducts] = useState<Product[]>(PRODUCTS);
-  const [catalogCategories, setCatalogCategories] = useState<Category[]>(CATEGORIES);
-  const [isPosterLiveSynced, setIsPosterLiveSynced] = useState<boolean>(false);
-
-  // Live Sync with Poster POS API on launch
-  useEffect(() => {
-    let isMounted = true;
-    async function loadPosterMenu() {
-      try {
-        const liveCatalog = await fetchLivePosterCatalog();
-        if (isMounted && liveCatalog && liveCatalog.products && liveCatalog.products.length > 0) {
-          console.info(`[Poster Live Sync] 🚀 Синхронізовано ${liveCatalog.products.length} позицій з Poster POS!`);
-          setCatalogProducts(liveCatalog.products);
-          if (liveCatalog.categories && liveCatalog.categories.length > 0) {
-            setCatalogCategories(liveCatalog.categories);
-          }
-          setIsPosterLiveSynced(true);
-        }
-      } catch (e) {
-        console.warn('[Poster Live Sync] Fallback to default catalog:', e);
-      }
-    }
-    loadPosterMenu();
-    return () => { isMounted = false; };
-  }, []);
+  const { favorites, setActiveProductModal, catalogProducts, catalogCategories } = useCart();
 
   // Read category from URL hash on initial load
   const [activeCategory, setActiveCategory] = useState<string>(() => {

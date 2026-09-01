@@ -6,7 +6,7 @@ import { PRODUCTS } from '../data/menuData';
 import { ProductCard } from './ProductCard';
 
 export const SearchModal: React.FC = () => {
-  const { isSearchOpen, setIsSearchOpen } = useCart();
+  const { isSearchOpen, setIsSearchOpen, catalogProducts } = useCart();
   const [query, setQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,20 +33,20 @@ export const SearchModal: React.FC = () => {
     }
   }, [isSearchOpen]);
 
-  const popularQueries = ['Філадельфія', 'Сет', 'Піца', 'Бургер', 'Лосось', 'Креветка', 'Чізкейк'];
+  const popularQueries = ['Бургер', 'Капучино', 'Круасан', 'Боржомі', 'Кола'];
 
-  const filteredProducts = PRODUCTS.filter(p => {
+  const filteredProducts = catalogProducts.filter(p => {
     const q = query.toLowerCase().trim();
     const matchesQuery = !q || 
       p.name.toLowerCase().includes(q) || 
-      p.ingredients.toLowerCase().includes(q) || 
+      (p.ingredients && p.ingredients.toLowerCase().includes(q)) || 
       p.category_name.toLowerCase().includes(q);
 
     if (selectedTag === 'all') return matchesQuery;
-    if (selectedTag === 'sushi') return matchesQuery && (p.category_url.includes('roli') || p.category_url.includes('seti'));
-    if (selectedTag === 'pizza') return matchesQuery && p.category_url.includes('pica');
-    if (selectedTag === 'food') return matchesQuery && (p.category_url.includes('crab-club-food') || p.category_url.includes('burger'));
-    if (selectedTag === 'breakfast') return matchesQuery && p.category_url.includes('snidanki');
+    if (selectedTag === 'burger') return matchesQuery && p.category_url.includes('burger');
+    if (selectedTag === 'coffee') return matchesQuery && p.category_url.includes('kava');
+    if (selectedTag === 'bakery') return matchesQuery && p.category_url.includes('vypichka');
+    if (selectedTag === 'drinks') return matchesQuery && p.category_url.includes('napoyi');
     return matchesQuery;
   });
 
