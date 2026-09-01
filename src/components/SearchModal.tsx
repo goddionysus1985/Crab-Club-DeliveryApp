@@ -6,7 +6,7 @@ import { PRODUCTS } from '../data/menuData';
 import { ProductCard } from './ProductCard';
 
 export const SearchModal: React.FC = () => {
-  const { isSearchOpen, setIsSearchOpen, catalogProducts } = useCart();
+  const { isSearchOpen, setIsSearchOpen, catalogProducts, catalogCategories } = useCart();
   const [query, setQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,10 +30,14 @@ export const SearchModal: React.FC = () => {
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
       setQuery('');
+      setSelectedTag('all');
     }
   }, [isSearchOpen]);
 
-  const popularQueries = ['Бургер', 'Капучино', 'Круасан', 'Боржомі', 'Кола'];
+  // Dynamic search suggestions from live Poster menu
+  const popularQueries = React.useMemo(() => {
+    return catalogProducts.slice(0, 6).map(p => p.name);
+  }, [catalogProducts]);
 
   const filteredProducts = catalogProducts.filter(p => {
     const q = query.toLowerCase().trim();
@@ -43,11 +47,7 @@ export const SearchModal: React.FC = () => {
       p.category_name.toLowerCase().includes(q);
 
     if (selectedTag === 'all') return matchesQuery;
-    if (selectedTag === 'burger') return matchesQuery && p.category_url.includes('burger');
-    if (selectedTag === 'coffee') return matchesQuery && p.category_url.includes('kava');
-    if (selectedTag === 'bakery') return matchesQuery && p.category_url.includes('vypichka');
-    if (selectedTag === 'drinks') return matchesQuery && p.category_url.includes('napoyi');
-    return matchesQuery;
+    return matchesQuery && (p.category_url === selectedTag || p.parent_category_url === selectedTag);
   });
 
   return (
@@ -64,7 +64,7 @@ export const SearchModal: React.FC = () => {
             className="fixed inset-0 bg-black/80 backdrop-blur-md"
           />
 
-          {/* Spring Search Card */}
+          {/* Search Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.94, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -80,7 +80,7 @@ export const SearchModal: React.FC = () => {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Пошук за назвою або інгредієнтом (лосось, трюфель, вугор...)"
+                placeholder="Пошук страви, напою чи інгредієнта..."
                 className="w-full bg-transparent text-base sm:text-lg text-white placeholder-zinc-500 focus:outline-none"
               />
               {query && (
@@ -101,42 +101,49 @@ export const SearchModal: React.FC = () => {
             </div>
 
             {/* Popular Tags */}
-            <div className="px-4 sm:px-6 py-3 bg-white/[0.02] border-b border-white/[0.04] flex items-center gap-2 overflow-x-auto hide-scrollbar">
-              <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wider shrink-0 mr-1">
-                Популярні:
-              </span>
-              {popularQueries.map((tag, idx) => (
-                <motion.button
-                  key={idx}
-                  whileTap={{ scale: 0.93 }}
-                  onClick={() => setQuery(tag)}
-                  className="px-3 py-1 rounded-xl bg-white/5 hover:bg-amber-500/20 hover:text-amber-300 text-zinc-300 text-xs font-medium transition-colors shrink-0"
-                >
-                  {tag}
-                </motion.button>
-              ))}
-            </div>
+            {popularQueries.length > 0 && (
+              <div className="px-4 sm:px-6 py-3 bg-white/[0.02] border-b border-white/[0.04] flex items-center gap-2 overflow-x-auto hide-scrollbar">
+                <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wider shrink-0 mr-1">
+                  Популярні:
+                </span>
+                {popularQueries.map((tag, idx) => (
+                  <motion.button
+                    key={idx}
+                    whileTap={{ scale: 0.93 }}
+                    onClick={() => setQuery(tag)}
+                    className="px-3 py-1 rounded-xl bg-white/5 hover:bg-amber-500/20 hover:text-amber-300 text-zinc-300 text-xs font-medium transition-colors shrink-0"
+                  >
+                    {tag}
+                  </motion.button>
+                ))}
+              </div>
+            )}
 
             {/* Category Pills */}
             <div className="px-4 sm:px-6 py-2.5 flex items-center gap-2 overflow-x-auto hide-scrollbar border-b border-white/[0.04]">
-              {[
-                { id: 'all', label: 'Всі результати' },
-                { id: 'sushi', label: '🍣 Роли та Сети' },
-                { id: 'pizza', label: '🍕 Піца' },
-                { id: 'food', label: '🍔 Бургери & WOK' },
-                { id: 'breakfast', label: '☕ Сніданки' },
-              ].map((tab) => (
+              <motion.button
+                whileTap={{ scale: 0.94 }}
+                onClick={() => setSelectedTag('all')}
+                className={`px-3 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
+                  selectedTag === 'all'
+                    ? 'bg-crab-600 text-white font-bold shadow-md'
+                    : 'bg-white/5 text-zinc-400 hover:text-white'
+                }`}
+              >
+                Всі результати
+              </motion.button>
+              {catalogCategories.map((cat) => (
                 <motion.button
-                  key={tab.id}
+                  key={cat.id}
                   whileTap={{ scale: 0.94 }}
-                  onClick={() => setSelectedTag(tab.id)}
+                  onClick={() => setSelectedTag(cat.slug)}
                   className={`px-3 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
-                    selectedTag === tab.id
+                    selectedTag === cat.slug
                       ? 'bg-crab-600 text-white font-bold shadow-md'
                       : 'bg-white/5 text-zinc-400 hover:text-white'
                   }`}
                 >
-                  {tab.label}
+                  {cat.name}
                 </motion.button>
               ))}
             </div>

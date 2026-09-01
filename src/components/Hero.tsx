@@ -14,12 +14,15 @@ import {
 } from 'lucide-react';
 import { BANNERS, RESTAURANT_INFO } from '../data/menuData';
 
+import { useCart } from '../context/CartContext';
+
 interface HeroProps {
   onSelectCategory?: (slug: string) => void;
   onSelectSubcategory?: (subSlug: string) => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({ onSelectCategory, onSelectSubcategory }) => {
+  const { catalogCategories } = useCart();
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
@@ -34,16 +37,21 @@ export const Hero: React.FC<HeroProps> = ({ onSelectCategory, onSelectSubcategor
 
   const handleBannerAction = (banner: any, e: React.MouseEvent) => {
     e.preventDefault();
-    if (banner.id === 1) {
-      // Sets & Rolls
-      onSelectCategory?.('menyu-roli');
-      onSelectSubcategory?.('seti');
-    } else if (banner.id === 2) {
-      // Pizza
-      onSelectCategory?.('pica');
-      onSelectSubcategory?.('all');
+    if (catalogCategories && catalogCategories.length > 0) {
+      if (banner.id === 1 && catalogCategories[0]) {
+        onSelectCategory?.(catalogCategories[0].slug);
+        onSelectSubcategory?.('all');
+      } else if (banner.id === 2 && catalogCategories[1]) {
+        onSelectCategory?.(catalogCategories[1].slug);
+        onSelectSubcategory?.('all');
+      } else if (catalogCategories[2]) {
+        onSelectCategory?.(catalogCategories[2].slug);
+        onSelectSubcategory?.('all');
+      } else {
+        onSelectCategory?.('all');
+        onSelectSubcategory?.('all');
+      }
     } else {
-      // All menu
       onSelectCategory?.('all');
       onSelectSubcategory?.('all');
     }
