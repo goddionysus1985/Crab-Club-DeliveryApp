@@ -246,6 +246,133 @@ export const CATEGORIES: Category[] = [
 
 export const PRODUCTS: Product[] = [
   {
+    "id": 6,
+    "name": "Бургер Crab Club Special",
+    "category_pos_id": 4,
+    "category_name": "бургер меню",
+    "category_url": "crab-club-food",
+    "parent_category_id": 28,
+    "parent_category_name": "Crab Club: Food",
+    "parent_category_url": "crab-club-food",
+    "price": 249,
+    "weight": "380 г",
+    "ingredients": "Бріош на вершковому маслі, 100% яловича котлета Black Angus, сир Чедер, хрусткий бекон, карамелізована цибуля, томати, соус Трюфельний Айолі",
+    "description_raw": "Вага: 380 г\nФірмовий авторський бургер із добірною соковитою котлетою Black Angus, витриманим сиром Чедер та хрустким беконом.",
+    "image": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&auto=format&fit=crop&q=80",
+    "popular": true,
+    "tags": ["ХІТ", "ШЕФ"],
+    "modifications": [
+      {
+        "group_id": 501,
+        "group_name": "Ступінь просмаження котлети:",
+        "type": 2,
+        "min": 1,
+        "max": 1,
+        "options": [
+          { "id": 5011, "name": "Medium (Соковита)", "price": 0 },
+          { "id": 5012, "name": "Medium Well", "price": 0 },
+          { "id": 5013, "name": "Well Done (Повне просмаження)", "price": 0 }
+        ]
+      },
+      {
+        "group_id": 502,
+        "group_name": "Додаткові інгредієнти:",
+        "type": 2,
+        "min": 0,
+        "max": 5,
+        "options": [
+          { "id": 5021, "name": "Подвійний сир Чедер", "price": 25 },
+          { "id": 5022, "name": "Хрусткий бекон Гриль", "price": 35 },
+          { "id": 5023, "name": "Гострий Халапеньйо 🌶️", "price": 15 },
+          { "id": 5024, "name": "Додаткова яловича котлета", "price": 75 }
+        ]
+      },
+      {
+        "group_id": 503,
+        "group_name": "Гарнір та соус:",
+        "type": 2,
+        "min": 0,
+        "max": 1,
+        "options": [
+          { "id": 5031, "name": "Картопля фрі + соус BBQ", "price": 45 },
+          { "id": 5032, "name": "Картопля по-селянськи + соус Тартар", "price": 50 },
+          { "id": 5033, "name": "Сирні палички Моцарела (4 шт)", "price": 65 }
+        ]
+      }
+    ],
+    "is_spicy": false,
+    "is_vegetarian": false,
+    "chef_choice": true
+  },
+  {
+    "id": 7,
+    "name": "Double Cheese Monster Burger",
+    "category_pos_id": 4,
+    "category_name": "бургер меню",
+    "category_url": "crab-club-food",
+    "parent_category_id": 28,
+    "parent_category_name": "Crab Club: Food",
+    "parent_category_url": "crab-club-food",
+    "price": 279,
+    "weight": "440 г",
+    "ingredients": "Дві соковиті яловичі котлети, потрійний сир Чедер, сирний соус Чедер-Дорблю, мариновані корнішони, цибуля кранч",
+    "description_raw": "Вага: 440 г\nМаксимально сирний бургер із двома котлетами та ніжним тягучим сиром Чедер.",
+    "image": "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=800&auto=format&fit=crop&q=80",
+    "popular": true,
+    "tags": ["ХІТ"],
+    "modifications": [
+      {
+        "group_id": 504,
+        "group_name": "Додатки до бургеру:",
+        "type": 2,
+        "min": 0,
+        "max": 4,
+        "options": [
+          { "id": 5041, "name": "Хрусткий бекон Гриль", "price": 35 },
+          { "id": 5042, "name": "Гострий Халапеньйо 🌶️", "price": 15 },
+          { "id": 5043, "name": "Картопля фрі + соус Чедер", "price": 50 }
+        ]
+      }
+    ],
+    "is_spicy": false,
+    "is_vegetarian": false,
+    "chef_choice": false
+  },
+  {
+    "id": 9,
+    "name": "Crispy Chicken Bacon Burger",
+    "category_pos_id": 4,
+    "category_name": "бургер меню",
+    "category_url": "crab-club-food",
+    "parent_category_id": 28,
+    "parent_category_name": "Crab Club: Food",
+    "parent_category_url": "crab-club-food",
+    "price": 219,
+    "weight": "360 г",
+    "ingredients": "Хрустке куряче філе в кукурудзяному паніруванні, листя свіжого салату Айсберг, стиглі томати, соус Цезар-Пармезан",
+    "description_raw": "Вага: 360 г\nХрустке куряче філе у поєднанні з ніжним соусом та свіжими овочами.",
+    "image": "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=800&auto=format&fit=crop&q=80",
+    "popular": false,
+    "tags": [],
+    "modifications": [
+      {
+        "group_id": 505,
+        "group_name": "Додатки до бургеру:",
+        "type": 2,
+        "min": 0,
+        "max": 3,
+        "options": [
+          { "id": 5051, "name": "Сир Чедер", "price": 20 },
+          { "id": 5052, "name": "Хрусткий бекон Гриль", "price": 35 },
+          { "id": 5053, "name": "Картопля фрі + соус Барбекю", "price": 45 }
+        ]
+      }
+    ],
+    "is_spicy": false,
+    "is_vegetarian": false,
+    "chef_choice": false
+  },
+  {
     "id": 7475529,
     "name": "Круасан \"Селянський\"",
     "category_pos_id": 26,
