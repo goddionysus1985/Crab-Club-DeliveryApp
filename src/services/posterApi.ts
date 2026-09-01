@@ -968,37 +968,66 @@ export function mapPosterRawProduct(raw: any): Product {
 
 function getPosterCategoryIcon(name: string): string {
   const n = name.toLowerCase();
-  if (n.includes('кава') || n.includes('coffee') || n.includes('чай')) return 'Coffee';
-  if (n.includes('випіч') || n.includes('круас') || n.includes('хліб')) return 'Cake';
-  if (n.includes('напо') || n.includes('вода') || n.includes('сік') || n.includes('холодні')) return 'GlassWater';
-  if (n.includes('рол') || n.includes('суші') || n.includes('сет')) return 'Fish';
-  if (n.includes('піц')) return 'Pizza';
-  if (n.includes('бургер')) return 'Sandwich';
-  if (n.includes('суп')) return 'Soup';
-  if (n.includes('салат')) return 'Salad';
-  if (n.includes('десерт')) return 'Cake';
+  if (n.includes('кава') || n.includes('coffee') || n.includes('чай') || n.includes('tea')) return 'Coffee';
+  if (n.includes('рол') || n.includes('суші') || n.includes('сет') || n.includes('риба') || n.includes('морепродукт') || n.includes('fish')) return 'Fish';
+  if (n.includes('піц') || n.includes('pizza') || n.includes('фокач') || n.includes('кальц')) return 'Pizza';
+  if (n.includes('бургер') || n.includes('burger') || n.includes('сендвіч') || n.includes('дог')) return 'Sandwich';
+  if (n.includes('випіч') || n.includes('круас') || n.includes('хліб') || n.includes('десерт') || n.includes('торт') || n.includes('чізкейк') || n.includes('тістеч')) return 'Cake';
+  if (n.includes('напо') || n.includes('вода') || n.includes('сік') || n.includes('холодні') || n.includes('лимонад') || n.includes('бар') || n.includes('пиво') || n.includes('коктейл')) return 'GlassWater';
+  if (n.includes('суп') || n.includes('рамен') || n.includes('том ям') || n.includes('борщ') || n.includes('бульйон')) return 'Soup';
+  if (n.includes('салат') || n.includes('боул')) return 'Salad';
+  if (n.includes('паст') || n.includes('вок') || n.includes('wok') || n.includes('локшин') || n.includes('рис') || n.includes('noodles')) return 'Flame';
+  if (n.includes('гриль') || n.includes('стейк') || n.includes('м\'яс') || n.includes('м’яс') || n.includes('шашлик') || n.includes('bbq')) return 'Flame';
+  if (n.includes('снідан') || n.includes('сирник') || n.includes('омлет') || n.includes('яєч')) return 'Utensils';
+  if (n.includes('закуск') || n.includes('снек') || n.includes('соус')) return 'Sparkles';
   return 'Utensils';
 }
 
 function slugifyCategoryName(text: string): string {
+  const cyrMap: Record<string, string> = {
+    'кава': 'kava',
+    'чай': 'tea',
+    'випіч': 'vypichka',
+    'десерт': 'deserti',
+    'холодні': 'xolodni-napoyi',
+    'напо': 'napoyi',
+    'рол': 'roli',
+    'суш': 'sushi',
+    'сет': 'seti',
+    'піц': 'pica',
+    'бургер': 'burger-menyu',
+    'суп': 'supy',
+    'салат': 'salati',
+    'паст': 'pasta',
+    'вок': 'wok',
+    'wok': 'wok',
+    'снідан': 'snidanki',
+    'закуск': 'xolodni-zakuski',
+    'гриль': 'gril-mnyaso',
+    'бар': 'bar',
+    'кухня': 'kuxnya'
+  };
+
   const lower = text.toLowerCase().trim();
-  if (lower.includes('кава')) return 'kava';
-  if (lower.includes('випіч')) return 'vypichka';
-  if (lower.includes('напо') || lower.includes('холодні')) return 'xolodni-napoyi';
-  if (lower.includes('бургер')) return 'burger-menyu';
-  if (lower.includes('рол') || lower.includes('суш')) return 'roli';
-  if (lower.includes('піц')) return 'pica';
-  if (lower.includes('паст') || lower.includes('вок') || lower.includes('wok')) return 'pasti-wok';
-  if (lower.includes('салат')) return 'salati';
-  if (lower.includes('десерт')) return 'deserti';
-  if (lower.includes('закуск')) return 'xolodni-zakuski';
-  if (lower.includes('гаряч') || lower.includes('суп')) return 'garyaci-stravi';
-  return lower.replace(/[^a-z0-9а-яіїє]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'menu';
+  for (const [key, slug] of Object.entries(cyrMap)) {
+    if (lower.includes(key)) return slug;
+  }
+
+  // General transliteration for custom restaurant categories
+  const ruEn: Record<string, string> = {
+    'а':'a','б':'b','в':'v','г':'h','ґ':'g','д':'d','е':'e','є':'ye','ж':'zh','з':'z',
+    'и':'y','і':'i','ї':'yi','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p',
+    'р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch',
+    'ь':'','ю':'yu','я':'ya'
+  };
+
+  const translit = lower.split('').map(char => ruEn[char] || char).join('');
+  return translit.replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'menu';
 }
 
 /**
  * Fetch and build full live catalog directly from Poster POS API
- * Strictly returns ONLY the categories and products that exist in the connected Poster POS account
+ * Handles multi-level nested categories, large databases, custom groups, and spot pricing
  */
 export async function fetchLivePosterCatalog(): Promise<{
   categories: Category[];
@@ -1019,30 +1048,76 @@ export async function fetchLivePosterCatalog(): Promise<{
     const categoriesData = await categoriesRes.json();
 
     if (productsData.response && Array.isArray(productsData.response)) {
-      // Update in-memory cache for mapping order items
+      // Update in-memory cache for incoming order mapping
       livePosterProductsCache = productsData.response;
       productsCacheExpiry = Date.now() + PRODUCTS_CACHE_TTL;
 
-      const categoryMap = new Map<string, { id: number; name: string; slug: string; icon: string }>();
+      const rawCategories = (categoriesData.response || []).filter((c: any) => c.category_hidden !== '1' && c.category_hidden !== 1);
+      
+      const parentCategories = rawCategories.filter((c: any) => !c.parent_category || c.parent_category === '0' || c.parent_category === 0);
+      const childCategories = rawCategories.filter((c: any) => c.parent_category && c.parent_category !== '0' && c.parent_category !== 0);
 
-      const activeCategories: Category[] = (categoriesData.response || [])
-        .filter((c: any) => c.category_hidden !== '1' && c.category_hidden !== 1)
-        .map((c: any) => {
-          const slug = slugifyCategoryName(c.category_name || `cat-${c.category_id}`);
-          const icon = getPosterCategoryIcon(c.category_name);
-          categoryMap.set(String(c.category_id), { id: Number(c.category_id), name: c.category_name, slug, icon });
-          return {
-            id: Number(c.category_id),
-            name: String(c.category_name),
+      const categoryMap = new Map<string, { id: number; name: string; slug: string; icon: string; parent_slug?: string }>();
+
+      const activeCategories: Category[] = parentCategories.map((c: any) => {
+        const slug = slugifyCategoryName(c.category_name || `cat-${c.category_id}`);
+        const icon = getPosterCategoryIcon(c.category_name);
+        categoryMap.set(String(c.category_id), { id: Number(c.category_id), name: c.category_name, slug, icon });
+
+        // Find child subcategories for this parent
+        const subcats: SubCategory[] = childCategories
+          .filter((sub: any) => String(sub.parent_category) === String(c.category_id))
+          .map((sub: any) => {
+            const subSlug = slugifyCategoryName(sub.category_name || `sub-${sub.category_id}`);
+            categoryMap.set(String(sub.category_id), { 
+              id: Number(sub.category_id), 
+              name: sub.category_name, 
+              slug: subSlug, 
+              icon: getPosterCategoryIcon(sub.category_name),
+              parent_slug: slug
+            });
+            return {
+              id: Number(sub.category_id),
+              name: String(sub.category_name),
+              slug: subSlug
+            };
+          });
+
+        return {
+          id: Number(c.category_id),
+          name: String(c.category_name),
+          slug,
+          icon,
+          subcategories: subcats
+        };
+      });
+
+      // Register any orphan subcategories whose parent wasn't found as top-level categories
+      childCategories.forEach((sub: any) => {
+        if (!categoryMap.has(String(sub.category_id))) {
+          const slug = slugifyCategoryName(sub.category_name || `cat-${sub.category_id}`);
+          const icon = getPosterCategoryIcon(sub.category_name);
+          categoryMap.set(String(sub.category_id), { id: Number(sub.category_id), name: sub.category_name, slug, icon });
+          activeCategories.push({
+            id: Number(sub.category_id),
+            name: String(sub.category_name),
             slug,
             icon,
             subcategories: []
-          };
-        });
+          });
+        }
+      });
 
       // Filter only visible / non-hidden products from Poster POS
       const activeProducts: Product[] = productsData.response
-        .filter((p: any) => p.hidden !== '1' && p.hidden !== 1)
+        .filter((p: any) => {
+          if (p.hidden === '1' || p.hidden === 1) return false;
+          if (p.spots && Array.isArray(p.spots) && p.spots.length > 0) {
+            const currentSpot = p.spots.find((s: any) => Number(s.spot_id) === Number(POSTER_CONFIG.defaultSpotId || 1));
+            if (currentSpot && (currentSpot.visible === '0' || currentSpot.visible === 0)) return false;
+          }
+          return true;
+        })
         .map((p: any) => {
           const catInfo = categoryMap.get(String(p.menu_category_id || p.category_id));
           const base = mapPosterRawProduct(p);
@@ -1050,7 +1125,8 @@ export async function fetchLivePosterCatalog(): Promise<{
             ...base,
             category_pos_id: catInfo ? catInfo.id : Number(p.menu_category_id || 1),
             category_name: catInfo ? catInfo.name : (p.category_name || 'Меню'),
-            category_url: catInfo ? catInfo.slug : 'all'
+            category_url: catInfo ? catInfo.slug : 'all',
+            parent_category_url: catInfo?.parent_slug
           };
         });
 
