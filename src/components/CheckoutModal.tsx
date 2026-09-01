@@ -171,9 +171,16 @@ export const CheckoutModal: React.FC = () => {
     const sanitizedComment = cleanRawText(comment, 300);
     const sanitizedChange = cleanRawText(cashChangeFrom, 50);
 
-    const completeOrder = (order: OrderDetails) => {
-      // Send order to Poster POS (or prepare in simulation mode)
-      sendOrderToPoster(order).catch(err => console.warn('[Poster POS]', err));
+    const completeOrder = async (order: OrderDetails) => {
+      let finalOrder = { ...order };
+      try {
+        const res = await sendOrderToPoster(order);
+        if (res && res.posterIncomingOrderId) {
+          finalOrder.posterIncomingOrderId = res.posterIncomingOrderId;
+        }
+      } catch (err) {
+        console.warn('[Poster POS]', err);
+      }
 
       // Confetti celebration
       try {
@@ -187,12 +194,12 @@ export const CheckoutModal: React.FC = () => {
         // ignore
       }
 
-      setCurrentOrder(order);
+      setCurrentOrder(finalOrder);
       clearCart();
       setIsSubmitting(false);
       setIsCheckoutOpen(false);
       setIsOrderTrackerOpen(true);
-      showToast(`🎉 Замовлення #${order.orderNumber} успішно прийнято!`, undefined, 'success');
+      showToast(`🎉 Замовлення #${finalOrder.orderNumber} успішно прийнято!`, undefined, 'success');
     };
 
     const handleOnlinePaymentSuccess = (paymentId: string) => {
@@ -754,12 +761,20 @@ export const CheckoutModal: React.FC = () => {
       <PaymentModal
         isOpen={isOnlinePayOpen}
         onClose={() => setIsOnlinePayOpen(false)}
-        onSuccess={(paymentId) => {
+        onSuccess={async (paymentId) => {
           if (pendingOrderDetails) {
-            const finalOrder: OrderDetails = {
+            let finalOrder: OrderDetails = {
               ...pendingOrderDetails,
               status: 'received'
             };
+            try {
+              const res = await sendOrderToPoster(finalOrder);
+              if (res && res.posterIncomingOrderId) {
+                finalOrder.posterIncomingOrderId = res.posterIncomingOrderId;
+              }
+            } catch (err) {
+              console.warn('[Poster POS]', err);
+            }
             // Confetti
             try {
               confetti({
@@ -772,7 +787,6 @@ export const CheckoutModal: React.FC = () => {
               // ignore
             }
             setCurrentOrder(finalOrder);
-            sendOrderToPoster(finalOrder).catch(err => console.warn('[Poster POS]', err));
             clearCart();
             setIsSubmitting(false);
             setIsOnlinePayOpen(false);

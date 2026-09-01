@@ -565,19 +565,26 @@ export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<P
       const data: PosterApiResponse<any> = await res.json();
       if (data.response) {
         const orderData = data.response;
-        const status = Number(orderData.status || 10);
+        const status = Number(orderData.status);
+        const isTakeaway = Number(orderData.service_mode) === 2;
         let stepIndex = 1;
         let statusName = 'Прийнято рестораном';
 
-        if (status === 20 || orderData.status_name?.toLowerCase().includes('готу')) {
+        if (status === 0) {
+          stepIndex = 1;
+          statusName = 'Очікує підтвердження на касі';
+        } else if (status === 1) {
           stepIndex = 2;
-          statusName = 'Шеф-кухар готує';
-        } else if (status === 30 || orderData.status_name?.toLowerCase().includes('достав') || orderData.status_name?.toLowerCase().includes('кур')) {
+          statusName = 'Шеф-кухар готує на кухні';
+        } else if (status === 2 || status === 3) {
           stepIndex = 3;
-          statusName = 'Кур\'єр у дорозі';
-        } else if (status === 40 || status === 50) {
+          statusName = isTakeaway ? 'Готово до видачі на касі' : 'Кур\'єр у дорозі';
+        } else if (status === 7) {
           stepIndex = 4;
-          statusName = 'Доставлено';
+          statusName = isTakeaway ? 'Замовлення видано' : 'Успішно доставлено';
+        } else if (status === 8 || status === 9) {
+          stepIndex = 1;
+          statusName = 'Замовлення скасовано';
         }
 
         return {

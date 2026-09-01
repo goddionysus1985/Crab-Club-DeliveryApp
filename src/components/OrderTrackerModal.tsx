@@ -26,12 +26,12 @@ export const OrderTrackerModal: React.FC = () => {
 
     // Check live Poster POS status
     const pollStatus = async () => {
-      const orderIdNum = parseInt(currentOrder.orderNumber, 10);
-      if (orderIdNum) {
-        const liveStatus = await fetchPosterOrderStatus(orderIdNum);
+      const orderId = currentOrder.posterIncomingOrderId || parseInt(currentOrder.orderNumber, 10);
+      if (orderId) {
+        const liveStatus = await fetchPosterOrderStatus(orderId);
         if (liveStatus) {
           setCurrentStep(liveStatus.stepIndex);
-          setLastSyncText(`Синхронізовано з касою: ${liveStatus.statusName}`);
+          setLastSyncText(`Каса: ${liveStatus.statusName}`);
           if (liveStatus.stepIndex === 1) setMinutesLeft(35);
           else if (liveStatus.stepIndex === 2) setMinutesLeft(20);
           else if (liveStatus.stepIndex === 3) setMinutesLeft(10);
@@ -41,7 +41,7 @@ export const OrderTrackerModal: React.FC = () => {
     };
 
     pollStatus();
-    const interval = setInterval(pollStatus, 12000); // Poll every 12s
+    const interval = setInterval(pollStatus, 5000); // Poll every 5s for live POS updates
 
     const timer = setInterval(() => {
       setMinutesLeft(prev => Math.max(0, prev - 1));
@@ -55,34 +55,36 @@ export const OrderTrackerModal: React.FC = () => {
 
   if (!currentOrder) return null;
 
+  const isTakeaway = currentOrder.orderType === 'takeaway';
+
   const steps = [
     {
       id: 1,
       title: 'Прийнято рестораном',
-      desc: 'Кухня отримала замовлення',
+      desc: 'Замовлення надійшло в касу',
       icon: CheckCircle2,
       time: currentOrder.date
     },
     {
       id: 2,
       title: 'Шеф-кухар готує',
-      desc: 'Свіжі морепродукти та випічка',
+      desc: 'Свіжі морепродукти та страви',
       icon: ChefHat,
       time: '+10 хв'
     },
     {
       id: 3,
-      title: 'Кур\'єр у дорозі',
-      desc: 'В дорозі в термобоксах',
-      icon: Truck,
-      time: '+25 хв'
+      title: isTakeaway ? 'Очікує на касі' : 'Кур\'єр у дорозі',
+      desc: isTakeaway ? 'Завітайте до закладу та заберіть' : 'В дорозі в термобоксах',
+      icon: isTakeaway ? ShoppingBag : Truck,
+      time: '+20 хв'
     },
     {
       id: 4,
-      title: 'Доставлено',
+      title: isTakeaway ? 'Видано' : 'Доставлено',
       desc: 'Смачного від Crab Club!',
       icon: PackageCheck,
-      time: '~45 хв'
+      time: isTakeaway ? 'Готово' : '~35 хв'
     }
   ];
 
@@ -119,7 +121,7 @@ export const OrderTrackerModal: React.FC = () => {
                       Замовлення #{currentOrder.orderNumber}
                     </h2>
                     <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 animate-pulse">
-                      В процесі
+                      Live з каси
                     </span>
                   </div>
                   <p className="text-xs text-zinc-400">
@@ -149,10 +151,10 @@ export const OrderTrackerModal: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">
-                      Орієнтовний час доставки:
+                      {isTakeaway ? 'Орієнтовний час приготування:' : 'Орієнтовний час доставки:'}
                     </span>
                     <div className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-                      ~ {minutesLeft} хвилин
+                      {currentStep >= 4 ? 'Готово!' : `~ ${minutesLeft} хвилин`}
                     </div>
                   </div>
                 </div>
@@ -169,7 +171,7 @@ export const OrderTrackerModal: React.FC = () => {
               {/* Stepper Steps */}
               <div className="space-y-4">
                 <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                  Етапи приготування та доставки:
+                  {isTakeaway ? 'Етапи приготування та видачі:' : 'Етапи приготування та доставки:'}
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
@@ -212,27 +214,6 @@ export const OrderTrackerModal: React.FC = () => {
                       </motion.div>
                     );
                   })}
-                </div>
-
-                {/* Interactive Demo Simulation Controls */}
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-xs text-zinc-400">
-                  <span className="text-[11px]">Симуляція зміни статусу:</span>
-                  <div className="flex gap-1.5">
-                    {[1, 2, 3, 4].map((s) => (
-                      <motion.button
-                        key={s}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setCurrentStep(s)}
-                        className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all ${
-                          currentStep === s
-                            ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-                            : 'bg-white/10 hover:bg-white/20 text-zinc-300'
-                        }`}
-                      >
-                        Крок {s}
-                      </motion.button>
-                    ))}
-                  </div>
                 </div>
               </div>
 

@@ -124,6 +124,7 @@ export interface Review {
 export interface OrderDetails {
   orderId: string;
   orderNumber: string;
+  posterIncomingOrderId?: number;
   date: string;
   customerName: string;
   phone: string;
