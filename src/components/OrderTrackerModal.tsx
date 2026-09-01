@@ -9,14 +9,16 @@ import {
   PackageCheck, 
   Phone, 
   Sparkles,
-  ShoppingBag
+  ShoppingBag,
+  Store,
+  Star
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { RESTAURANT_INFO } from '../data/menuData';
 import { fetchPosterOrderStatus } from '../services/posterApi';
 
 export const OrderTrackerModal: React.FC = () => {
-  const { currentOrder, isOrderTrackerOpen, setIsOrderTrackerOpen } = useCart();
+  const { currentOrder, isOrderTrackerOpen, setIsOrderTrackerOpen, showToast } = useCart();
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [minutesLeft, setMinutesLeft] = useState<number>(40);
   const [lastSyncText, setLastSyncText] = useState<string>('Онлайн-синхронізація з кухнею');
@@ -247,6 +249,42 @@ export const OrderTrackerModal: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Takeaway Pickup Location Notice */}
+              {isTakeaway && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-xl bg-amber-500/20 text-amber-400 shrink-0 mt-0.5">
+                    <Store className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-white">Пункт видачі замовлення:</div>
+                    <div className="text-zinc-300">{RESTAURANT_INFO.address}</div>
+                    <div className="text-[10px] text-amber-400/80 pt-0.5">Назвіть касиру номер замовлення: <span className="font-bold text-white">#{currentOrder.orderNumber}</span></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Order Completed Rating */}
+              {currentStep >= 4 && (
+                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-2">
+                  <div className="text-sm font-bold text-white">Як вам наше обслуговування?</div>
+                  <p className="text-xs text-zinc-400">Оцініть якість страв та швидкість приготування:</p>
+                  <div className="flex justify-center gap-2 pt-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        className="p-2 rounded-xl bg-white/5 hover:bg-amber-400/20 text-amber-400 hover:scale-110 transition-transform"
+                        onClick={() => {
+                          showToast(`Дякуємо за вашу оцінку (${star}/5 ⭐)!`, undefined, 'success');
+                        }}
+                      >
+                        <Star className="w-5 h-5 fill-amber-400" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Order Meta Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">

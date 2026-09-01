@@ -102,11 +102,13 @@ export function formatPosterDeliveryTime(scheduledTime?: string): string | undef
   return `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())} ${pad(hours)}:${pad(minutes)}:00`;
 }
 
-// Live product cache from Poster
+// Live product cache from Poster with 5-minute TTL
 let livePosterProductsCache: Array<{ product_id: string | number; product_name: string; price: any }> = [];
+let productsCacheExpiry = 0;
+const PRODUCTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export async function getLivePosterProductsList(): Promise<Array<{ product_id: number; product_name: string; price: any }>> {
-  if (livePosterProductsCache.length > 0) {
+  if (livePosterProductsCache.length > 0 && Date.now() < productsCacheExpiry) {
     return livePosterProductsCache as any;
   }
   try {
@@ -115,11 +117,16 @@ export async function getLivePosterProductsList(): Promise<Array<{ product_id: n
     const data = await res.json();
     if (data.response && Array.isArray(data.response)) {
       livePosterProductsCache = data.response;
+      productsCacheExpiry = Date.now() + PRODUCTS_CACHE_TTL;
     }
   } catch (e) {
     console.warn('[Poster Products Cache]', e);
   }
   return livePosterProductsCache as any;
+}
+
+export function invalidatePosterProductsCache(): void {
+  productsCacheExpiry = 0;
 }
 
 /**
@@ -320,19 +327,52 @@ export async function syncUserProfileToPoster(profile: {
   }
 }
 
-// Idempotency cache: prevents double-orders from double clicks or network retries
+// Idempotency cache with sessionStorage persistence
 const idempotencyOrderCache = new Map<string, { incomingOrderId: number; timestamp: number }>();
+const IDEMPOTENCY_KEY_PREFIX = 'crabclub_poster_idem_';
+const IDEMPOTENCY_TTL = 120_000; // 2 minutes
+
+function getIdempotencyOrder(key: string): { incomingOrderId: number; timestamp: number } | null {
+  const inMem = idempotencyOrderCache.get(key);
+  if (inMem && Date.now() - inMem.timestamp < IDEMPOTENCY_TTL) return inMem;
+
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = sessionStorage.getItem(IDEMPOTENCY_KEY_PREFIX + key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Date.now() - parsed.timestamp < IDEMPOTENCY_TTL) {
+          idempotencyOrderCache.set(key, parsed);
+          return parsed;
+        } else {
+          sessionStorage.removeItem(IDEMPOTENCY_KEY_PREFIX + key);
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function setIdempotencyOrder(key: string, incomingOrderId: number): void {
+  const record = { incomingOrderId, timestamp: Date.now() };
+  idempotencyOrderCache.set(key, record);
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem(IDEMPOTENCY_KEY_PREFIX + key, JSON.stringify(record));
+    } catch {}
+  }
+}
 
 /**
- * Send order to Poster POS API with strict Idempotency & 7s Timeout
+ * Send order to Poster POS API with strict Idempotency, 7s Timeout & Audit Logging
  */
 export async function sendOrderToPoster(order: OrderDetails): Promise<{ success: boolean; posterIncomingOrderId?: number; message?: string }> {
   const idempotencyKey = `ORDER_${order.orderNumber}_${order.phone.replace(/\D/g, '')}`;
   
   // 1. Idempotency Check: if submitted within last 2 minutes, return cached confirmation
-  const existing = idempotencyOrderCache.get(idempotencyKey);
-  if (existing && Date.now() - existing.timestamp < 120000) {
-    console.info(`[Poster POS Idempotency] ⚡ Замовлення #${order.orderNumber} вже було надіслано. Повторне дублювання заблоковано.`);
+  const existing = getIdempotencyOrder(idempotencyKey);
+  if (existing) {
+    console.info(`[Poster POS Idempotency] ⚡ Замовлення #${order.orderNumber} вже було надіслано. ID: #${existing.incomingOrderId}`);
     return {
       success: true,
       posterIncomingOrderId: existing.incomingOrderId,
@@ -369,18 +409,22 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
 
       if (result.response && result.response.incoming_order_id) {
         const orderId = result.response.incoming_order_id;
-        idempotencyOrderCache.set(idempotencyKey, { incomingOrderId: orderId, timestamp: Date.now() });
+        setIdempotencyOrder(idempotencyKey, orderId);
         console.info(`[Poster POS] ✅ Замовлення успішно створено! ID: #${orderId}`);
         return {
           success: true,
           posterIncomingOrderId: orderId,
           message: `Замовлення надіслано в Poster POS (#${orderId})`
         };
-      } else {
-        console.warn('[Poster POS] ⚠️ Помилка від Poster API:', result);
+      } else if (result.error) {
+        console.warn(`[Poster POS] ⚠️ Помилка від Poster API (${result.error}):`, result.message);
       }
     } catch (error: any) {
-      console.warn('[Poster POS] ⚠️ Таймаут або помилка зв\'язку з Poster POS:', error);
+      if (error?.name === 'AbortError') {
+        console.warn('[Poster POS] ⏱ Таймаут запиту (7с)');
+      } else {
+        console.warn('[Poster POS] ⚠️ Помилка зв\'язку з Poster POS:', error);
+      }
     } finally {
       clearTimeout(timeoutId);
     }
@@ -388,7 +432,7 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
 
   // Fallback: save to local queue for audit
   const fallbackOrderId = parseInt(order.orderNumber, 10) || Date.now() % 10000;
-  idempotencyOrderCache.set(idempotencyKey, { incomingOrderId: fallbackOrderId, timestamp: Date.now() });
+  setIdempotencyOrder(idempotencyKey, fallbackOrderId);
 
   try {
     const queue = JSON.parse(localStorage.getItem('crabclub_orders_queue') || '[]');

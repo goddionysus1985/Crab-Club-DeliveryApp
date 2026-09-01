@@ -128,6 +128,49 @@ export const CheckoutModal: React.FC = () => {
   const finalDeliveryFee = zoneDetails.fee;
   const finalTotal = Math.max(0, subtotal - discount - bonusDeductible + finalDeliveryFee);
 
+  const completeOrder = async (order: OrderDetails) => {
+    let finalOrder = { ...order };
+    try {
+      const res = await sendOrderToPoster(order);
+      if (res && res.posterIncomingOrderId) {
+        finalOrder.posterIncomingOrderId = res.posterIncomingOrderId;
+      }
+    } catch (err) {
+      console.warn('[Poster POS]', err);
+    }
+
+    // Deduct bonuses in CRM if used
+    if (order.bonusUsed && order.bonusUsed > 0 && order.phone) {
+      const cleanPhone = order.phone.replace(/\D/g, '');
+      getPosterClientByPhone(cleanPhone).then(client => {
+        if (client?.client_id) {
+          deductPosterClientBonus(client.client_id, order.bonusUsed || 0);
+        }
+      });
+    }
+
+    // Confetti celebration
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#E11D48', '#F59E0B', '#10B981', '#FFFFFF']
+      });
+    } catch {
+      // ignore
+    }
+
+    setCurrentOrder(finalOrder);
+    clearCart();
+    setIsSubmitting(false);
+    setIsOnlinePayOpen(false);
+    setPendingOrderDetails(null);
+    setIsCheckoutOpen(false);
+    setIsOrderTrackerOpen(true);
+    showToast(`🎉 Замовлення #${finalOrder.orderNumber} успішно прийнято!`, undefined, 'success');
+  };
+
   const handleSubmitOrder = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -170,45 +213,6 @@ export const CheckoutModal: React.FC = () => {
     const sanitizedDoorphone = cleanRawText(doorphone, 10);
     const sanitizedComment = cleanRawText(comment, 300);
     const sanitizedChange = cleanRawText(cashChangeFrom, 50);
-
-    const completeOrder = async (order: OrderDetails) => {
-      let finalOrder = { ...order };
-      try {
-        const res = await sendOrderToPoster(order);
-        if (res && res.posterIncomingOrderId) {
-          finalOrder.posterIncomingOrderId = res.posterIncomingOrderId;
-        }
-      } catch (err) {
-        console.warn('[Poster POS]', err);
-      }
-
-      // Confetti celebration
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#E11D48', '#F59E0B', '#10B981', '#FFFFFF']
-        });
-      } catch {
-        // ignore
-      }
-
-      setCurrentOrder(finalOrder);
-      clearCart();
-      setIsSubmitting(false);
-      setIsCheckoutOpen(false);
-      setIsOrderTrackerOpen(true);
-      showToast(`🎉 Замовлення #${finalOrder.orderNumber} успішно прийнято!`, undefined, 'success');
-    };
-
-    const handleOnlinePaymentSuccess = (paymentId: string) => {
-      if (pendingOrderDetails) {
-        completeOrder(pendingOrderDetails);
-        setIsOnlinePayOpen(false);
-        setPendingOrderDetails(null);
-      }
-    };
 
     setIsSubmitting(true);
 
@@ -754,37 +758,7 @@ export const CheckoutModal: React.FC = () => {
         onClose={() => setIsOnlinePayOpen(false)}
         onSuccess={async (paymentId) => {
           if (pendingOrderDetails) {
-            let finalOrder: OrderDetails = {
-              ...pendingOrderDetails,
-              status: 'received'
-            };
-            try {
-              const res = await sendOrderToPoster(finalOrder);
-              if (res && res.posterIncomingOrderId) {
-                finalOrder.posterIncomingOrderId = res.posterIncomingOrderId;
-              }
-            } catch (err) {
-              console.warn('[Poster POS]', err);
-            }
-            // Confetti
-            try {
-              confetti({
-                particleCount: 100,
-                spread: 80,
-                origin: { y: 0.6 },
-                colors: ['#E11D48', '#F59E0B', '#10B981', '#FFFFFF']
-              });
-            } catch {
-              // ignore
-            }
-            setCurrentOrder(finalOrder);
-            clearCart();
-            setIsSubmitting(false);
-            setIsOnlinePayOpen(false);
-            setPendingOrderDetails(null);
-            setIsCheckoutOpen(false);
-            setIsOrderTrackerOpen(true);
-            showToast(`🎉 Оплата успішна! Замовлення #${finalOrder.orderNumber} прийнято!`, undefined, 'success');
+            await completeOrder(pendingOrderDetails);
           }
         }}
         amount={finalTotal}
