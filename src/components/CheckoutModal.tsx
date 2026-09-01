@@ -213,7 +213,7 @@ export const CheckoutModal: React.FC = () => {
       return;
     }
 
-    // Address Sanitization
+    // Address Sanitization & Strict Validation
     const sanitizedStreet = cleanRawText(street, 100);
     const sanitizedHouse = cleanRawText(house, 20);
     const sanitizedApartment = cleanRawText(apartment, 10);
@@ -222,52 +222,61 @@ export const CheckoutModal: React.FC = () => {
     const sanitizedComment = cleanRawText(comment, 300);
     const sanitizedChange = cleanRawText(cashChangeFrom, 50);
 
+    if (orderType === 'delivery') {
+      if (!sanitizedStreet || sanitizedStreet.trim().length < 2) {
+        showToast('Вкажіть вулицю для доставки', undefined, 'error');
+        return;
+      }
+      if (!sanitizedHouse || sanitizedHouse.trim().length === 0) {
+        showToast('Вкажіть номер будинку для доставки', undefined, 'error');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const orderNumber = Math.floor(1000 + Math.random() * 9000).toString();
-      const orderId = `CRAB-${Date.now()}`;
+    const orderNumber = Math.floor(1000 + Math.random() * 9000).toString();
+    const orderId = `CRAB-${Date.now()}`;
 
-      const newOrder: OrderDetails = {
-        orderId,
-        orderNumber,
-        date: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }),
-        customerName: nameValidation.sanitized,
-        phone: phoneValidation.formatted,
-        orderType,
-        address: orderType === 'delivery' ? {
-          city: cleanRawText(city, 50),
-          street: sanitizedStreet,
-          house: sanitizedHouse,
-          apartment: sanitizedApartment || undefined,
-          floor: sanitizedFloor || undefined,
-          doorphone: sanitizedDoorphone || undefined
-        } : undefined,
-        deliveryTimeType,
-        scheduledTime: deliveryTimeType === 'scheduled' ? scheduledTime : undefined,
-        paymentMethod,
-        cashChangeFrom: paymentMethod === 'cash' ? sanitizedChange || undefined : undefined,
-        cutleryCount: Math.max(1, Math.min(10, cutleryCount)),
-        comment: sanitizedComment || undefined,
-        items: [...cart],
-        subtotal,
-        discount,
-        deliveryFee: finalDeliveryFee,
-        total: finalTotal,
-        promoCode: promoCode || undefined,
-        bonusUsed: useBonuses ? bonusDeductible : 0,
-        bonusEarned: cashbackEarned,
-        status: 'received'
-      };
+    const newOrder: OrderDetails = {
+      orderId,
+      orderNumber,
+      date: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }),
+      customerName: nameValidation.sanitized,
+      phone: phoneValidation.formatted,
+      orderType,
+      address: orderType === 'delivery' ? {
+        city: cleanRawText(city, 50),
+        street: sanitizedStreet,
+        house: sanitizedHouse,
+        apartment: sanitizedApartment || undefined,
+        floor: sanitizedFloor || undefined,
+        doorphone: sanitizedDoorphone || undefined
+      } : undefined,
+      deliveryTimeType,
+      scheduledTime: deliveryTimeType === 'scheduled' ? scheduledTime : undefined,
+      paymentMethod,
+      cashChangeFrom: paymentMethod === 'cash' ? sanitizedChange || undefined : undefined,
+      cutleryCount: Math.max(1, Math.min(10, cutleryCount)),
+      comment: sanitizedComment || undefined,
+      items: [...cart],
+      subtotal,
+      discount,
+      deliveryFee: finalDeliveryFee,
+      total: finalTotal,
+      promoCode: promoCode || undefined,
+      bonusUsed: useBonuses ? bonusDeductible : 0,
+      bonusEarned: cashbackEarned,
+      status: 'received'
+    };
 
-      if (paymentMethod === 'card_online') {
-        setPendingOrderDetails(newOrder);
-        setIsSubmitting(false);
-        setIsOnlinePayOpen(true);
-      } else {
-        completeOrder(newOrder);
-      }
-    }, 700);
+    if (paymentMethod === 'card_online') {
+      setPendingOrderDetails(newOrder);
+      setIsSubmitting(false);
+      setIsOnlinePayOpen(true);
+    } else {
+      completeOrder(newOrder);
+    }
   };
 
   return (

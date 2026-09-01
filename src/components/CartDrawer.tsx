@@ -39,13 +39,7 @@ export const CartDrawer: React.FC = () => {
     !cart.some(item => item.product.id === p.id)
   ).slice(0, 4);
 
-  const handleProceedToCheckout = async () => {
-    const check = await validateCartAvailability(cart);
-    if (!check.isValid && check.unavailableItems.length > 0) {
-      showToast(`Страва "${check.unavailableItems[0].productName}" тимчасово в стоп-листі`, undefined, 'error');
-      return;
-    }
-
+  const handleProceedToCheckout = () => {
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };

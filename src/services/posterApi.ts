@@ -387,8 +387,7 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     last_name,
     service_mode,
     delivery_price: isTakeaway ? 0 : Math.round((order.deliveryFee || 0) * 100),
-    address: fullAddress,
-    client_address,
+    client_address: isTakeaway ? undefined : client_address,
     comment: commentParts.join(' | ') || undefined,
     products,
     payment
@@ -525,22 +524,29 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
     };
   }
 
-  // Ensure live products list is available for accurate item resolution
-  await getLivePosterProductsList();
+  // Ensure live products list is available without blocking if already in memory
+  if (livePosterProductsCache.length === 0) {
+    await Promise.race([
+      getLivePosterProductsList(),
+      new Promise(r => setTimeout(r, 600))
+    ]);
+  }
 
   const payload = buildPosterOrderPayload(order);
 
-  // Attach Poster CRM client_id to link the order to the customer's loyalty profile
-  // This allows the cashier to see loyalty info and enables Poster POS to accrue bonuses correctly
+  // Attach Poster CRM client_id with fast non-blocking race
   if (order.phone) {
     try {
       const cleanPhone = order.phone.replace(/\D/g, '');
-      const client = await getPosterClientByPhone(cleanPhone);
+      const client = await Promise.race([
+        getPosterClientByPhone(cleanPhone),
+        new Promise<null>(r => setTimeout(() => r(null), 800))
+      ]);
       if (client?.client_id) {
         payload.client_id = client.client_id;
       }
     } catch {
-      // Non-fatal: order still proceeds without client linkage
+      // Non-fatal: order still proceeds
     }
   }
 
