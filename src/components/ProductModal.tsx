@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -24,25 +24,41 @@ export const ProductModal: React.FC = () => {
   } = useCart();
 
   const [quantity, setQuantity] = useState(1);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, { name: string; price: number }>>({});
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, { group: string; name: string; price: number }>>({});
   const [comment, setComment] = useState('');
 
   const product = activeProductModal;
   const isFav = product ? isFavorite(product.id) : false;
   const isStopped = product && isProductStopped ? isProductStopped(product.id) : false;
 
+  // Reset modifiers & quantity when opening a new product
+  useEffect(() => {
+    if (activeProductModal) {
+      setQuantity(1);
+      setSelectedOptions({});
+      setComment('');
+    }
+  }, [activeProductModal]);
+
   // Calculate extra cost from modifiers
   const extraCost = Object.values(selectedOptions).reduce((sum, opt) => sum + opt.price, 0);
   const singleUnitPrice = product ? product.price + extraCost : 0;
   const totalPrice = singleUnitPrice * quantity;
 
-  const handleOptionToggle = (groupName: string, optionName: string, optionPrice: number) => {
+  const handleOptionToggle = (groupName: string, optionName: string, optionPrice: number, maxAllowed: number = 99) => {
+    const key = `${groupName}__${optionName}`;
     setSelectedOptions(prev => {
       const copy = { ...prev };
-      if (copy[groupName]?.name === optionName) {
-        delete copy[groupName];
+      if (copy[key]) {
+        delete copy[key];
       } else {
-        copy[groupName] = { name: optionName, price: optionPrice };
+        if (maxAllowed === 1) {
+          // If single-select group (radio), remove previous selection in this group
+          Object.keys(copy).forEach(k => {
+            if (copy[k].group === groupName) delete copy[k];
+          });
+        }
+        copy[key] = { group: groupName, name: optionName, price: optionPrice };
       }
       return copy;
     });
@@ -50,8 +66,8 @@ export const ProductModal: React.FC = () => {
 
   const handleAddToCart = () => {
     if (!product) return;
-    const formattedOptions = Object.entries(selectedOptions).map(([group, opt]) => ({
-      group_name: group,
+    const formattedOptions = Object.values(selectedOptions).map(opt => ({
+      group_name: opt.group,
       option_name: opt.name,
       price: opt.price
     }));
@@ -179,19 +195,22 @@ export const ProductModal: React.FC = () => {
                 {product.modifications && product.modifications.length > 0 && (
                   <div className="space-y-4">
                     {product.modifications.map((group) => (
-                      <div key={group.group_id} className="space-y-2">
+                      <div key={`group-${group.group_id}`} className="space-y-2">
                         <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
                           {group.group_name}:
                         </h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {group.options.map((option) => {
-                            const isSelected = selectedOptions[group.group_name]?.name === option.name;
+                          {group.options.map((option, optIdx) => {
+                            const isSelected = Boolean(
+                              selectedOptions[`${group.group_name}__${option.name}`] || 
+                              selectedOptions[group.group_name]?.name === option.name
+                            );
                             return (
                               <motion.button
                                 whileTap={{ scale: 0.97 }}
-                                key={option.id}
+                                key={`opt-${group.group_id}-${option.id || optIdx}-${option.name}`}
                                 type="button"
-                                onClick={() => handleOptionToggle(group.group_name, option.name, option.price)}
+                                onClick={() => handleOptionToggle(group.group_name, option.name, option.price, group.max || 99)}
                                 className={`flex items-center justify-between p-3 rounded-2xl border text-xs sm:text-sm font-medium transition-all ${
                                   isSelected
                                     ? 'bg-crab-600/20 border-crab-500 text-white shadow-md'
@@ -204,7 +223,7 @@ export const ProductModal: React.FC = () => {
                                   }`}>
                                     {isSelected && <Check className="w-3 h-3" />}
                                   </div>
-                                  <span>{option.name}</span>
+                                  <span className="font-medium text-white">{option.name}</span>
                                 </div>
                                 <span className="text-amber-400 font-bold">
                                   {option.price > 0 ? `+${option.price} ₴` : 'Безкоштовно'}

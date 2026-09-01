@@ -11,6 +11,7 @@ export interface PosterIncomingProduct {
   product_id: number;
   count: number;
   price?: number;
+  modificator_id?: number;
   modification?: Array<{
     m: number; // modification option ID
     a: number; // count
@@ -213,6 +214,18 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
       prodComment = [optNotes, item.comment].filter(Boolean).join(' | ');
     }
 
+    let directModificatorId: number | undefined = undefined;
+    if (isDirectPosterProduct && item.selectedOptions && item.selectedOptions.length > 0) {
+      item.selectedOptions.forEach(opt => {
+        item.product.modifications?.forEach(group => {
+          const matchedOpt = group.options.find(o => o.name === opt.option_name || String(o.id) === String(opt.option_name));
+          if (matchedOpt && matchedOpt.id > 0) {
+            directModificatorId = matchedOpt.id;
+          }
+        });
+      });
+    }
+
     const posterProd: PosterIncomingProduct = {
       product_id: resolvedProductId || 1,
       count: Number(item.quantity) || 1,
@@ -220,19 +233,8 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
       comment: prodComment
     };
 
-    if (isDirectPosterProduct && item.selectedOptions && item.selectedOptions.length > 0) {
-      const mods: Array<{ m: number; a: number }> = [];
-      item.selectedOptions.forEach(opt => {
-        item.product.modifications?.forEach(group => {
-          const matchedOpt = group.options.find(o => o.name === opt.option_name);
-          if (matchedOpt) {
-            mods.push({ m: matchedOpt.id, a: 1 });
-          }
-        });
-      });
-      if (mods.length > 0) {
-        posterProd.modification = mods;
-      }
+    if (directModificatorId !== undefined && directModificatorId > 0) {
+      posterProd.modificator_id = directModificatorId;
     }
 
     return posterProd;
@@ -808,57 +810,77 @@ export function mapPosterRawProduct(raw: any): Product {
   // Parse dynamic modifications from Poster (group_modifications or simple modifications)
   const modificationGroups: ModificationGroup[] = [];
 
-  if (raw.group_modifications && Array.isArray(raw.group_modifications)) {
-    raw.group_modifications.forEach((group: any) => {
-      const options: ModificationOption[] = (group.modifications || []).map((m: any) => {
+  if (raw.group_modifications && Array.isArray(raw.group_modifications) && raw.group_modifications.length > 0) {
+    raw.group_modifications.forEach((group: any, gIdx: number) => {
+      const options: ModificationOption[] = (group.modifications || []).map((m: any, mIdx: number) => {
         let mPrice = m.price;
-        if (typeof mPrice === 'object' && mPrice !== null) {
+        if (m.spots && Array.isArray(m.spots) && m.spots.length > 0) {
+          const spotMatch = m.spots.find((s: any) => Number(s.spot_id) === Number(POSTER_CONFIG.defaultSpotId || 1)) || m.spots[0];
+          if (spotMatch && spotMatch.price !== undefined) {
+            mPrice = spotMatch.price;
+          }
+        } else if (typeof mPrice === 'object' && mPrice !== null) {
           const vals = Object.values(mPrice);
           mPrice = vals.length > 0 ? vals[0] : 0;
+        } else if (mPrice === undefined && m.modificator_selfprice !== undefined) {
+          mPrice = m.modificator_selfprice;
         }
         const parsedMPrice = typeof mPrice === 'number' ? mPrice : (parseFloat(String(mPrice || '0')) || 0);
+        const modId = Number(m.modificator_id || m.dish_modification_id || m.m || m.id || (gIdx * 100 + mIdx + 1));
+        const modName = String(m.modificator_name || m.name || `Опція ${mIdx + 1}`).trim();
         return {
-          id: Number(m.dish_modification_id || m.m || m.id || 0),
-          name: String(m.name || ''),
-          price: parsedMPrice > 1000 ? parsedMPrice / 100 : parsedMPrice
+          id: modId,
+          name: modName,
+          price: parsedMPrice >= 100 ? Math.round(parsedMPrice / 100) : parsedMPrice
         };
-      });
+      }).filter((o: ModificationOption) => Boolean(o.name));
 
       if (options.length > 0) {
         modificationGroups.push({
-          group_id: Number(group.dish_modification_group_id || group.id || Math.random() * 1000),
-          group_name: String(group.name || 'Додаткові опції'),
+          group_id: Number(group.dish_modification_group_id || group.id || (gIdx + 1)),
+          group_name: String(group.name || group.modificator_group_name || 'Додаткові опції').trim(),
           type: Number(group.type || 1),
           min: Number(group.min || 0),
-          max: Number(group.max || 1),
+          max: Number(group.max || options.length),
           options
         });
       }
     });
   } else if (raw.modifications && Array.isArray(raw.modifications) && raw.modifications.length > 0) {
-    // Single level modifications
-    const options: ModificationOption[] = raw.modifications.map((m: any) => {
+    // Single level modifications from Poster POS
+    const options: ModificationOption[] = raw.modifications.map((m: any, mIdx: number) => {
       let mPrice = m.price;
-      if (typeof mPrice === 'object' && mPrice !== null) {
+      if (m.spots && Array.isArray(m.spots) && m.spots.length > 0) {
+        const spotMatch = m.spots.find((s: any) => Number(s.spot_id) === Number(POSTER_CONFIG.defaultSpotId || 1)) || m.spots[0];
+        if (spotMatch && spotMatch.price !== undefined) {
+          mPrice = spotMatch.price;
+        }
+      } else if (typeof mPrice === 'object' && mPrice !== null) {
         const vals = Object.values(mPrice);
         mPrice = vals.length > 0 ? vals[0] : 0;
+      } else if (mPrice === undefined && m.modificator_selfprice !== undefined) {
+        mPrice = m.modificator_selfprice;
       }
       const parsedMPrice = typeof mPrice === 'number' ? mPrice : (parseFloat(String(mPrice || '0')) || 0);
+      const modId = Number(m.modificator_id || m.dish_modification_id || m.m || m.id || (mIdx + 1));
+      const modName = String(m.modificator_name || m.name || `Опція ${mIdx + 1}`).trim();
       return {
-        id: Number(m.dish_modification_id || m.m || m.id || 0),
-        name: String(m.name || ''),
-        price: parsedMPrice > 1000 ? parsedMPrice / 100 : parsedMPrice
+        id: modId,
+        name: modName,
+        price: parsedMPrice >= 100 ? Math.round(parsedMPrice / 100) : parsedMPrice
       };
-    });
+    }).filter((o: ModificationOption) => Boolean(o.name));
 
-    modificationGroups.push({
-      group_id: 1,
-      group_name: 'Опції та бортики',
-      type: 1,
-      min: 0,
-      max: options.length,
-      options
-    });
+    if (options.length > 0) {
+      modificationGroups.push({
+        group_id: 1,
+        group_name: 'Додаткові інгредієнти / Модифікатори',
+        type: 1,
+        min: 0,
+        max: options.length,
+        options
+      });
+    }
   }
 
   // 1. Clean Ingredients Parsing (extract ingredient_name from Poster tech cards array)
