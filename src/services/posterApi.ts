@@ -55,6 +55,36 @@ export interface PosterApiResponse<T = any> {
 }
 
 /**
+ * Resilient JSON fetcher for Poster API:
+ * 1. Tries direct URL / dev proxy
+ * 2. If browser blocks due to CORS (e.g. on GitHub Pages), transparently falls back to reliable proxy
+ */
+export async function fetchPosterApiJson<T = any>(endpoint: string, options?: RequestInit): Promise<PosterApiResponse<T>> {
+  try {
+    const res = await fetch(endpoint, options);
+    if (!res.ok && res.status !== 200) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (err: any) {
+    // If not on localhost and error is fetch/CORS related, try proxy for GET requests
+    if (typeof window !== 'undefined' && (!options || !options.method || options.method.toUpperCase() === 'GET')) {
+      const host = window.location.hostname;
+      if (host !== 'localhost' && host !== '127.0.0.1') {
+        try {
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(endpoint)}`;
+          const proxyRes = await fetch(proxyUrl);
+          return await proxyRes.json();
+        } catch {
+          // fallback
+        }
+      }
+    }
+    throw err;
+  }
+}
+
+/**
  * Universal Endpoint Resolver: automatically routes via local dev proxy to bypass browser CORS
  */
 export function getPosterApiUrl(method: string, extraParams?: Record<string, string | number>): string {
@@ -116,8 +146,7 @@ export async function getLivePosterProductsList(): Promise<Array<{ product_id: n
   }
   try {
     const endpoint = getPosterApiUrl('menu.getProducts');
-    const res = await fetch(endpoint);
-    const data = await res.json();
+    const data = await fetchPosterApiJson(endpoint);
     if (data.response && Array.isArray(data.response)) {
       livePosterProductsCache = data.response;
       productsCacheExpiry = Date.now() + PRODUCTS_CACHE_TTL;
@@ -555,8 +584,7 @@ export async function getPosterClientByPhone(phone: string): Promise<PosterClien
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
       const endpoint = getPosterApiUrl('clients.getClients', { phone: cleanPhone });
-      const res = await fetch(endpoint);
-      const data = await res.json();
+      const data = await fetchPosterApiJson(endpoint);
       if (data.response && Array.isArray(data.response) && data.response.length > 0) {
         const c = data.response[0];
         const bonusRaw = parseFloat(c.bonus || '0');
@@ -601,7 +629,7 @@ export async function registerPosterClient(name: string, phone: string): Promise
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
       const endpoint = getPosterApiUrl('clients.createClient');
-      const res = await fetch(endpoint, {
+      const data = await fetchPosterApiJson(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -610,7 +638,6 @@ export async function registerPosterClient(name: string, phone: string): Promise
           client_sex: 0
         })
       });
-      const data = await res.json();
       if (data.response && data.response.client_id) {
         return {
           client_id: parseInt(data.response.client_id, 10),
@@ -641,7 +668,7 @@ export async function deductPosterClientBonus(clientId: number, bonusToSpend: nu
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
       const endpoint = getPosterApiUrl('clients.changeClientBonus');
-      const res = await fetch(endpoint, {
+      const data = await fetchPosterApiJson(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -649,7 +676,6 @@ export async function deductPosterClientBonus(clientId: number, bonusToSpend: nu
           bonus: -Math.round(bonusToSpend * 100) // Negative delta in kopecks
         })
       });
-      const data = await res.json();
       return !!(data.response);
     } catch (e) {
       console.warn('[Poster CRM] Error changing client bonus:', e);
@@ -676,10 +702,9 @@ export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<P
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
       const endpoint = getPosterApiUrl('incomingOrders.getIncomingOrder', { incoming_order_id: incomingOrderId });
-      const res = await fetch(endpoint, {
+      const data = await fetchPosterApiJson<any>(endpoint, {
         headers: { 'Accept': 'application/json' }
       });
-      const data: PosterApiResponse<any> = await res.json();
       if (data.response) {
         const orderData = data.response;
         const status = Number(orderData.status);
@@ -739,8 +764,7 @@ export async function fetchPosterStopList(spotId: number = POSTER_CONFIG.default
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
       const endpoint = getPosterApiUrl('menu.getProducts');
-      const res = await fetch(endpoint);
-      const data = await res.json();
+      const data = await fetchPosterApiJson(endpoint);
       
       if (data.response && Array.isArray(data.response)) {
         const stoppedIds = new Set<number>();
@@ -1072,13 +1096,10 @@ export async function fetchLivePosterCatalog(): Promise<{
     const productsEndpoint = getPosterApiUrl('menu.getProducts');
     const categoriesEndpoint = getPosterApiUrl('menu.getCategories');
 
-    const [productsRes, categoriesRes] = await Promise.all([
-      fetch(productsEndpoint),
-      fetch(categoriesEndpoint)
+    const [productsData, categoriesData] = await Promise.all([
+      fetchPosterApiJson(productsEndpoint),
+      fetchPosterApiJson(categoriesEndpoint)
     ]);
-
-    const productsData = await productsRes.json();
-    const categoriesData = await categoriesRes.json();
 
     if (productsData.response && Array.isArray(productsData.response)) {
       // Update in-memory cache for incoming order mapping

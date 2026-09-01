@@ -4,8 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "sync-menu": "node scripts/syncPosterMenu.cjs",
+    "prebuild": "node scripts/syncPosterMenu.cjs",
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "node scripts/syncPosterMenu.cjs && tsc && vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
