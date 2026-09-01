@@ -54,34 +54,81 @@ export interface PosterApiResponse<T = any> {
   message?: string;
 }
 
+// In-flight request deduplication cache to prevent parallel identical network queries
+const activeInFlightRequests = new Map<string, Promise<any>>();
+
 /**
  * Resilient JSON fetcher for Poster API:
- * 1. Tries direct URL / dev proxy
- * 2. If browser blocks due to CORS (e.g. on GitHub Pages), transparently falls back to reliable proxy
+ * 1. Automatic in-flight request deduplication (prevents thundering herd)
+ * 2. Automatic retry with exponential backoff on HTTP 429 / network hiccups
+ * 3. Transparent fallback to CORS proxy when running outside localhost (e.g. GitHub Pages)
  */
-export async function fetchPosterApiJson<T = any>(endpoint: string, options?: RequestInit): Promise<PosterApiResponse<T>> {
-  try {
-    const res = await fetch(endpoint, options);
-    if (!res.ok && res.status !== 200) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    return await res.json();
-  } catch (err: any) {
-    // If not on localhost and error is fetch/CORS related, try proxy for GET requests
-    if (typeof window !== 'undefined' && (!options || !options.method || options.method.toUpperCase() === 'GET')) {
-      const host = window.location.hostname;
-      if (host !== 'localhost' && host !== '127.0.0.1') {
-        try {
-          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(endpoint)}`;
-          const proxyRes = await fetch(proxyUrl);
-          return await proxyRes.json();
-        } catch {
-          // fallback
+export async function fetchPosterApiJson<T = any>(endpoint: string, options?: RequestInit, retries = 2): Promise<PosterApiResponse<T>> {
+  const method = (options?.method || 'GET').toUpperCase();
+  const isGet = method === 'GET';
+  const cacheKey = `${method}:${endpoint}:${options?.body ? String(options.body) : ''}`;
+
+  // If identical GET is already in-flight, return the existing promise
+  if (isGet && activeInFlightRequests.has(cacheKey)) {
+    return activeInFlightRequests.get(cacheKey)!;
+  }
+
+  const execute = async (): Promise<PosterApiResponse<T>> => {
+    let lastError: any;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const res = await fetch(endpoint, options);
+
+        if (res.status === 429) {
+          // Rate limited: wait with exponential backoff
+          const waitTime = Math.pow(2, attempt) * 1000 + Math.floor(Math.random() * 500);
+          console.warn(`[Poster API Throttler] ⏳ 429 Rate Limited. Очікування ${waitTime}мс перед повтором...`);
+          await new Promise(r => setTimeout(r, waitTime));
+          continue;
+        }
+
+        if (!res.ok && res.status !== 200) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        return await res.json();
+      } catch (err: any) {
+        lastError = err;
+
+        // If not on localhost and error is fetch/CORS related, try proxy for GET requests
+        if (isGet && typeof window !== 'undefined') {
+          const host = window.location.hostname;
+          if (host !== 'localhost' && host !== '127.0.0.1') {
+            try {
+              const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(endpoint)}`;
+              const proxyRes = await fetch(proxyUrl);
+              return await proxyRes.json();
+            } catch {
+              // try next retry
+            }
+          }
+        }
+
+        if (attempt < retries) {
+          const delay = (attempt + 1) * 800;
+          await new Promise(r => setTimeout(r, delay));
         }
       }
     }
-    throw err;
+
+    throw lastError;
+  };
+
+  const promise = execute().finally(() => {
+    if (isGet) activeInFlightRequests.delete(cacheKey);
+  });
+
+  if (isGet) {
+    activeInFlightRequests.set(cacheKey, promise);
   }
+
+  return promise;
 }
 
 /**

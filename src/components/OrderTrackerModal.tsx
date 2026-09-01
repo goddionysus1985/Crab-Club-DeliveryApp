@@ -65,11 +65,23 @@ export const OrderTrackerModal: React.FC = () => {
     if (!isOrderTrackerOpen || !currentOrder) return;
 
     let previousStep = currentStep;
+    let isCompleted = false;
+    let pollCount = 0;
+    let timeoutId: any = null;
 
     // Check live Poster POS status
     const pollStatus = async () => {
+      // Don't poll if order is already completed or if document is in background
+      if (isCompleted) return;
+      if (typeof document !== 'undefined' && document.hidden) {
+        // Schedule next check without network request
+        scheduleNextPoll();
+        return;
+      }
+
       const orderId = currentOrder.posterIncomingOrderId || parseInt(currentOrder.orderNumber, 10);
       if (orderId) {
+        pollCount++;
         const liveStatus = await fetchPosterOrderStatus(orderId);
         if (liveStatus) {
           if (liveStatus.stepIndex > previousStep) {
@@ -93,20 +105,32 @@ export const OrderTrackerModal: React.FC = () => {
           if (liveStatus.stepIndex === 1) setMinutesLeft(35);
           else if (liveStatus.stepIndex === 2) setMinutesLeft(20);
           else if (liveStatus.stepIndex === 3) setMinutesLeft(10);
-          else if (liveStatus.stepIndex === 4) setMinutesLeft(0);
+          else if (liveStatus.stepIndex === 4) {
+            setMinutesLeft(0);
+            isCompleted = true; // Terminate polling
+            return;
+          }
         }
       }
+
+      scheduleNextPoll();
+    };
+
+    const scheduleNextPoll = () => {
+      if (isCompleted) return;
+      // Gentle progressive interval: 5s initially, 10s after 1 min, 15s after 3 mins
+      const delay = pollCount < 12 ? 5000 : pollCount < 30 ? 10000 : 15000;
+      timeoutId = setTimeout(pollStatus, delay);
     };
 
     pollStatus();
-    const interval = setInterval(pollStatus, 5000); // Poll every 5s for live POS updates
 
     const timer = setInterval(() => {
       setMinutesLeft(prev => Math.max(0, prev - 1));
     }, 60000);
 
     return () => {
-      clearInterval(interval);
+      if (timeoutId) clearTimeout(timeoutId);
       clearInterval(timer);
     };
   }, [isOrderTrackerOpen, currentOrder]);

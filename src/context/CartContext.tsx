@@ -270,6 +270,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
     const loadStopList = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const list = await fetchPosterStopList();
         if (isMounted) setStopList(new Set(list));
@@ -277,10 +278,24 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     loadStopList();
-    const interval = setInterval(loadStopList, 30000);
+    const interval = setInterval(loadStopList, 45000); // Poll every 45s when tab is active
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        loadStopList();
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
     return () => {
       isMounted = false;
       clearInterval(interval);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
     };
   }, []);
 
