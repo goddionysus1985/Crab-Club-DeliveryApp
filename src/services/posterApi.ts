@@ -150,9 +150,10 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     const floor = (order.address?.floor || '').trim();
     const doorphone = (order.address?.doorphone || '').trim();
 
-    const address1 = [street ? `вул. ${street}` : '', house ? `буд. ${house}` : ''].filter(Boolean).join(', ') || cleanCity;
+    const streetAndHouse = [street ? `вул. ${street}` : '', house ? `буд. ${house}` : ''].filter(Boolean).join(', ');
+    const address1 = [cleanCity, streetAndHouse].filter(Boolean).join(', ') || cleanCity;
     const address2 = [apartment ? `кв. ${apartment}` : '', floor ? `пов. ${floor}` : '', doorphone ? `код/домофон ${doorphone}` : ''].filter(Boolean).join(', ');
-    fullAddress = [cleanCity, address1, address2].filter(Boolean).join(', ');
+    fullAddress = [address1, address2].filter(Boolean).join(', ');
 
     client_address = {
       country: 'Україна',
