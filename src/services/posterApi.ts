@@ -320,13 +320,11 @@ export async function syncUserProfileToPoster(profile: {
   }
 }
 
-import { sendOrderToTelegram } from './telegramBot';
-
 // Idempotency cache: prevents double-orders from double clicks or network retries
 const idempotencyOrderCache = new Map<string, { incomingOrderId: number; timestamp: number }>();
 
 /**
- * Send order to Poster POS API with strict Idempotency, 7s Timeout & Telegram Fallback
+ * Send order to Poster POS API with strict Idempotency & 7s Timeout
  */
 export async function sendOrderToPoster(order: OrderDetails): Promise<{ success: boolean; posterIncomingOrderId?: number; message?: string }> {
   const idempotencyKey = `ORDER_${order.orderNumber}_${order.phone.replace(/\D/g, '')}`;
@@ -342,12 +340,12 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
     };
   }
 
-  // 1. Ensure live products list is available for accurate item resolution
+  // Ensure live products list is available for accurate item resolution
   await getLivePosterProductsList();
 
   const payload = buildPosterOrderPayload(order);
 
-  // 2. Primary Channel: Live Poster POS API with 7-second timeout
+  // Primary Channel: Live Poster POS API with 7-second timeout
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 7000);
@@ -366,17 +364,13 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
         signal: controller.signal
       });
 
-      let result: PosterApiResponse<{ incoming_order_id: number }> = await response.json();
+      const result: PosterApiResponse<{ incoming_order_id: number }> = await response.json();
       console.log('[Poster POS Dispatch Response] 📥 Відповідь Poster API:', result);
 
       if (result.response && result.response.incoming_order_id) {
         const orderId = result.response.incoming_order_id;
         idempotencyOrderCache.set(idempotencyKey, { incomingOrderId: orderId, timestamp: Date.now() });
-
-        // Also duplicate to Telegram for instant manager notification
-        sendOrderToTelegram(order, false).catch(err => console.warn('[Telegram Dispatch]', err));
-
-        console.info(`[Poster POS] ✅ Замовлення успішно створено в системі Poster! ID: #${orderId}`);
+        console.info(`[Poster POS] ✅ Замовлення успішно створено! ID: #${orderId}`);
         return {
           success: true,
           posterIncomingOrderId: orderId,
@@ -386,26 +380,23 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
         console.warn('[Poster POS] ⚠️ Помилка від Poster API:', result);
       }
     } catch (error: any) {
-      clearTimeout(timeoutId);
       console.warn('[Poster POS] ⚠️ Таймаут або помилка зв\'язку з Poster POS:', error);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
-  // 3. Graceful Fallback Channel: Direct Telegram Dispatcher + Local Queue
+  // Fallback: save to local queue for audit
   const fallbackOrderId = parseInt(order.orderNumber, 10) || Date.now() % 10000;
   idempotencyOrderCache.set(idempotencyKey, { incomingOrderId: fallbackOrderId, timestamp: Date.now() });
 
-  // Send to Telegram kitchen chat immediately
-  await sendOrderToTelegram(order, true);
-
-  // Save in local failed/offline queue for audit
   try {
     const queue = JSON.parse(localStorage.getItem('crabclub_orders_queue') || '[]');
     queue.push({ order, timestamp: Date.now() });
     localStorage.setItem('crabclub_orders_queue', JSON.stringify(queue.slice(-20)));
   } catch {}
 
-  console.info(`[Order Dispatched] 🚀 Замовлення #${order.orderNumber} успішно зафіксовано через резервний канал (0 втрачених замовлень)!`);
+  console.info(`[Order Dispatched] ⚠️ Poster POS недоступний — замовлення #${order.orderNumber} збережено локально.`);
 
   return {
     success: true,

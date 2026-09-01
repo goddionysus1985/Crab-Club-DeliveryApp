@@ -167,6 +167,5 @@ export interface UserProfile {
   totalSpent: number; // Total spent in UAH
   isLoggedIn?: boolean;
   isVerified?: boolean;
-  telegramUsername?: string;
   registeredAt?: string;
 }
