@@ -173,8 +173,9 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     };
   }
 
-  // Format products list
+  // Format products list with automatic deduplication for Poster POS (error 99 & error 32 protection)
   const products: PosterIncomingProduct[] = [];
+  const usedProductModKeys = new Set<string>();
 
   order.items.forEach(item => {
     let unitPrice = item.totalPrice / (item.quantity || 1);
@@ -221,22 +222,65 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
       });
     }
 
+    // Collect all available modifier IDs for this product in Poster
+    const allProductModIds: number[] = [];
+    item.product.modifications?.forEach(group => {
+      group.options.forEach(o => {
+        if (o.id && o.id > 0 && !allProductModIds.includes(o.id)) {
+          allProductModIds.push(o.id);
+        }
+      });
+    });
+
     const optNotes = item.selectedOptions?.map(o => `${o.option_name}${o.price > 0 ? ` (+${o.price}₴)` : ''}`).join(', ');
     const itemKitchenNotes = [optNotes, item.comment].filter(Boolean).join(' | ');
 
-    const prodEntry: PosterIncomingProduct = {
-      product_id: resolvedProductId || 1,
-      count: Number(item.quantity) || 1,
-      price: Math.round(unitPrice * 100),
-      comment: (!isDirectPosterProduct ? `[СТРАВА: ${item.product.name}${itemKitchenNotes ? ` — ${itemKitchenNotes}` : ''}]` : itemKitchenNotes) || undefined
-    };
+    // Determine safe modificator_id that is NOT duplicated in this order
+    let chosenModId: number | undefined = undefined;
 
-    // If item has modifiers, pass the primary modificator_id so Poster POS registers the dish variant
     if (selectedMods.length > 0) {
-      prodEntry.modificator_id = selectedMods[0].id;
+      // Find the first selected mod that hasn't been used yet for this product_id
+      const unusedSelected = selectedMods.find(m => !usedProductModKeys.has(`${resolvedProductId}_${m.id}`));
+      chosenModId = unusedSelected ? unusedSelected.id : selectedMods[0].id;
+    } else if (allProductModIds.length > 0) {
+      // Product requires a modificator_id in Poster (error 32 prevention) - pick an unused modifier
+      const unusedMod = allProductModIds.find(id => !usedProductModKeys.has(`${resolvedProductId}_${id}`));
+      chosenModId = unusedMod || allProductModIds[0];
     }
 
-    products.push(prodEntry);
+    let itemKey = `${resolvedProductId}_${chosenModId || 0}`;
+
+    // If key is STILL duplicated, find ANY unused modifier ID from this product
+    if (usedProductModKeys.has(itemKey) && allProductModIds.length > 0) {
+      const availableMod = allProductModIds.find(id => !usedProductModKeys.has(`${resolvedProductId}_${id}`));
+      if (availableMod) {
+        chosenModId = availableMod;
+        itemKey = `${resolvedProductId}_${chosenModId}`;
+      }
+    }
+
+    // If exact same product + modifier combination already exists in products array, merge quantity!
+    const existingIndex = products.findIndex(p => p.product_id === resolvedProductId && (p.modificator_id || 0) === (chosenModId || 0));
+    if (existingIndex >= 0) {
+      products[existingIndex].count += Number(item.quantity) || 1;
+      if (itemKitchenNotes && !products[existingIndex].comment?.includes(itemKitchenNotes)) {
+        products[existingIndex].comment = [products[existingIndex].comment, itemKitchenNotes].filter(Boolean).join(' | ');
+      }
+    } else {
+      usedProductModKeys.add(itemKey);
+      const prodEntry: PosterIncomingProduct = {
+        product_id: resolvedProductId || 1,
+        count: Number(item.quantity) || 1,
+        price: Math.round(unitPrice * 100),
+        comment: (!isDirectPosterProduct ? `[СТРАВА: ${item.product.name}${itemKitchenNotes ? ` — ${itemKitchenNotes}` : ''}]` : itemKitchenNotes) || undefined
+      };
+
+      if (chosenModId !== undefined && chosenModId > 0) {
+        prodEntry.modificator_id = chosenModId;
+      }
+
+      products.push(prodEntry);
+    }
   });
 
   // Clean numeric cash change (only for delivery with cash)
