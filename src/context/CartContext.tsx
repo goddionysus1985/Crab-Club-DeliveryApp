@@ -218,6 +218,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return updated;
       });
 
+      // ── Reset tracking step & timestamps for this fresh order ──────────────
+      // Only reset if this is a genuinely NEW order (not an update to the same one)
+      const prevOrder = (() => {
+        try { return JSON.parse(localStorage.getItem('crabclub_last_order') || 'null'); } catch { return null; }
+      })();
+      const isNewOrder = !prevOrder || prevOrder.orderId !== order.orderId;
+      if (isNewOrder) {
+        const now = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+        const freshTimestamps = { 1: now };
+        setOrderTrackingStep(1);
+        setStepTimestamps(freshTimestamps);
+        try { localStorage.setItem('crabclub_step_timestamps', JSON.stringify(freshTimestamps)); } catch {}
+      }
+
       // Update cashback and bonus balance without overwriting permanent profile address
       const newBonusBalance = Math.max(0, userProfile.bonusBalance - (order.bonusUsed || 0) + (order.bonusEarned || 0));
       const newTotalSpent = (userProfile.totalSpent || 0) + order.total;
@@ -234,23 +248,26 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const [orderTrackingStep, setOrderTrackingStep] = useState<number>(() => {
-    if (currentOrder) {
-      if (currentOrder.status === 'completed') return 4;
-      const n1 = getHighestNotifiedStep(currentOrder.orderNumber);
-      const n2 = currentOrder.posterIncomingOrderId ? getHighestNotifiedStep(currentOrder.posterIncomingOrderId) : 0;
-      return Math.max(n1, n2, 1);
-    }
+    if (currentOrder && currentOrder.status === 'completed') return 4;
+    // For active orders, start at 1 — the background polling will advance it
     return 1;
   });
 
-  // Timestamps for each completed step { 1: '14:20', 2: '14:35', ... }
+  // Timestamps for each completed step — keyed to the current order ID to prevent cross-order bleed
   const [stepTimestamps, setStepTimestamps] = useState<Record<number, string>>(() => {
     try {
-      const saved = localStorage.getItem('crabclub_step_timestamps');
-      return saved ? JSON.parse(saved) : { 1: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) };
-    } catch {
-      return { 1: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) };
-    }
+      const savedOrder = localStorage.getItem('crabclub_last_order');
+      const savedTimestamps = localStorage.getItem('crabclub_step_timestamps');
+      if (savedOrder && savedTimestamps) {
+        const order = JSON.parse(savedOrder);
+        // Only restore timestamps if they belong to the same order and it was completed
+        if (order && order.status === 'completed') {
+          return JSON.parse(savedTimestamps);
+        }
+      }
+    } catch {}
+    // Fresh order — only step 1 with current time
+    return { 1: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) };
   });
 
   const recordStepTimestamp = (step: number) => {

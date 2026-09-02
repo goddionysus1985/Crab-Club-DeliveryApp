@@ -18,8 +18,6 @@ import { useCart } from '../context/CartContext';
 import { RESTAURANT_INFO } from '../data/menuData';
 import { fetchPosterOrderStatus, getPosterClientByPhone } from '../services/posterApi';
 import { 
-  getHighestNotifiedStep, 
-  setHighestNotifiedStep, 
   playOrderSuccessChime, 
   sendBrowserNotification,
   requestNotificationPermission 
@@ -37,14 +35,10 @@ export const OrderTrackerModal: React.FC = () => {
     stepTimestamps
   } = useCart();
 
+  // currentStep is driven by orderTrackingStep from CartContext (which resets to 1 on new orders)
   const [currentStep, setCurrentStep] = useState<number>(() => {
-    if (currentOrder) {
-      if (currentOrder.status === 'completed') return 4;
-      const n1 = getHighestNotifiedStep(currentOrder.orderNumber);
-      const n2 = currentOrder.posterIncomingOrderId ? getHighestNotifiedStep(currentOrder.posterIncomingOrderId) : 0;
-      return Math.max(n1, n2, orderTrackingStep || 1);
-    }
-    return orderTrackingStep || 1;
+    if (currentOrder?.status === 'completed') return 4;
+    return Math.max(orderTrackingStep || 1, 1);
   });
 
   const [liveServiceMode, setLiveServiceMode] = useState<number | null>(null);
