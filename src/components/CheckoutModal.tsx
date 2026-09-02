@@ -14,7 +14,9 @@ import {
   UtensilsCrossed,
   ArrowRight,
   Info,
-  Moon
+  Moon,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
@@ -111,6 +113,8 @@ export const CheckoutModal: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOnlinePayOpen, setIsOnlinePayOpen] = useState(false);
   const [pendingOrderDetails, setPendingOrderDetails] = useState<OrderDetails | null>(null);
+  const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
+  const [isPaymentDropdownOpen, setIsPaymentDropdownOpen] = useState(false);
 
   // Exact Official Delivery Zone Tariff Calculator
   const getZoneDeliveryDetails = (selectedCity: string, sub: number) => {
@@ -550,36 +554,78 @@ export const CheckoutModal: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Delivery Time Select */}
-                    <div className="p-3 rounded-xl bg-[#181824] border border-white/[0.08] flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5 text-xs text-zinc-300 min-w-0">
-                        <Clock className="w-4 h-4 text-zinc-400 shrink-0" />
-                        <select
-                          value={deliveryTimeType === 'asap' ? 'asap' : scheduledTime}
-                          onChange={(e) => {
-                            if (e.target.value === 'asap') {
-                              setDeliveryTimeType('asap');
-                            } else {
-                              setDeliveryTimeType('scheduled');
-                              setScheduledTime(e.target.value);
-                            }
-                          }}
-                          className="bg-transparent text-white text-xs font-medium focus:outline-none cursor-pointer truncate"
-                        >
-                          <option value="asap" className="bg-[#181824] text-white">Доставити швидше (~ 40-50 хв)</option>
-                          <option value="12:00" className="bg-[#181824] text-white">На час: 12:00</option>
-                          <option value="13:00" className="bg-[#181824] text-white">На час: 13:00</option>
-                          <option value="14:00" className="bg-[#181824] text-white">На час: 14:00</option>
-                          <option value="15:00" className="bg-[#181824] text-white">На час: 15:00</option>
-                          <option value="16:00" className="bg-[#181824] text-white">На час: 16:00</option>
-                          <option value="17:00" className="bg-[#181824] text-white">На час: 17:00</option>
-                          <option value="18:00" className="bg-[#181824] text-white">На час: 18:00</option>
-                          <option value="19:00" className="bg-[#181824] text-white">На час: 19:00</option>
-                          <option value="20:00" className="bg-[#181824] text-white">На час: 20:00</option>
-                          <option value="21:00" className="bg-[#181824] text-white">На час: 21:00</option>
-                        </select>
-                      </div>
-                      <span className="text-zinc-500 text-xs shrink-0">▼</span>
+                    {/* Custom Delivery Time Selector */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsTimeDropdownOpen(!isTimeDropdownOpen);
+                          setIsPaymentDropdownOpen(false);
+                        }}
+                        className="w-full p-3 rounded-xl bg-[#181824] hover:bg-[#1f1f2e] border border-white/[0.08] flex items-center justify-between gap-3 text-left transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 text-xs text-zinc-200 min-w-0">
+                          <Clock className="w-4 h-4 text-rose-400 shrink-0" />
+                          <span className="font-medium truncate">
+                            {deliveryTimeType === 'asap' ? 'Доставити швидше (~ 40–50 хв)' : `Заплановано на час: ${scheduledTime}`}
+                          </span>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 text-zinc-400 shrink-0 transition-transform duration-200 ${isTimeDropdownOpen ? 'rotate-180 text-rose-400' : ''}`} />
+                      </button>
+
+                      <AnimatePresence>
+                        {isTimeDropdownOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-[#161622] border border-white/10 rounded-2xl p-2.5 shadow-2xl backdrop-blur-2xl space-y-2"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDeliveryTimeType('asap');
+                                setIsTimeDropdownOpen(false);
+                              }}
+                              className={`w-full px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-all ${
+                                deliveryTimeType === 'asap'
+                                  ? 'bg-[#9f1239] text-white font-semibold shadow-sm'
+                                  : 'text-zinc-300 hover:bg-white/5 hover:text-white'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span>🚀 Доставити швидше (~ 40–50 хв)</span>
+                              </div>
+                              {deliveryTimeType === 'asap' && <Check className="w-4 h-4 text-white" />}
+                            </button>
+
+                            <div className="pt-2 border-t border-white/[0.06] px-1">
+                              <div className="text-[11px] text-zinc-400 font-medium mb-1.5">Або обрати конкретний час:</div>
+                              <div className="grid grid-cols-4 gap-1.5">
+                                {['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'].map(t => (
+                                  <button
+                                    key={t}
+                                    type="button"
+                                    onClick={() => {
+                                      setDeliveryTimeType('scheduled');
+                                      setScheduledTime(t);
+                                      setIsTimeDropdownOpen(false);
+                                    }}
+                                    className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all text-center ${
+                                      deliveryTimeType === 'scheduled' && scheduledTime === t
+                                        ? 'bg-[#9f1239] text-white shadow-sm'
+                                        : 'bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white'
+                                    }`}
+                                  >
+                                    {t}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
                 )}
@@ -610,20 +656,91 @@ export const CheckoutModal: React.FC = () => {
               <div className="space-y-2 pt-1">
                 <label className="text-xs font-bold text-zinc-300">Оплата</label>
                 
-                <div className="p-3 rounded-xl bg-[#181824] border border-white/[0.08] flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 text-xs text-zinc-300 min-w-0">
-                    <CreditCard className="w-4 h-4 text-zinc-400 shrink-0" />
-                    <select
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value as any)}
-                      className="bg-transparent text-white text-xs font-medium focus:outline-none cursor-pointer truncate"
-                    >
-                      <option value="card_courier" className="bg-[#181824] text-white">Карткою під час отримання (термінал)</option>
-                      <option value="cash" className="bg-[#181824] text-white">Готівкою під час отримання</option>
-                      <option value="card_online" className="bg-[#181824] text-white">Оплата онлайн (Apple Pay / Картка)</option>
-                    </select>
-                  </div>
-                  <span className="text-zinc-500 text-xs shrink-0">▼</span>
+                {/* Custom Payment Dropdown */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsPaymentDropdownOpen(!isPaymentDropdownOpen);
+                      setIsTimeDropdownOpen(false);
+                    }}
+                    className="w-full p-3 rounded-xl bg-[#181824] hover:bg-[#1f1f2e] border border-white/[0.08] flex items-center justify-between gap-3 text-left transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5 text-xs text-zinc-200 min-w-0">
+                      {paymentMethod === 'card_online' && <Smartphone className="w-4 h-4 text-emerald-400 shrink-0" />}
+                      {paymentMethod === 'card_courier' && <CreditCard className="w-4 h-4 text-amber-400 shrink-0" />}
+                      {paymentMethod === 'cash' && <Banknote className="w-4 h-4 text-purple-400 shrink-0" />}
+                      <span className="font-medium truncate">
+                        {paymentMethod === 'card_online' && 'Оплата онлайн (Apple Pay / Картка)'}
+                        {paymentMethod === 'card_courier' && (orderType === 'takeaway' ? 'Карткою на касі' : orderType === 'dinein' ? 'Карткою в закладі' : 'Карткою під час отримання (термінал)')}
+                        {paymentMethod === 'cash' && (orderType === 'takeaway' ? 'Готівкою на касі' : orderType === 'dinein' ? 'Готівкою в закладі' : 'Готівкою під час отримання')}
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-zinc-400 shrink-0 transition-transform duration-200 ${isPaymentDropdownOpen ? 'rotate-180 text-rose-400' : ''}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {isPaymentDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-[#161622] border border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-2xl space-y-1"
+                      >
+                        {[
+                          {
+                            id: 'card_courier' as const,
+                            label: orderType === 'takeaway' ? 'Карткою на касі' : orderType === 'dinein' ? 'Карткою в закладі' : 'Карткою під час отримання',
+                            sub: 'Термінал оплати при отриманні',
+                            icon: CreditCard,
+                            iconColor: 'text-amber-400'
+                          },
+                          {
+                            id: 'cash' as const,
+                            label: orderType === 'takeaway' ? 'Готівкою на касі' : orderType === 'dinein' ? 'Готівкою в закладі' : 'Готівкою під час отримання',
+                            sub: 'Оплата готівкою кур\'єру',
+                            icon: Banknote,
+                            iconColor: 'text-purple-400'
+                          },
+                          {
+                            id: 'card_online' as const,
+                            label: 'Оплата онлайн',
+                            sub: 'Apple Pay / Google Pay / Картка',
+                            icon: Smartphone,
+                            iconColor: 'text-emerald-400'
+                          }
+                        ].map(opt => {
+                          const isSel = paymentMethod === opt.id;
+                          const IconComp = opt.icon;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => {
+                                setPaymentMethod(opt.id);
+                                setIsPaymentDropdownOpen(false);
+                              }}
+                              className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between gap-3 transition-all ${
+                                isSel
+                                  ? 'bg-[#9f1239] text-white shadow-sm'
+                                  : 'text-zinc-300 hover:bg-white/5 hover:text-white'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <IconComp className={`w-4 h-4 shrink-0 ${isSel ? 'text-white' : opt.iconColor}`} />
+                                <div className="min-w-0">
+                                  <div className="text-xs font-semibold truncate">{opt.label}</div>
+                                  <div className={`text-[10px] truncate ${isSel ? 'text-rose-200' : 'text-zinc-400'}`}>{opt.sub}</div>
+                                </div>
+                              </div>
+                              {isSel && <Check className="w-4 h-4 text-white shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {paymentMethod === 'cash' && (
