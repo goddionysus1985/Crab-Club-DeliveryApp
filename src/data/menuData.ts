@@ -1,5 +1,5 @@
 // Auto-generated & Live Synchronized from Poster POS API
-// Generated at: 2026-09-01T22:24:44.254Z
+// Generated at: 2026-09-02T15:17:34.816Z
 import { Category, Product, RestaurantInfo, Banner, Review } from '../types';
 
 export const RESTAURANT_INFO: RestaurantInfo = {
@@ -104,7 +104,7 @@ export const PRODUCTS: Product[] = [
     "category_pos_id": 4,
     "category_name": "бургер меню",
     "category_url": "burger-menyu",
-    "price": 25,
+    "price": 35,
     "weight": "1 порція",
     "ingredients": "",
     "description_raw": "",
@@ -115,18 +115,8 @@ export const PRODUCTS: Product[] = [
         "group_name": "Додаткові інгредієнти / Модифікатори",
         "type": 1,
         "min": 0,
-        "max": 3,
+        "max": 1,
         "options": [
-          {
-            "id": 2,
-            "name": "+ котлета",
-            "price": 25
-          },
-          {
-            "id": 3,
-            "name": "+ сир",
-            "price": 10
-          },
           {
             "id": 4,
             "name": "+ соус",
@@ -183,6 +173,44 @@ export const PRODUCTS: Product[] = [
     "ingredients": "",
     "description_raw": "",
     "image": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": 12,
+    "name": "Бургер цезар",
+    "category_pos_id": 4,
+    "category_name": "бургер меню",
+    "category_url": "burger-menyu",
+    "price": 150,
+    "weight": "1 порція",
+    "ingredients": "",
+    "description_raw": "",
+    "image": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop&q=80",
+    "modifications": [
+      {
+        "group_id": 1,
+        "group_name": "Додатки до бургерів",
+        "type": 2,
+        "min": 0,
+        "max": 999,
+        "options": [
+          {
+            "id": 1,
+            "name": "Сир чедер",
+            "price": 15
+          },
+          {
+            "id": 2,
+            "name": "Фірмовий соус",
+            "price": 15
+          },
+          {
+            "id": 3,
+            "name": "Котлета для бургера",
+            "price": 25
+          }
+        ]
+      }
+    ]
   },
   {
     "id": 9,

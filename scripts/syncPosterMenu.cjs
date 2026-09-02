@@ -87,33 +87,41 @@ function mapProduct(raw, categoryMap) {
   // Modifications parsing
   const modificationGroups = [];
   if (Array.isArray(raw.group_modifications) && raw.group_modifications.length > 0) {
-    raw.group_modifications.forEach(group => {
+    raw.group_modifications.forEach((group, gIdx) => {
       if (Array.isArray(group.modifications) && group.modifications.length > 0) {
-        const options = group.modifications.map(mod => {
+        const options = group.modifications.map((mod, mIdx) => {
           let modPrice = 0;
-          if (mod.spots && Array.isArray(mod.spots)) {
+          if (mod.spots && Array.isArray(mod.spots) && mod.spots.length > 0) {
             const sInfo = mod.spots.find(s => Number(s.spot_id) === SPOT_ID) || mod.spots[0];
-            if (sInfo && sInfo.price) modPrice = Number(sInfo.price) / 100;
-          } else if (mod.price) {
-            modPrice = Number(mod.price) / 100;
-          } else if (mod.modificator_selfprice) {
-            modPrice = Number(mod.modificator_selfprice) / 100;
+            if (sInfo && sInfo.price) {
+              const rawP = Number(sInfo.price);
+              modPrice = rawP >= 100 ? rawP / 100 : rawP;
+            }
+          } else if (mod.price !== undefined && mod.price !== null) {
+            const rawP = Number(mod.price);
+            modPrice = rawP >= 100 ? rawP / 100 : rawP;
+          } else if (mod.modificator_selfprice !== undefined) {
+            const rawP = Number(mod.modificator_selfprice);
+            modPrice = rawP >= 100 ? rawP / 100 : rawP;
           }
+          const modId = Number(mod.dish_modification_id || mod.modificator_id || mod.modification_id || mod.id || (gIdx * 100 + mIdx + 1));
           return {
-            id: Number(mod.modificator_id || mod.modification_id || mod.id),
-            name: String(mod.modificator_name || mod.name || 'Опція'),
+            id: modId,
+            name: String(mod.name || mod.modificator_name || `Опція ${mIdx + 1}`).trim(),
             price: Math.round(modPrice)
           };
-        });
+        }).filter(o => Boolean(o.name));
 
-        modificationGroups.push({
-          group_id: Number(group.dish_modification_group_id || group.group_id || group.id || 1),
-          group_name: String(group.name || group.group_name || 'Оберіть варіант'),
-          type: Number(group.type || (Number(group.max || 1) > 1 ? 2 : 1)),
-          min: Number(group.min || (Number(group.is_required || 0) === 1 ? 1 : 0)),
-          max: Number(group.max || options.length),
-          options
-        });
+        if (options.length > 0) {
+          modificationGroups.push({
+            group_id: Number(group.dish_modification_group_id || group.group_id || group.id || (gIdx + 1)),
+            group_name: String(group.name || group.group_name || 'Додаткові інгредієнти').trim(),
+            type: Number(group.type || 2),
+            min: Number(group.num_min || group.min || 0),
+            max: Number(group.num_max || group.max || options.length),
+            options
+          });
+        }
       }
     });
   }

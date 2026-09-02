@@ -256,29 +256,29 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     };
   }
 
-  // Format products list with full modifier fidelity for Poster POS
-  const productEntriesMap = new Map<string, PosterIncomingProduct>();
+  // Format products list with full group & simple modifier fidelity for Poster POS
+  const products: PosterIncomingProduct[] = [];
 
   order.items.forEach(item => {
     const qty = Number(item.quantity) || 1;
+    let unitPrice = item.totalPrice / qty;
+    if (isNaN(unitPrice) || unitPrice < 0) {
+      unitPrice = Number(item.product.price);
+    }
+
     let resolvedProductId = Number(item.product.id);
     const itemNameNorm = (item.product.name || '').toLowerCase().trim();
     let isDirectPosterProduct = false;
+    let livePosterItem: any = undefined;
 
     if (livePosterProductsCache.length > 0) {
-      const exactMatch = livePosterProductsCache.find(p => Number(p.product_id) === resolvedProductId);
-      if (exactMatch) {
+      livePosterItem = livePosterProductsCache.find(p => Number(p.product_id) === resolvedProductId) ||
+                       livePosterProductsCache.find(p => p.product_name.toLowerCase().trim() === itemNameNorm) ||
+                       livePosterProductsCache.find(p => p.product_name.toLowerCase().includes(itemNameNorm) || itemNameNorm.includes(p.product_name.toLowerCase()));
+      if (livePosterItem) {
+        resolvedProductId = Number(livePosterItem.product_id);
         isDirectPosterProduct = true;
       } else {
-        const nameMatch = livePosterProductsCache.find(p => p.product_name.toLowerCase().trim() === itemNameNorm) ||
-                          livePosterProductsCache.find(p => p.product_name.toLowerCase().includes(itemNameNorm) || itemNameNorm.includes(p.product_name.toLowerCase()));
-        if (nameMatch) {
-          resolvedProductId = Number(nameMatch.product_id);
-          isDirectPosterProduct = true;
-        }
-      }
-
-      if (!isDirectPosterProduct) {
         const fallbackPosterItem = livePosterProductsCache.find(p => Number(p.product_id) === 6) || livePosterProductsCache[0];
         if (fallbackPosterItem) {
           resolvedProductId = Number(fallbackPosterItem.product_id);
@@ -286,57 +286,109 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
       }
     }
 
-    // Match all selected modifiers from the product definition
-    const selectedMods: ModificationOption[] = [];
-    if (item.selectedOptions && item.selectedOptions.length > 0) {
-      item.selectedOptions.forEach(opt => {
-        item.product.modifications?.forEach(group => {
-          const matched = group.options.find(o => o.name === opt.option_name || String(o.id) === String(opt.option_name));
-          if (matched && matched.id > 0) {
-            selectedMods.push(matched);
+    // Check if this product uses Group Modifications (e.g. Type 2 with group_modifications) or Simple Modifications (Type 3 with modifications)
+    const hasGroupMods = (livePosterItem && Array.isArray(livePosterItem.group_modifications) && livePosterItem.group_modifications.length > 0) ||
+                         (item.product.modifications && item.product.modifications.some(g => g.type === 2 || (g.max && g.max > 1) || g.group_name?.includes('Додатки')));
+
+    const hasSimpleMods = (livePosterItem && Array.isArray(livePosterItem.modifications) && livePosterItem.modifications.length > 0) ||
+                          (item.product.modifications && item.product.modifications.some(g => g.type === 1 && (!g.max || g.max <= 1)));
+
+    if (hasGroupMods) {
+      // Group Modifications: attach modification array [{ m, a }] to the dish
+      const groupModArray: Array<{ m: number; a: number }> = [];
+
+      if (item.selectedOptions && item.selectedOptions.length > 0) {
+        item.selectedOptions.forEach(opt => {
+          let modId: number | undefined = undefined;
+
+          // 1. Search in live poster item group modifications
+          if (livePosterItem && Array.isArray(livePosterItem.group_modifications)) {
+            livePosterItem.group_modifications.forEach((group: any) => {
+              const matched = (group.modifications || []).find((m: any) => 
+                m.name?.toLowerCase().trim() === opt.option_name.toLowerCase().trim() ||
+                String(m.dish_modification_id) === String(opt.option_name)
+              );
+              if (matched && matched.dish_modification_id) {
+                modId = Number(matched.dish_modification_id);
+              }
+            });
+          }
+
+          // 2. Fallback search in product definition
+          if (!modId) {
+            item.product.modifications?.forEach(group => {
+              const matched = group.options.find(o => 
+                o.name.toLowerCase().trim() === opt.option_name.toLowerCase().trim() ||
+                String(o.id) === String(opt.option_name)
+              );
+              if (matched && matched.id > 0) {
+                modId = matched.id;
+              }
+            });
+          }
+
+          if (modId) {
+            groupModArray.push({ m: modId, a: 1 });
           }
         });
-      });
-    }
-
-    if (selectedMods.length > 0) {
-      // Send every selected modifier option directly as a named modification line in Poster
-      selectedMods.forEach(mod => {
-        const modKey = `${resolvedProductId}_${mod.id}`;
-        const modPrice = mod.price ? Math.round(mod.price * 100) : 0;
-        if (productEntriesMap.has(modKey)) {
-          productEntriesMap.get(modKey)!.count += qty;
-        } else {
-          productEntriesMap.set(modKey, {
-            product_id: resolvedProductId || 1,
-            modificator_id: mod.id,
-            count: qty,
-            price: modPrice
-          });
-        }
-      });
-    } else {
-      // Standard product without extra modifiers
-      // In Poster POS, if a dish is a variant group (e.g. ID 11) that requires a base ID (ID 6), use ID 6
-      let baseProdId = resolvedProductId;
-      if (resolvedProductId === 11) {
-        baseProdId = 6;
       }
-      const baseKey = `${baseProdId}_0`;
-      const basePrice = Math.round(Number(item.product.price) * 100);
-      if (productEntriesMap.has(baseKey)) {
-        productEntriesMap.get(baseKey)!.count += qty;
-      } else {
-        productEntriesMap.set(baseKey, {
-          product_id: baseProdId || 1,
-          count: qty,
-          price: basePrice
+
+      products.push({
+        product_id: resolvedProductId || 1,
+        count: qty,
+        price: Math.round(unitPrice * 100),
+        modification: groupModArray.length > 0 ? groupModArray : undefined
+      });
+    } else if (hasSimpleMods) {
+      // Simple Modifications (Variant products): pass single modificator_id
+      let chosenModId: number | undefined = undefined;
+
+      if (item.selectedOptions && item.selectedOptions.length > 0) {
+        item.selectedOptions.forEach(opt => {
+          if (livePosterItem && Array.isArray(livePosterItem.modifications)) {
+            const matched = livePosterItem.modifications.find((m: any) =>
+              m.modificator_name?.toLowerCase().trim() === opt.option_name.toLowerCase().trim() ||
+              String(m.modificator_id) === String(opt.option_name)
+            );
+            if (matched && matched.modificator_id) {
+              chosenModId = Number(matched.modificator_id);
+            }
+          }
+
+          if (!chosenModId) {
+            item.product.modifications?.forEach(group => {
+              const matched = group.options.find(o => 
+                o.name.toLowerCase().trim() === opt.option_name.toLowerCase().trim() ||
+                String(o.id) === String(opt.option_name)
+              );
+              if (matched && matched.id > 0) {
+                chosenModId = matched.id;
+              }
+            });
+          }
         });
       }
+
+      const prodEntry: PosterIncomingProduct = {
+        product_id: resolvedProductId || 1,
+        count: qty,
+        price: Math.round(unitPrice * 100)
+      };
+
+      if (chosenModId !== undefined && chosenModId > 0) {
+        prodEntry.modificator_id = chosenModId;
+      }
+
+      products.push(prodEntry);
+    } else {
+      // Standard product without modifications
+      products.push({
+        product_id: resolvedProductId || 1,
+        count: qty,
+        price: Math.round(unitPrice * 100)
+      });
     }
   });
-
-  const products = Array.from(productEntriesMap.values());
 
   // Clean numeric cash change (only for delivery with cash)
   const rawChange = String(order.cashChangeFrom || '').replace(/[^\d]/g, '');
