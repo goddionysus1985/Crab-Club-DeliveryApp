@@ -592,8 +592,8 @@ export const CheckoutModal: React.FC = () => {
                       <span className="font-medium truncate">
                         {deliveryTimeType === 'asap'
                           ? (orderType === 'delivery'
-                              ? 'Доставити швидше (~ 40–50 хв)'
-                              : 'Приготувати якнайшвидше (~ 15–25 хв)')
+                              ? 'Доставити якнайшвидше'
+                              : 'Приготувати якнайшвидше')
                           : (orderType === 'delivery'
                               ? `Доставити на час: ${scheduledTime}`
                               : orderType === 'takeaway'
@@ -628,8 +628,8 @@ export const CheckoutModal: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <span>
                               {orderType === 'delivery'
-                                ? '🚀 Доставити швидше (~ 40–50 хв)'
-                                : '⚡ Приготувати якнайшвидше (~ 15–25 хв)'}
+                                ? '🚀 Доставити якнайшвидше'
+                                : '⚡ Приготувати якнайшвидше'}
                             </span>
                           </div>
                           {deliveryTimeType === 'asap' && <Check className="w-4 h-4 text-white" />}
