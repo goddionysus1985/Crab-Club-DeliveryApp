@@ -225,11 +225,6 @@ export const Header: React.FC = () => {
               <span className="text-xs font-medium text-zinc-300 hover:text-white max-w-[90px] truncate">
                 {userProfile.name || 'Кабінет'}
               </span>
-              {orderHistory.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold flex items-center justify-center ring-2 ring-[#0B0B0F]">
-                  {orderHistory.length}
-                </span>
-              )}
             </button>
 
             {/* Favorites Button (Desktop only) */}
@@ -309,11 +304,6 @@ export const Header: React.FC = () => {
                     </span>
                   </div>
                 </div>
-                {orderHistory.length > 0 && (
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black">
-                    {orderHistory.length}
-                  </span>
-                )}
               </button>
 
               <a
