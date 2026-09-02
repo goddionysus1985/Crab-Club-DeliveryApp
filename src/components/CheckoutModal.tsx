@@ -1004,21 +1004,47 @@ export const CheckoutModal: React.FC = () => {
               {/* Price Breakdown */}
               <div className="pt-2 space-y-1.5 text-xs text-zinc-400">
                 <div className="flex justify-between items-center">
-                  <span>Сума замовлення:</span>
-                  <span className="font-bold text-white text-sm">{subtotal - discount - bonusDeductible} грн</span>
+                  <span>Страви ({cart.reduce((s, i) => s + i.quantity, 0)} шт.):</span>
+                  <span className="font-bold text-white text-sm">{subtotal} грн</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span>Знижка:</span>
+                    <span className="font-bold text-emerald-400 text-sm">−{discount} грн</span>
+                  </div>
+                )}
+                {bonusDeductible > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span>Бонуси списано:</span>
+                    <span className="font-bold text-amber-400 text-sm">−{bonusDeductible} грн</span>
+                  </div>
+                )}
                 {orderType === 'delivery' && (
                   <div className="flex justify-between items-center">
-                    <span>Доставлення:</span>
-                    <span className="font-bold text-white text-sm">
+                    <span>Доставка ({zoneDetails.zoneName}):</span>
+                    <span className={`font-bold text-sm ${finalDeliveryFee === 0 ? 'text-emerald-400' : 'text-white'}`}>
                       {finalDeliveryFee === 0 ? (
-                        <span className="text-emerald-400">Безкоштовно</span>
+                        <span>Безкоштовно 🎉</span>
                       ) : (
                         `${finalDeliveryFee} грн`
                       )}
                     </span>
                   </div>
                 )}
+                {orderType === 'delivery' && finalDeliveryFee === 0 && zoneDetails.basePrice > 0 && (
+                  <div className="text-[10px] text-emerald-400/70 text-right">
+                    Безкоштовна доставка від {zoneDetails.threshold} грн ✓
+                  </div>
+                )}
+                {orderType === 'delivery' && finalDeliveryFee > 0 && (
+                  <div className="text-[10px] text-zinc-500 text-right">
+                    Безкоштовно від {zoneDetails.threshold} грн (ще {zoneDetails.threshold - subtotal + discount} грн)
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-1 border-t border-white/[0.08]">
+                  <span className="font-bold text-white">Разом до сплати:</span>
+                  <span className="font-bold text-amber-400 text-base">{finalTotal} грн</span>
+                </div>
               </div>
 
               {/* Big Dark Red CTA Button (Matching Target Image) */}

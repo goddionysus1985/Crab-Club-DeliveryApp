@@ -82,16 +82,35 @@ export function playOrderSuccessChime() {
 
 /**
  * Native Browser Push / System Notification
+ * Uses SW registration.showNotification() when available (works in background tab),
+ * falls back to new Notification() for unsupported browsers.
  */
 export function sendBrowserNotification(title: string, body: string) {
   try {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'granted') {
-        new Notification(title, {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+
+    const icon = 'https://img.postershop.me/21253/48ff3a5a-f1f0-4892-8331-602d1b6620bb_image.png';
+
+    // Prefer SW showNotification — visible even when tab is backgrounded/minimized
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification(title, {
           body,
-          icon: 'https://img.postershop.me/21253/48ff3a5a-f1f0-4892-8331-602d1b6620bb_image.png'
-        });
-      }
+          icon,
+          badge: icon,
+          tag: 'crabclub-order-status',
+          renotify: true,
+          requireInteraction: false,
+          vibrate: [100, 50, 150]
+        } as NotificationOptions);
+      }).catch(() => {
+        // Fallback to classic Notification API
+        new Notification(title, { body, icon });
+      });
+    } else {
+      // Classic Notification API fallback (tab must be open)
+      new Notification(title, { body, icon });
     }
   } catch {}
 }

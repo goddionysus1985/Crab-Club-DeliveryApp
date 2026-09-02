@@ -97,6 +97,7 @@ interface CartContextType {
   orderHistory: OrderDetails[];
   orderTrackingStep: number;
   setOrderTrackingStep: (step: number) => void;
+  stepTimestamps: Record<number, string>;
 
   // Wishlist
   favorites: number[];
@@ -242,6 +243,25 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return 1;
   });
 
+  // Timestamps for each completed step { 1: '14:20', 2: '14:35', ... }
+  const [stepTimestamps, setStepTimestamps] = useState<Record<number, string>>(() => {
+    try {
+      const saved = localStorage.getItem('crabclub_step_timestamps');
+      return saved ? JSON.parse(saved) : { 1: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) };
+    } catch {
+      return { 1: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) };
+    }
+  });
+
+  const recordStepTimestamp = (step: number) => {
+    const time = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+    setStepTimestamps(prev => {
+      const updated = { ...prev, [step]: time };
+      try { localStorage.setItem('crabclub_step_timestamps', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
   // Global background order status tracking (runs continuously, even when OrderTrackerModal is closed!)
   useEffect(() => {
     if (!currentOrder) return;
@@ -278,8 +298,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           if (newStep > highestNotified) {
-            // New forward step reached!
+            // New forward step reached — record timestamp
             highestNotified = newStep;
+            recordStepTimestamp(newStep);
             setHighestNotifiedStep(currentOrder.orderNumber, newStep);
             setHighestNotifiedStep(orderId, newStep);
             if (liveStatus.transaction_id) {
@@ -394,7 +415,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     loadStopList();
-    const interval = setInterval(loadStopList, 45000); // Poll every 45s when tab is active
+    const interval = setInterval(loadStopList, 300000); // Poll every 5 min — sufficient for kitchen stop-list changes
 
     const handleVisibilityChange = () => {
       if (typeof document !== 'undefined' && !document.hidden) {
@@ -811,6 +832,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         orderHistory,
         orderTrackingStep,
         setOrderTrackingStep,
+        stepTimestamps,
         favorites,
         toggleFavorite,
         isFavorite,

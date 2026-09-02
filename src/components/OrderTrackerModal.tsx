@@ -11,7 +11,8 @@ import {
   Store,
   Star,
   UtensilsCrossed,
-  Sparkles
+  Sparkles,
+  Clock
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { RESTAURANT_INFO } from '../data/menuData';
@@ -32,7 +33,8 @@ export const OrderTrackerModal: React.FC = () => {
     showToast, 
     updateUserProfile,
     orderTrackingStep,
-    setOrderTrackingStep
+    setOrderTrackingStep,
+    stepTimestamps
   } = useCart();
 
   const [currentStep, setCurrentStep] = useState<number>(() => {
@@ -245,6 +247,7 @@ export const OrderTrackerModal: React.FC = () => {
                     const Icon = step.icon;
                     const isPassed = step.id <= currentStep;
                     const isCurrent = step.id === currentStep;
+                    const stepTime = stepTimestamps?.[step.id];
 
                     return (
                       <motion.div
@@ -276,6 +279,16 @@ export const OrderTrackerModal: React.FC = () => {
                         <div className="text-[10px] text-zinc-400 leading-tight">
                           {step.desc}
                         </div>
+
+                        {/* Time label when step was reached */}
+                        {isPassed && stepTime && (
+                          <div className={`flex items-center gap-1 mt-1.5 text-[10px] font-semibold ${
+                            isCurrent ? 'text-crab-300' : 'text-emerald-400/80'
+                          }`}>
+                            <Clock className="w-2.5 h-2.5" />
+                            <span>о {stepTime}</span>
+                          </div>
+                        )}
                       </motion.div>
                     );
                   })}
@@ -386,18 +399,62 @@ export const OrderTrackerModal: React.FC = () => {
                   )}
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-1">
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-1.5">
                   <span className="text-[11px] text-zinc-400 font-semibold uppercase">Оплата та підсумок:</span>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Оплата:</span>
+                  
+                  {/* Payment method */}
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-400">Спосіб оплати:</span>
                     <span className="text-white font-medium">
                       {currentOrder.paymentMethod === 'card_online' && 'Онлайн картою'}
                       {currentOrder.paymentMethod === 'card_courier' && (isTakeaway ? 'Карткою на касі' : isDineIn ? 'Карткою в закладі' : 'Терміналом кур\'єру')}
                       {currentOrder.paymentMethod === 'cash' && (isTakeaway ? 'Готівкою на касі' : isDineIn ? 'Готівкою в закладі' : 'Готівкою кур\'єру')}
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm pt-1 border-t border-white/[0.06]">
-                    <span className="font-bold text-white">Сума:</span>
+
+                  {/* Dishes subtotal */}
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-400">Страви ({currentOrder.items.reduce((s,i) => s + i.quantity, 0)} шт.):</span>
+                    <span className="text-white">{currentOrder.subtotal} ₴</span>
+                  </div>
+
+                  {/* Delivery fee (only for delivery orders) */}
+                  {isDelivery && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-zinc-400">Доставка:</span>
+                      <span className={currentOrder.deliveryFee === 0 ? 'text-emerald-400 font-semibold' : 'text-white'}>
+                        {currentOrder.deliveryFee === 0 ? 'Безкоштовно 🎉' : `${currentOrder.deliveryFee} ₴`}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Discount */}
+                  {currentOrder.discount > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-zinc-400">Знижка:</span>
+                      <span className="text-emerald-400">−{currentOrder.discount} ₴</span>
+                    </div>
+                  )}
+
+                  {/* Bonuses used */}
+                  {currentOrder.bonusUsed && currentOrder.bonusUsed > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-zinc-400">Бонуси списано:</span>
+                      <span className="text-amber-400">−{currentOrder.bonusUsed} ₴</span>
+                    </div>
+                  )}
+
+                  {/* Bonus earned */}
+                  {currentOrder.bonusEarned && currentOrder.bonusEarned > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-zinc-400">Кешбек нараховано:</span>
+                      <span className="text-amber-300">+{currentOrder.bonusEarned} ₴</span>
+                    </div>
+                  )}
+
+                  {/* Total */}
+                  <div className="flex justify-between text-sm pt-1.5 border-t border-white/[0.08]">
+                    <span className="font-bold text-white">Разом до сплати:</span>
                     <span className="font-display font-extrabold text-amber-400">{currentOrder.total} ₴</span>
                   </div>
                 </div>
