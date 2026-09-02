@@ -27,6 +27,7 @@ export const Header: React.FC = () => {
     setIsSearchOpen, 
     favorites, 
     currentOrder, 
+    activeOrders,
     setIsOrderTrackerOpen,
     orderHistory,
     userProfile,
@@ -185,14 +186,18 @@ export const Header: React.FC = () => {
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2.5">
             {/* Active order tracker pill if order exists */}
-            {currentOrder && (
+            {(activeOrders?.length > 0 || currentOrder) && (
               <button
                 onClick={() => setIsOrderTrackerOpen(true)}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition-all animate-pulse"
-                title="Відстежити поточне замовлення"
+                title="Відстежити замовлення"
               >
                 <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
-                <span>Замовлення #{currentOrder.orderNumber}</span>
+                <span>
+                  {activeOrders?.length > 1 
+                    ? `Активні замовлення (${activeOrders.length})` 
+                    : `Замовлення #${currentOrder?.orderNumber || activeOrders?.[0]?.orderNumber}`}
+                </span>
               </button>
             )}
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { CartItem, Product, Category, OrderDetails, UserProfile } from '../types';
 import { RESTAURANT_INFO, PROMO_CODES, PRODUCTS, CATEGORIES } from '../data/menuData';
 import { fetchPosterStopList, fetchLivePosterCatalog, fetchPosterOrderStatus, getPosterClientByPhone } from '../services/posterApi';
@@ -95,6 +95,7 @@ interface CartContextType {
   currentOrder: OrderDetails | null;
   setCurrentOrder: (order: OrderDetails | null) => void;
   orderHistory: OrderDetails[];
+  activeOrders: OrderDetails[];
   orderTrackingStep: number;
   setOrderTrackingStep: (step: number) => void;
   stepTimestamps: Record<number, string>;
@@ -208,28 +209,48 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [bonusToUse, setBonusToUse] = useState<number>(0);
 
+  // Synchronize active orders (orders in history or currentOrder that are not completed)
+  const activeOrders = React.useMemo(() => {
+    const list: OrderDetails[] = [];
+    const seenIds = new Set<string>();
+
+    if (currentOrder && currentOrder.status !== 'completed') {
+      list.push(currentOrder);
+      seenIds.add(currentOrder.orderId);
+    }
+
+    orderHistory.forEach(o => {
+      if (!seenIds.has(o.orderId) && o.status !== 'completed') {
+        list.push(o);
+        seenIds.add(o.orderId);
+      }
+    });
+
+    return list;
+  }, [currentOrder, orderHistory]);
+
   const setCurrentOrder = (order: OrderDetails | null) => {
     setCurrentOrderState(order);
     if (order) {
       localStorage.setItem('crabclub_last_order', JSON.stringify(order));
       setOrderHistory(prev => {
-        const updated = [order, ...prev.filter(o => o.orderId !== order.orderId)].slice(0, 15);
-        localStorage.setItem('crabclub_order_history', JSON.stringify(updated));
+        const exists = prev.some(o => o.orderId === order.orderId);
+        const updated = exists
+          ? prev.map(o => o.orderId === order.orderId ? { ...o, ...order } : o)
+          : [order, ...prev.filter(o => o.orderId !== order.orderId)].slice(0, 15);
+        try { localStorage.setItem('crabclub_order_history', JSON.stringify(updated)); } catch {}
         return updated;
       });
 
-      // ── Reset tracking step & timestamps for this fresh order ──────────────
-      // Only reset if this is a genuinely NEW order (not an update to the same one)
-      const prevOrder = (() => {
-        try { return JSON.parse(localStorage.getItem('crabclub_last_order') || 'null'); } catch { return null; }
-      })();
-      const isNewOrder = !prevOrder || prevOrder.orderId !== order.orderId;
-      if (isNewOrder) {
+      // Synchronize tracking step & timestamps for the selected order
+      const step = order.orderTrackingStep || (order.status === 'completed' ? 4 : 1);
+      setOrderTrackingStep(step);
+      if (order.stepTimestamps && Object.keys(order.stepTimestamps).length > 0) {
+        setStepTimestamps(order.stepTimestamps);
+      } else {
         const now = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
-        const freshTimestamps = { 1: now };
-        setOrderTrackingStep(1);
-        setStepTimestamps(freshTimestamps);
-        try { localStorage.setItem('crabclub_step_timestamps', JSON.stringify(freshTimestamps)); } catch {}
+        const initial = { 1: now };
+        setStepTimestamps(initial);
       }
 
       // Update cashback and bonus balance without overwriting permanent profile address
@@ -249,124 +270,145 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [orderTrackingStep, setOrderTrackingStep] = useState<number>(() => {
     if (currentOrder && currentOrder.status === 'completed') return 4;
-    // For active orders, start at 1 — the background polling will advance it
-    return 1;
+    return currentOrder?.orderTrackingStep || 1;
   });
 
-  // Timestamps for each completed step — keyed to the current order ID to prevent cross-order bleed
+  // Timestamps for each completed step of the currently selected order
   const [stepTimestamps, setStepTimestamps] = useState<Record<number, string>>(() => {
-    try {
-      const savedOrder = localStorage.getItem('crabclub_last_order');
-      const savedTimestamps = localStorage.getItem('crabclub_step_timestamps');
-      if (savedOrder && savedTimestamps) {
-        const order = JSON.parse(savedOrder);
-        // Only restore timestamps if they belong to the same order and it was completed
-        if (order && order.status === 'completed') {
-          return JSON.parse(savedTimestamps);
-        }
-      }
-    } catch {}
-    // Fresh order — only step 1 with current time
+    if (currentOrder?.stepTimestamps && Object.keys(currentOrder.stepTimestamps).length > 0) {
+      return currentOrder.stepTimestamps;
+    }
     return { 1: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) };
   });
 
-  const recordStepTimestamp = (step: number) => {
-    const time = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
-    setStepTimestamps(prev => {
-      const updated = { ...prev, [step]: time };
-      try { localStorage.setItem('crabclub_step_timestamps', JSON.stringify(updated)); } catch {}
-      return updated;
-    });
-  };
+  // Global round-robin background order status tracker
+  // Polls AT MOST one order every 12-14 seconds (gentle on Poster API, only ~4-5 req/min total), cycling through all active orders!
+  const roundRobinIndexRef = useRef(0);
 
-  // Global background order status tracking (runs continuously, even when OrderTrackerModal is closed!)
   useEffect(() => {
-    if (!currentOrder) return;
-
-    const orderId = currentOrder.posterIncomingOrderId || parseInt(currentOrder.orderNumber, 10);
-    if (!orderId) return;
-
-    // Check if this order is already known to be completed or was loaded from past history
-    const notifiedByNumber = getHighestNotifiedStep(currentOrder.orderNumber);
-    const notifiedById = getHighestNotifiedStep(orderId);
-    let highestNotified = Math.max(notifiedByNumber, notifiedById, currentOrder.status === 'completed' ? 4 : 0);
-
-    // If order is completed, sync step 4 and do not poll or notify
-    if (highestNotified >= 4 || currentOrder.status === 'completed') {
-      setOrderTrackingStep(4);
-      return;
-    }
+    if (activeOrders.length === 0) return;
 
     let isTerminated = false;
-    let pollCount = 0;
     let timerId: any = null;
 
-    const pollBackgroundStatus = async () => {
+    const pollNextActiveOrder = async () => {
       if (isTerminated) return;
 
       try {
-        pollCount++;
+        if (typeof document !== 'undefined' && document.hidden) {
+          // When tab is in background, poll much less frequently
+          timerId = setTimeout(pollNextActiveOrder, 35000);
+          return;
+        }
+
+        if (activeOrders.length === 0) return;
+
+        // Pick next active order in queue
+        const targetOrder = activeOrders[roundRobinIndexRef.current % activeOrders.length];
+        roundRobinIndexRef.current = (roundRobinIndexRef.current + 1) % activeOrders.length;
+
+        const orderId = targetOrder.posterIncomingOrderId || parseInt(targetOrder.orderNumber, 10);
+        if (!orderId) {
+          timerId = setTimeout(pollNextActiveOrder, 12000);
+          return;
+        }
+
         const liveStatus = await fetchPosterOrderStatus(orderId);
         if (liveStatus && !isTerminated) {
           const newStep = liveStatus.stepIndex;
-
-          if (liveStatus.transaction_id && !currentOrder.posterTransactionId) {
-            setCurrentOrderState(prev => prev ? { ...prev, posterTransactionId: liveStatus.transaction_id } : prev);
-          }
+          const highestNotified = Math.max(
+            getHighestNotifiedStep(targetOrder.orderNumber),
+            getHighestNotifiedStep(orderId),
+            targetOrder.orderTrackingStep || 0
+          );
 
           if (newStep > highestNotified) {
-            // New forward step reached — record timestamp
-            highestNotified = newStep;
-            recordStepTimestamp(newStep);
-            setHighestNotifiedStep(currentOrder.orderNumber, newStep);
+            const now = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+            setHighestNotifiedStep(targetOrder.orderNumber, newStep);
             setHighestNotifiedStep(orderId, newStep);
             if (liveStatus.transaction_id) {
               setHighestNotifiedStep(liveStatus.transaction_id, newStep);
             }
 
-            setOrderTrackingStep(newStep);
+            // Record timestamp in updated order
+            const existingTimestamps = targetOrder.stepTimestamps || {};
+            const updatedTimestamps = { ...existingTimestamps, [newStep]: now };
+
+            // Update order history
+            setOrderHistory(prev => {
+              const updated = prev.map(o => {
+                if (o.orderId === targetOrder.orderId) {
+                  return {
+                    ...o,
+                    orderTrackingStep: newStep,
+                    statusName: liveStatus.statusName,
+                    status: (newStep === 4 ? 'completed' : newStep === 3 ? 'delivering' : newStep === 2 ? 'cooking' : 'received') as any,
+                    posterTransactionId: liveStatus.transaction_id || o.posterTransactionId,
+                    stepTimestamps: updatedTimestamps
+                  };
+                }
+                return o;
+              });
+              try { localStorage.setItem('crabclub_order_history', JSON.stringify(updated)); } catch {}
+              return updated;
+            });
+
+            // If this is the currently viewed order in modal, update live view
+            if (currentOrder?.orderId === targetOrder.orderId) {
+              setOrderTrackingStep(newStep);
+              setStepTimestamps(updatedTimestamps);
+              if (liveStatus.transaction_id && !currentOrder.posterTransactionId) {
+                setCurrentOrderState(prev => prev ? { ...prev, posterTransactionId: liveStatus.transaction_id } : prev);
+              }
+              if (newStep === 4) {
+                setCurrentOrderState(prev => prev ? { ...prev, status: 'completed' } : prev);
+              }
+            }
 
             // Play melodic chime & show notifications using deduplicated service
-            const receiptNumber = liveStatus.transaction_id || currentOrder.posterTransactionId || currentOrder.orderNumber;
+            const receiptNumber = liveStatus.transaction_id || targetOrder.posterTransactionId || targetOrder.orderNumber;
             notifyStepChange(orderId, newStep, liveStatus.statusName, receiptNumber, showToast);
 
-            // If order completed and paid in Poster, refresh CRM bonuses & update order status
-            if (newStep === 4) {
-              setCurrentOrderState(prev => prev ? { ...prev, status: 'completed' } : prev);
-              if (currentOrder.phone) {
-                const cleanPhone = currentOrder.phone.replace(/\D/g, '');
-                getPosterClientByPhone(cleanPhone).then(client => {
-                  if (client && client.bonus !== undefined) {
-                    updateUserProfile({ bonusBalance: client.bonus });
-                  }
-                });
-              }
-              isTerminated = true;
-              return;
+            // If order completed and paid in Poster, refresh CRM bonuses
+            if (newStep === 4 && targetOrder.phone) {
+              const cleanPhone = targetOrder.phone.replace(/\D/g, '');
+              getPosterClientByPhone(cleanPhone).then(client => {
+                if (client && client.bonus !== undefined) {
+                  updateUserProfile({ bonusBalance: client.bonus });
+                }
+              });
             }
           } else {
-            setOrderTrackingStep(Math.max(newStep, highestNotified));
+            // Keep transaction ID if resolved
+            if (liveStatus.transaction_id && !targetOrder.posterTransactionId) {
+              setOrderHistory(prev => {
+                const updated = prev.map(o => o.orderId === targetOrder.orderId ? { ...o, posterTransactionId: liveStatus.transaction_id } : o);
+                try { localStorage.setItem('crabclub_order_history', JSON.stringify(updated)); } catch {}
+                return updated;
+              });
+            }
           }
         }
       } catch (err) {
-        console.warn('[Background Order Radar]', err);
+        console.warn('[Round-Robin Order Radar]', err);
       }
 
       if (!isTerminated) {
-        // Poll every 7s initially, 12s after 2 minutes
-        const interval = pollCount < 15 ? 7000 : 12000;
-        timerId = setTimeout(pollBackgroundStatus, interval);
+        // Strict rate-limiting: 12 seconds between single requests
+        timerId = setTimeout(pollNextActiveOrder, 12000);
       }
     };
 
-    // Kickoff background polling after brief delay
-    timerId = setTimeout(pollBackgroundStatus, 2000);
+    // Kickoff round-robin loop after brief delay
+    timerId = setTimeout(pollNextActiveOrder, 2500);
 
     return () => {
       isTerminated = true;
       if (timerId) clearTimeout(timerId);
     };
-  }, [currentOrder?.orderId, currentOrder?.orderNumber]);
+  }, [activeOrders, currentOrder?.orderId]);
+
+
 
   const addOrderItemsToCart = (historicOrder: OrderDetails) => {
     if (!historicOrder.items || historicOrder.items.length === 0) return;
@@ -847,6 +889,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentOrder,
         setCurrentOrder,
         orderHistory,
+        activeOrders,
         orderTrackingStep,
         setOrderTrackingStep,
         stepTimestamps,

@@ -26,6 +26,8 @@ import {
 export const OrderTrackerModal: React.FC = () => {
   const { 
     currentOrder, 
+    setCurrentOrder,
+    activeOrders,
     isOrderTrackerOpen, 
     setIsOrderTrackerOpen, 
     showToast, 
@@ -38,18 +40,19 @@ export const OrderTrackerModal: React.FC = () => {
   // currentStep is driven by orderTrackingStep from CartContext (which resets to 1 on new orders)
   const [currentStep, setCurrentStep] = useState<number>(() => {
     if (currentOrder?.status === 'completed') return 4;
-    return Math.max(orderTrackingStep || 1, 1);
+    return currentOrder?.orderTrackingStep || Math.max(orderTrackingStep || 1, 1);
   });
 
   const [liveServiceMode, setLiveServiceMode] = useState<number | null>(null);
   const [liveTransactionId, setLiveTransactionId] = useState<number | null>(null);
 
-  // Sync state if global background tracker advanced
+  // Sync state if global background tracker advanced or active order was switched
   useEffect(() => {
-    if (orderTrackingStep && orderTrackingStep > currentStep) {
-      setCurrentStep(orderTrackingStep);
+    if (currentOrder) {
+      const step = currentOrder.orderTrackingStep || (currentOrder.status === 'completed' ? 4 : orderTrackingStep || 1);
+      setCurrentStep(step);
     }
-  }, [orderTrackingStep]);
+  }, [orderTrackingStep, currentOrder?.orderId]);
 
   // When modal is open, request notification permission and fetch live metadata (service mode & transaction ID)
   useEffect(() => {
@@ -226,6 +229,37 @@ export const OrderTrackerModal: React.FC = () => {
                 <X className="w-5 h-5" />
               </motion.button>
             </div>
+
+            {/* Multi-Order Switcher Bar (when customer has 2+ active orders) */}
+            {activeOrders.length > 1 && (
+              <div className="px-4 sm:px-6 py-2 bg-black/40 border-b border-white/[0.08] flex items-center gap-2 overflow-x-auto no-scrollbar">
+                <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider shrink-0">
+                  Активні ({activeOrders.length}):
+                </span>
+                {activeOrders.map((ord) => {
+                  const isSelected = ord.orderId === currentOrder.orderId;
+                  const num = ord.posterTransactionId || ord.orderNumber;
+                  const step = ord.orderTrackingStep || (ord.status === 'completed' ? 4 : 1);
+                  const stepLabel = step === 4 ? 'Готово' : step === 3 ? (ord.orderType === 'delivery' ? 'У дорозі' : 'Готово') : step === 2 ? 'Кухня' : 'Прийнято';
+
+                  return (
+                    <button
+                      key={ord.orderId}
+                      type="button"
+                      onClick={() => setCurrentOrder(ord)}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 border ${
+                        isSelected
+                          ? 'bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-900/30'
+                          : 'bg-white/5 text-zinc-300 hover:text-white border-white/10 hover:bg-white/10'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-400'}`} />
+                      <span>#{num} ({stepLabel})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Content */}
             <div className="overflow-y-auto p-4 sm:p-6 space-y-6 flex-1">

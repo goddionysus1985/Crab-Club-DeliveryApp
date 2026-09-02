@@ -154,6 +154,9 @@ export interface OrderDetails {
   bonusUsed?: number;
   bonusEarned?: number;
   status: 'received' | 'cooking' | 'delivering' | 'completed';
+  orderTrackingStep?: number;
+  statusName?: string;
+  stepTimestamps?: Record<number, string>;
 }
 
 export interface UserProfile {
