@@ -1,5 +1,5 @@
 // Auto-generated & Live Synchronized from Poster POS API
-// Generated at: 2026-09-02T17:00:05.631Z
+// Generated at: 2026-09-02T17:07:08.450Z
 import { Category, Product, RestaurantInfo, Banner, Review } from '../types';
 
 export const RESTAURANT_INFO: RestaurantInfo = {
@@ -7,7 +7,7 @@ export const RESTAURANT_INFO: RestaurantInfo = {
   "badge": "PREMIUM DELIVERY & RESTAURANT",
   "tagline": "Висока кухня у вас вдома. Свіжі морепродукти, преміальні бургери, авторські страви та свіжа випічка.",
   "city": "смт. Овідіополь",
-  "address": "смт. Овідіополь, Одеська область",
+  "address": "вулиця Миру, 2, Овідіополь, Одеська область, 67800",
   "phone": "+380 (68) 692 13 78",
   "phone_raw": "+380686921378",
   "work_hours": "Пн–Сб: 10:00–22:00, Нд: 11:00–22:00",

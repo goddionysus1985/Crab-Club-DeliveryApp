@@ -10,7 +10,8 @@ import {
   ShoppingBag,
   Store,
   Star,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Sparkles
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { RESTAURANT_INFO } from '../data/menuData';
@@ -71,6 +72,7 @@ function sendBrowserNotification(title: string, body: string) {
 export const OrderTrackerModal: React.FC = () => {
   const { currentOrder, isOrderTrackerOpen, setIsOrderTrackerOpen, showToast, updateUserProfile } = useCart();
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [liveServiceMode, setLiveServiceMode] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isOrderTrackerOpen || !currentOrder) return;
@@ -97,6 +99,9 @@ export const OrderTrackerModal: React.FC = () => {
         pollCount++;
         const liveStatus = await fetchPosterOrderStatus(orderId);
         if (liveStatus) {
+          if (liveStatus.service_mode) {
+            setLiveServiceMode(liveStatus.service_mode);
+          }
           if (liveStatus.stepIndex > previousStep) {
             playOrderSuccessChime();
             showToast(`Статус оновлено: ${liveStatus.statusName}`, undefined, 'success');
@@ -141,10 +146,68 @@ export const OrderTrackerModal: React.FC = () => {
 
   if (!currentOrder) return null;
 
-  const isTakeaway = currentOrder.orderType === 'takeaway';
-  const isDineIn = currentOrder.orderType === 'dinein';
+  // Resolve exact delivery mode from live Poster API (1=dinein, 2=takeaway, 3=delivery) or local order details
+  const resolvedOrderType: 'delivery' | 'takeaway' | 'dinein' = 
+    (liveServiceMode === 1 ? 'dinein' : liveServiceMode === 2 ? 'takeaway' : liveServiceMode === 3 ? 'delivery' : null) ||
+    currentOrder.orderType ||
+    (!currentOrder.address?.street ? 'takeaway' : 'delivery');
 
-  const steps = [
+  const isTakeaway = resolvedOrderType === 'takeaway';
+  const isDineIn = resolvedOrderType === 'dinein';
+  const isDelivery = resolvedOrderType === 'delivery';
+
+  // Specific, tailored tracking steps for each order fulfillment mode
+  const steps = isDineIn ? [
+    {
+      id: 1,
+      title: 'Прийнято рестораном',
+      desc: 'Замовлення надійшло в касу закладу',
+      icon: CheckCircle2
+    },
+    {
+      id: 2,
+      title: 'Шеф-кухар готує',
+      desc: 'Свіжі морепродукти та страви на кухні',
+      icon: ChefHat
+    },
+    {
+      id: 3,
+      title: 'Подача до столу',
+      desc: 'Страви готові та подаються за ваш столик',
+      icon: UtensilsCrossed
+    },
+    {
+      id: 4,
+      title: 'Подано',
+      desc: 'Смачного відпочинку в Crab Club!',
+      icon: Sparkles
+    }
+  ] : isTakeaway ? [
+    {
+      id: 1,
+      title: 'Прийнято рестораном',
+      desc: 'Замовлення надійшло в касу ресторану',
+      icon: CheckCircle2
+    },
+    {
+      id: 2,
+      title: 'Шеф-кухар готує',
+      desc: 'Готуємо та пакуємо ваші страви',
+      icon: ChefHat
+    },
+    {
+      id: 3,
+      title: 'Готово до видачі',
+      desc: 'Очікує на касі: вул. Миру, 2',
+      icon: ShoppingBag
+    },
+    {
+      id: 4,
+      title: 'Видано гостю',
+      desc: 'Замовлення отримано. Смачного від Crab Club!',
+      icon: PackageCheck
+    }
+  ] : [
     {
       id: 1,
       title: 'Прийнято рестораном',
@@ -159,14 +222,14 @@ export const OrderTrackerModal: React.FC = () => {
     },
     {
       id: 3,
-      title: isDineIn ? 'Подача страви' : isTakeaway ? 'Очікує на касі' : 'Кур\'єр у дорозі',
-      desc: isDineIn ? 'Страва подається за столик' : isTakeaway ? 'Завітайте до закладу та заберіть' : 'В дорозі в термобоксах',
-      icon: isDineIn ? UtensilsCrossed : isTakeaway ? ShoppingBag : Truck
+      title: 'Кур\'єр у дорозі',
+      desc: 'В дорозі в термобоксі до вашої адреси',
+      icon: Truck
     },
     {
       id: 4,
-      title: isDineIn ? 'Подано' : isTakeaway ? 'Видано' : 'Доставлено',
-      desc: 'Смачного від Crab Club!',
+      title: 'Доставлено',
+      desc: 'Вручено кур\'єром. Смачного від Crab Club!',
       icon: PackageCheck
     }
   ];
@@ -308,8 +371,22 @@ export const OrderTrackerModal: React.FC = () => {
                   </div>
                   <div>
                     <div className="font-bold text-white">Пункт видачі замовлення:</div>
-                    <div className="text-zinc-300">{RESTAURANT_INFO.address}</div>
+                    <div className="text-zinc-300">вулиця Миру, 2, Овідіополь, Одеська область, 67800</div>
                     <div className="text-[10px] text-amber-400/80 pt-0.5">Назвіть касиру номер замовлення: <span className="font-bold text-white">#{currentOrder.orderNumber}</span></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Dine-in Table Notice */}
+              {isDineIn && (
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200 flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
+                    <UtensilsCrossed className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-white">Обслуговування у закладі:</div>
+                    <div className="text-zinc-300">вулиця Миру, 2, Овідіополь, Одеська область, 67800</div>
+                    <div className="text-[10px] text-emerald-400/80 pt-0.5">Назвіть офіціанту або на касі номер замовлення: <span className="font-bold text-white">#{currentOrder.orderNumber}</span></div>
                   </div>
                 </div>
               )}
@@ -342,9 +419,19 @@ export const OrderTrackerModal: React.FC = () => {
                   <span className="text-[11px] text-zinc-400 font-semibold uppercase">Отримувач:</span>
                   <div className="font-bold text-white">{currentOrder.customerName}</div>
                   <div className="text-zinc-300">{currentOrder.phone}</div>
-                  {currentOrder.address && (
+                  {isDelivery && currentOrder.address && (
                     <div className="text-zinc-400 text-[11px] pt-1">
                       📍 {currentOrder.address.city}, {currentOrder.address.street} {currentOrder.address.house}
+                    </div>
+                  )}
+                  {isTakeaway && (
+                    <div className="text-amber-400/90 text-[11px] pt-1 font-medium">
+                      🏬 Самовивіз: вул. Миру, 2, Овідіополь
+                    </div>
+                  )}
+                  {isDineIn && (
+                    <div className="text-emerald-400/90 text-[11px] pt-1 font-medium">
+                      🍽️ В закладі Crab Club: вул. Миру, 2
                     </div>
                   )}
                 </div>
@@ -355,8 +442,8 @@ export const OrderTrackerModal: React.FC = () => {
                     <span className="text-zinc-400">Оплата:</span>
                     <span className="text-white font-medium">
                       {currentOrder.paymentMethod === 'card_online' && 'Онлайн картою'}
-                      {currentOrder.paymentMethod === 'card_courier' && (currentOrder.orderType === 'takeaway' ? 'Карткою на касі' : 'Терміналом кур\'єру')}
-                      {currentOrder.paymentMethod === 'cash' && (currentOrder.orderType === 'takeaway' ? 'Готівкою на касі' : 'Готівкою кур\'єру')}
+                      {currentOrder.paymentMethod === 'card_courier' && (isTakeaway ? 'Карткою на касі' : isDineIn ? 'Карткою в закладі' : 'Терміналом кур\'єру')}
+                      {currentOrder.paymentMethod === 'cash' && (isTakeaway ? 'Готівкою на касі' : isDineIn ? 'Готівкою в закладі' : 'Готівкою кур\'єру')}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm pt-1 border-t border-white/[0.06]">

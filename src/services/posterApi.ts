@@ -808,6 +808,7 @@ export interface PosterOrderStatusResult {
   status: number; // 10: New, 20: Cooking, 30: Delivering, 40: Completed
   statusName: string;
   stepIndex: number; // 1 to 4
+  service_mode?: number;
   updatedAt?: string;
 }
 
@@ -826,7 +827,7 @@ export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<P
       if (data.response) {
         const orderData = data.response;
         const status = Number(orderData.status);
-        const mode = Number(orderData.service_mode);
+        const mode = Number(orderData.service_mode || orderData.type);
         const isDineIn = mode === 1;
         const isTakeaway = mode === 2;
         let stepIndex = 1;
@@ -854,6 +855,7 @@ export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<P
           status,
           statusName,
           stepIndex,
+          service_mode: mode,
           updatedAt: orderData.updated_at
         };
       }
