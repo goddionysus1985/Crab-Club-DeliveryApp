@@ -185,18 +185,28 @@ function mapProduct(raw, categoryMap) {
   const prodName = String(raw.product_name || raw.name || '').toLowerCase();
   let defaultImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
 
-  if (catName.includes('бургер') || prodName.includes('бургер')) {
+  if (catName.includes('краб') || catName.includes('морепродукт') || prodName.includes('краб') || prodName.includes('боул') || prodName.includes('креветк')) {
+    defaultImage = 'https://images.unsplash.com/photo-1559742811-822873691df8?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('рол') || catName.includes('суш') || prodName.includes('рол') || prodName.includes('філадельфія') || prodName.includes('дракон') || prodName.includes('каліфорнія')) {
+    defaultImage = 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('піц') || prodName.includes('піц') || prodName.includes('пепероні')) {
+    defaultImage = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('бургер') || prodName.includes('бургер')) {
     defaultImage = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('салат') || prodName.includes('салат') || prodName.includes('цезар') || prodName.includes('грецьк')) {
+    defaultImage = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('суп') || catName.includes('рамен') || prodName.includes('том ям') || prodName.includes('рамен') || prodName.includes('суп')) {
+    defaultImage = 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('закуск') || catName.includes('снек') || prodName.includes('фрі') || prodName.includes('крильця') || prodName.includes('палички')) {
+    defaultImage = 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('десерт') || prodName.includes('чизкейк') || prodName.includes('фондан') || prodName.includes('торт') || prodName.includes('круас')) {
+    defaultImage = 'https://images.unsplash.com/photo-1551024601-bec78aea704b?w=600&auto=format&fit=crop&q=80';
+  } else if (catName.includes('соус') || prodName.includes('соус') || prodName.includes('тартар') || prodName.includes('чилі')) {
+    defaultImage = 'https://images.unsplash.com/photo-1472476443507-c7a5948772fc?w=600&auto=format&fit=crop&q=80';
   } else if (catName.includes('кава') || prodName.includes('капуч') || prodName.includes('еспресо') || prodName.includes('лате') || prodName.includes('американо')) {
     defaultImage = 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80';
-  } else if (catName.includes('випіч') || prodName.includes('круас') || prodName.includes('булоч') || prodName.includes('хліб')) {
-    defaultImage = 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&auto=format&fit=crop&q=80';
   } else if (catName.includes('напо') || catName.includes('вода') || prodName.includes('боржом') || prodName.includes('кола') || prodName.includes('сік')) {
     defaultImage = 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&auto=format&fit=crop&q=80';
-  } else if (catName.includes('піц') || prodName.includes('піц')) {
-    defaultImage = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&auto=format&fit=crop&q=80';
-  } else if (catName.includes('рол') || catName.includes('суш') || prodName.includes('рол') || prodName.includes('філадельфія')) {
-    defaultImage = 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&auto=format&fit=crop&q=80';
   }
 
   const imageUrl = raw.photo_origin 
