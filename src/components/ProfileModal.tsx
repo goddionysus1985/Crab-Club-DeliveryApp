@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -25,6 +25,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
 import { PRODUCTS } from '../data/menuData';
+import { searchOvidiopolStreets } from '../data/ovidiopolStreets';
 import { getPosterClientByPhone, syncUserProfileToPoster } from '../services/posterApi';
 import { validateAndFormatPhone, validateCustomerName } from '../utils/security';
 import { setHighestNotifiedStep } from '../services/orderNotificationService';
@@ -69,6 +70,28 @@ export const ProfileModal: React.FC = () => {
   const [doorphone, setDoorphone] = useState(userProfile.doorphone || '');
   const [isSyncingPoster, setIsSyncingPoster] = useState(false);
 
+  // Smart street autocomplete & collapsible private sector address fields
+  const profileHouseInputRef = useRef<HTMLInputElement>(null);
+  const profileStreetContainerRef = useRef<HTMLDivElement>(null);
+  const [showProfileStreetSuggestions, setShowProfileStreetSuggestions] = useState(false);
+  const [showProfileExtraAddress, setShowProfileExtraAddress] = useState<boolean>(() => {
+    return Boolean(userProfile.apartment || userProfile.floor || userProfile.doorphone);
+  });
+
+  const profileStreetSuggestions = searchOvidiopolStreets(street);
+
+  // Close street suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileStreetContainerRef.current && !profileStreetContainerRef.current.contains(e.target as Node)) {
+        setShowProfileStreetSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Sync profile data when opened or changed
   useEffect(() => {
     setName(userProfile.name);
     setPhone(userProfile.phone);
@@ -78,6 +101,9 @@ export const ProfileModal: React.FC = () => {
     if (userProfile.apartment) setApartment(userProfile.apartment);
     if (userProfile.floor) setFloor(userProfile.floor);
     if (userProfile.doorphone) setDoorphone(userProfile.doorphone);
+    if (userProfile.apartment || userProfile.floor || userProfile.doorphone) {
+      setShowProfileExtraAddress(true);
+    }
   }, [userProfile]);
 
   // Handle Login & Registration
@@ -472,19 +498,58 @@ export const ProfileModal: React.FC = () => {
                       </div>
 
                       <div className="grid grid-cols-3 gap-2">
-                        <div className="col-span-2">
+                        <div ref={profileStreetContainerRef} className="col-span-2 relative">
                           <label className="text-[11px] text-zinc-300 font-medium">Вулиця:</label>
                           <input
                             type="text"
                             value={street}
-                            onChange={(e) => setStreet(e.target.value)}
+                            onChange={(e) => {
+                              setStreet(e.target.value);
+                              setShowProfileStreetSuggestions(true);
+                            }}
+                            onFocus={() => setShowProfileStreetSuggestions(true)}
                             className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
                           />
+
+                          {/* Smart Street Autocomplete Dropdown */}
+                          <AnimatePresence>
+                            {showProfileStreetSuggestions && profileStreetSuggestions.length > 0 && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -4 }}
+                                transition={{ duration: 0.15 }}
+                                className="absolute left-0 right-0 top-full mt-1 z-50 bg-[#161622] border border-white/15 rounded-2xl shadow-2xl py-1 backdrop-blur-xl overflow-hidden"
+                              >
+                                <div className="px-3 py-1 text-[10px] uppercase font-bold text-zinc-400 tracking-wider flex items-center justify-between border-b border-white/5">
+                                  <span>Вулиці Овідіополя</span>
+                                  <span className="text-[9px] text-zinc-500 font-normal">підказка</span>
+                                </div>
+                                {profileStreetSuggestions.map((item, idx) => (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      setStreet(item);
+                                      setShowProfileStreetSuggestions(false);
+                                      setTimeout(() => profileHouseInputRef.current?.focus(), 50);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-xs text-zinc-200 hover:bg-amber-500/20 hover:text-white flex items-center justify-between transition-colors cursor-pointer"
+                                  >
+                                    <span className="font-medium truncate">{item}</span>
+                                    <span className="text-[10px] text-zinc-500">смт. Овідіополь</span>
+                                  </button>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
 
                         <div>
                           <label className="text-[11px] text-zinc-300 font-medium">Будинок:</label>
                           <input
+                            ref={profileHouseInputRef}
                             type="text"
                             value={house}
                             onChange={(e) => setHouse(e.target.value)}
@@ -493,35 +558,66 @@ export const ProfileModal: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <label className="text-[11px] text-zinc-300 font-medium">Кв.:</label>
-                          <input
-                            type="text"
-                            value={apartment}
-                            onChange={(e) => setApartment(e.target.value)}
-                            className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[11px] text-zinc-300 font-medium">Поверх:</label>
-                          <input
-                            type="text"
-                            value={floor}
-                            onChange={(e) => setFloor(e.target.value)}
-                            className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[11px] text-zinc-300 font-medium">Домофон:</label>
-                          <input
-                            type="text"
-                            value={doorphone}
-                            onChange={(e) => setDoorphone(e.target.value)}
-                            className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                          />
-                        </div>
-                      </div>
+                      {/* Collapsible Extra Address Fields for Private Sector vs Multi-story */}
+                      {!showProfileExtraAddress ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowProfileExtraAddress(true)}
+                          className="text-[11px] text-zinc-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors py-1 cursor-pointer"
+                        >
+                          <span className="font-medium text-amber-400">+ Квартира, поверх, домофон</span>
+                          <span className="text-[10px] text-zinc-500 font-light">(для багатоквартирних будинків)</span>
+                        </button>
+                      ) : (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-1.5 pt-1"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
+                              Квартира / Поверх / Домофон:
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShowProfileExtraAddress(false)}
+                              className="text-[10px] text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                            >
+                              Сховати
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label className="text-[11px] text-zinc-300 font-medium">Кв.:</label>
+                              <input
+                                type="text"
+                                value={apartment}
+                                onChange={(e) => setApartment(e.target.value)}
+                                className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[11px] text-zinc-300 font-medium">Поверх:</label>
+                              <input
+                                type="text"
+                                value={floor}
+                                onChange={(e) => setFloor(e.target.value)}
+                                className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[11px] text-zinc-300 font-medium">Домофон:</label>
+                              <input
+                                type="text"
+                                value={doorphone}
+                                onChange={(e) => setDoorphone(e.target.value)}
+                                className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
 
                       <div className="pt-2">
                         <motion.button

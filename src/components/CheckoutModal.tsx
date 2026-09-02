@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -31,6 +31,7 @@ import {
 } from '../utils/security';
 import { PaymentModal } from './PaymentModal';
 import { PRODUCTS } from '../data/menuData';
+import { searchOvidiopolStreets } from '../data/ovidiopolStreets';
 import { sendOrderToPoster, getPosterClientByPhone, deductPosterClientBonus } from '../services/posterApi';
 import { getRestaurantScheduleStatus } from '../utils/workHours';
 
@@ -72,6 +73,27 @@ export const CheckoutModal: React.FC = () => {
   const hasSavedProfileAddress = Boolean(userProfile.street && userProfile.street.trim() && userProfile.house && userProfile.house.trim());
   const [useSavedAddress, setUseSavedAddress] = useState(hasSavedProfileAddress);
 
+  // Smart street autocomplete & collapsible private sector address fields
+  const houseInputRef = useRef<HTMLInputElement>(null);
+  const streetContainerRef = useRef<HTMLDivElement>(null);
+  const [showStreetSuggestions, setShowStreetSuggestions] = useState(false);
+  const [showExtraAddressFields, setShowExtraAddressFields] = useState<boolean>(() => {
+    return Boolean(userProfile.apartment || userProfile.floor || userProfile.doorphone);
+  });
+
+  const streetSuggestions = searchOvidiopolStreets(street);
+
+  // Close street suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (streetContainerRef.current && !streetContainerRef.current.contains(e.target as Node)) {
+        setShowStreetSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Initialize fields with permanent profile address whenever checkout opens
   useEffect(() => {
     if (isCheckoutOpen) {
@@ -85,6 +107,9 @@ export const CheckoutModal: React.FC = () => {
       if (userProfile.doorphone) setDoorphone(userProfile.doorphone);
       if (userProfile.street && userProfile.house) {
         setUseSavedAddress(true);
+      }
+      if (userProfile.apartment || userProfile.floor || userProfile.doorphone) {
+        setShowExtraAddressFields(true);
       }
     }
   }, [isCheckoutOpen, userProfile]);
@@ -509,19 +534,59 @@ export const CheckoutModal: React.FC = () => {
                         </div>
 
                         <div className="grid grid-cols-3 gap-2">
-                          <div className="col-span-2 space-y-1">
+                          <div ref={streetContainerRef} className="col-span-2 space-y-1 relative">
                             <input
                               type="text"
                               required
                               placeholder="Вулиця *"
                               maxLength={100}
                               value={street}
-                              onChange={(e) => setStreet(e.target.value)}
+                              onChange={(e) => {
+                                setStreet(e.target.value);
+                                setShowStreetSuggestions(true);
+                              }}
+                              onFocus={() => setShowStreetSuggestions(true)}
                               className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-700"
                             />
+
+                            {/* Smart Street Autocomplete Dropdown */}
+                            <AnimatePresence>
+                              {showStreetSuggestions && streetSuggestions.length > 0 && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -4 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -4 }}
+                                  transition={{ duration: 0.15 }}
+                                  className="absolute left-0 right-0 top-full mt-1 z-50 bg-[#161622] border border-white/15 rounded-xl shadow-2xl py-1 backdrop-blur-xl overflow-hidden"
+                                >
+                                  <div className="px-3 py-1 text-[10px] uppercase font-bold text-zinc-400 tracking-wider flex items-center justify-between border-b border-white/5">
+                                    <span>Вулиці Овідіополя</span>
+                                    <span className="text-[9px] text-zinc-500 font-normal">швидкий вибір</span>
+                                  </div>
+                                  {streetSuggestions.map((item, idx) => (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        setStreet(item);
+                                        setShowStreetSuggestions(false);
+                                        setTimeout(() => houseInputRef.current?.focus(), 50);
+                                      }}
+                                      className="w-full px-3 py-2 text-left text-xs text-zinc-200 hover:bg-rose-600/25 hover:text-white flex items-center justify-between transition-colors cursor-pointer"
+                                    >
+                                      <span className="font-medium truncate">{item}</span>
+                                      <span className="text-[10px] text-zinc-500">смт. Овідіополь</span>
+                                    </button>
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
+
                           <div className="space-y-1">
                             <input
+                              ref={houseInputRef}
                               type="text"
                               required
                               placeholder="Будинок *"
@@ -533,32 +598,63 @@ export const CheckoutModal: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2">
-                          <input
-                            type="text"
-                            placeholder="Під'їзд/Кв"
-                            maxLength={10}
-                            value={apartment}
-                            onChange={(e) => setApartment(e.target.value)}
-                            className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Поверх"
-                            maxLength={10}
-                            value={floor}
-                            onChange={(e) => setFloor(e.target.value)}
-                            className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Домофон"
-                            maxLength={10}
-                            value={doorphone}
-                            onChange={(e) => setDoorphone(e.target.value)}
-                            className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                          />
-                        </div>
+                        {/* Collapsible Apartment / Floor / Doorphone for Private Sector vs Multi-story */}
+                        {!showExtraAddressFields ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowExtraAddressFields(true)}
+                            className="text-[11px] text-zinc-400 hover:text-rose-300 flex items-center gap-1.5 transition-colors py-1 cursor-pointer"
+                          >
+                            <span className="font-medium text-rose-400">+ Квартира, поверх, домофон</span>
+                            <span className="text-[10px] text-zinc-500 font-light">(для багатоквартирних будинків)</span>
+                          </button>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="space-y-1.5 pt-1"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
+                                Квартира / Поверх / Домофон:
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setShowExtraAddressFields(false)}
+                                className="text-[10px] text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                              >
+                                Сховати
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <input
+                                type="text"
+                                placeholder="Під'їзд/Кв"
+                                maxLength={10}
+                                value={apartment}
+                                onChange={(e) => setApartment(e.target.value)}
+                                className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Поверх"
+                                maxLength={10}
+                                value={floor}
+                                onChange={(e) => setFloor(e.target.value)}
+                                className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Домофон"
+                                maxLength={10}
+                                value={doorphone}
+                                onChange={(e) => setDoorphone(e.target.value)}
+                                className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                              />
+                            </div>
+                          </motion.div>
+                        )}
                       </div>
                     )}
                   </div>
