@@ -394,21 +394,8 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
   const rawChange = String(order.cashChangeFrom || '').replace(/[^\d]/g, '');
   const changeNote = (isDelivery && rawChange) ? `Решта з: ${rawChange} ₴` : '';
 
-  // Construct detailed dish modifier summary for kitchen ticket & cashier comment
-  const dishBreakdownLines: string[] = [];
-  order.items.forEach(i => {
-    const mods = i.selectedOptions && i.selectedOptions.length > 0 
-      ? i.selectedOptions.map(o => `+${o.option_name.replace(/^\+/, '').trim()}`).join(', ')
-      : '';
-    const note = i.comment ? ` (${i.comment})` : '';
-    dishBreakdownLines.push(`• ${i.quantity}x ${i.product.name}${mods ? ` [${mods}]` : ''}${note}`);
-  });
-
-  const dishesSummaryText = dishBreakdownLines.length > 0 ? dishBreakdownLines.join(' | ') : '';
-
-  // Order general comments (Clean, concise & complete for kitchen)
+  // Order general comments (Clean, concise - no redundant dish list)
   const commentParts = [
-    dishesSummaryText ? `[СКЛАД]: ${dishesSummaryText}` : '',
     order.comment ? `Побажання: ${order.comment}` : '',
     changeNote,
     order.cutleryCount ? `Приборів: ${order.cutleryCount} шт` : '',

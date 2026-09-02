@@ -1,5 +1,5 @@
 // Auto-generated & Live Synchronized from Poster POS API
-// Generated at: 2026-09-02T15:17:34.816Z
+// Generated at: 2026-09-02T15:38:57.569Z
 import { Category, Product, RestaurantInfo, Banner, Review } from '../types';
 
 export const RESTAURANT_INFO: RestaurantInfo = {
@@ -72,7 +72,13 @@ export const CATEGORIES: Category[] = [
     "name": "Кава",
     "slug": "kava",
     "icon": "Coffee",
-    "subcategories": []
+    "subcategories": [
+      {
+        "id": 5,
+        "name": "супер кава",
+        "slug": "kava"
+      }
+    ]
   },
   {
     "id": 2,
@@ -259,6 +265,18 @@ export const PRODUCTS: Product[] = [
     "ingredients": "",
     "description_raw": "",
     "image": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": 13,
+    "name": "супер пупер кава",
+    "category_pos_id": 5,
+    "category_name": "супер кава",
+    "category_url": "kava",
+    "price": 420,
+    "weight": "1 порція",
+    "ingredients": "",
+    "description_raw": "",
+    "image": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80"
   }
 ];
 

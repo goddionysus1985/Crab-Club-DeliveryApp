@@ -63,6 +63,9 @@ export const CheckoutModal: React.FC = () => {
   const [apartment, setApartment] = useState(userProfile.apartment || '');
   const [floor, setFloor] = useState(userProfile.floor || '');
   const [doorphone, setDoorphone] = useState(userProfile.doorphone || '');
+  
+  const hasSavedProfileAddress = Boolean(userProfile.street && userProfile.street.trim() && userProfile.house && userProfile.house.trim());
+  const [useSavedAddress, setUseSavedAddress] = useState(hasSavedProfileAddress);
 
   // Initialize fields with permanent profile address whenever checkout opens
   useEffect(() => {
@@ -75,6 +78,9 @@ export const CheckoutModal: React.FC = () => {
       if (userProfile.apartment) setApartment(userProfile.apartment);
       if (userProfile.floor) setFloor(userProfile.floor);
       if (userProfile.doorphone) setDoorphone(userProfile.doorphone);
+      if (userProfile.street && userProfile.house) {
+        setUseSavedAddress(true);
+      }
     }
   }, [isCheckoutOpen, userProfile]);
 
@@ -217,12 +223,19 @@ export const CheckoutModal: React.FC = () => {
       return;
     }
 
+    const activeStreet = (useSavedAddress && userProfile.street) ? userProfile.street : street;
+    const activeHouse = (useSavedAddress && userProfile.house) ? userProfile.house : house;
+    const activeCity = (useSavedAddress && userProfile.city) ? userProfile.city : city;
+    const activeApartment = (useSavedAddress && userProfile.apartment) ? userProfile.apartment : apartment;
+    const activeFloor = (useSavedAddress && userProfile.floor) ? userProfile.floor : floor;
+    const activeDoorphone = (useSavedAddress && userProfile.doorphone) ? userProfile.doorphone : doorphone;
+
     // Address Sanitization & Strict Validation
-    const sanitizedStreet = cleanRawText(street, 100);
-    const sanitizedHouse = cleanRawText(house, 20);
-    const sanitizedApartment = cleanRawText(apartment, 10);
-    const sanitizedFloor = cleanRawText(floor, 10);
-    const sanitizedDoorphone = cleanRawText(doorphone, 10);
+    const sanitizedStreet = cleanRawText(activeStreet, 100);
+    const sanitizedHouse = cleanRawText(activeHouse, 20);
+    const sanitizedApartment = cleanRawText(activeApartment, 10);
+    const sanitizedFloor = cleanRawText(activeFloor, 10);
+    const sanitizedDoorphone = cleanRawText(activeDoorphone, 10);
     const sanitizedComment = cleanRawText(comment, 300);
     const sanitizedChange = cleanRawText(cashChangeFrom, 50);
 
@@ -250,7 +263,7 @@ export const CheckoutModal: React.FC = () => {
       phone: phoneValidation.formatted,
       orderType,
       address: orderType === 'delivery' ? {
-        city: cleanRawText(city, 50),
+        city: cleanRawText(activeCity, 50),
         street: sanitizedStreet,
         house: sanitizedHouse,
         apartment: sanitizedApartment || undefined,
@@ -273,6 +286,20 @@ export const CheckoutModal: React.FC = () => {
       bonusEarned: cashbackEarned,
       status: 'received'
     };
+
+    // Save profile contact & address for future orders
+    updateUserProfile({
+      name: nameValidation.sanitized,
+      phone: phoneValidation.formatted,
+      ...(orderType === 'delivery' ? {
+        city: cleanRawText(activeCity, 50),
+        street: sanitizedStreet,
+        house: sanitizedHouse,
+        apartment: sanitizedApartment || '',
+        floor: sanitizedFloor || '',
+        doorphone: sanitizedDoorphone || ''
+      } : {})
+    });
 
     if (paymentMethod === 'card_online') {
       setPendingOrderDetails(newOrder);
@@ -302,579 +329,408 @@ export const CheckoutModal: React.FC = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 30 }}
             transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-            className="relative w-full max-w-3xl bg-[#111119] border-t sm:border border-white/[0.12] rounded-t-[32px] sm:rounded-3xl overflow-hidden shadow-2xl z-10 max-h-[94vh] sm:max-h-[92vh] flex flex-col mt-auto sm:my-auto"
+            className="relative w-full max-w-lg bg-[#12121A] border-t sm:border border-white/[0.12] rounded-t-[32px] sm:rounded-3xl overflow-hidden shadow-2xl z-10 max-h-[94vh] sm:max-h-[92vh] flex flex-col mt-auto sm:my-auto"
           >
             {/* iOS Grabber Indicator on Mobile */}
             <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0" />
 
             {/* Modal Header */}
-            <div className="p-4 sm:p-6 border-b border-white/[0.08] flex items-center justify-between bg-[#141422]/90 backdrop-blur-xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-crab-600/20 border border-crab-500/30 text-crab-400">
-                  <Truck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                    Оформлення замовлення
-                  </h2>
-                  <p className="text-xs text-zinc-400">
-                    Crab Club • Доставка свіжості та високого смаку
-                  </p>
-                </div>
-              </div>
+            <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#151522]/90 backdrop-blur-xl">
+              <button
+                type="button"
+                onClick={() => setIsCheckoutOpen(false)}
+                className="p-1.5 -ml-1 text-zinc-400 hover:text-white transition-colors"
+                title="Назад"
+              >
+                <span className="text-xl leading-none text-rose-500 font-bold">←</span>
+              </button>
+
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight text-center">
+                Замовлення
+              </h2>
 
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsCheckoutOpen(false)}
-                className="p-2 rounded-2xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/5"
+                className="p-1.5 -mr-1 text-zinc-400 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </motion.button>
             </div>
 
             {/* Scrollable Form Body */}
-            <form onSubmit={handleSubmitOrder} className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
+            <form onSubmit={handleSubmitOrder} className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
               
-              {/* Order Type Switcher (Delivery / Takeaway / In-house) */}
-              <div className="grid grid-cols-3 gap-1.5 bg-[#171724] p-1.5 rounded-2xl border border-white/[0.06]">
-                <button
-                  type="button"
-                  onClick={() => setOrderType('delivery')}
-                  className={`py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
-                    orderType === 'delivery'
-                      ? 'apple-button-primary text-white shadow-md'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <Truck className="w-4 h-4 shrink-0" />
-                  <span className="truncate">Доставка</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOrderType('takeaway')}
-                  className={`py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
-                    orderType === 'takeaway'
-                      ? 'apple-button-primary text-white shadow-md'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <Store className="w-4 h-4 shrink-0" />
-                  <span className="truncate">Самовивіз</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOrderType('dinein')}
-                  className={`py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
-                    orderType === 'dinein'
-                      ? 'apple-button-primary text-white shadow-md'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <UtensilsCrossed className="w-4 h-4 shrink-0" />
-                  <span className="truncate">В закладі</span>
-                </button>
-              </div>
-
-              {/* Dine-In / In-Restaurant Info */}
-              {orderType === 'dinein' && (
-                <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/[0.06] space-y-2">
-                  <div className="flex items-center gap-2 text-amber-400">
-                    <UtensilsCrossed className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Обслуговування у закладі:</span>
-                  </div>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    Ваше замовлення приготують для вас у закладі Crab Club: <strong className="text-white">смт. Овідіополь, вул. Шевченка, 1</strong>.
-                  </p>
-                </div>
-              )}
-
-              {/* Takeaway Info */}
-              {orderType === 'takeaway' && (
-                <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/[0.06] space-y-2">
-                  <div className="flex items-center gap-2 text-emerald-400">
-                    <Store className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Самовивіз з ресторану:</span>
-                  </div>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    Заберіть своє свіжоприготоване замовлення на касі Crab Club: <strong className="text-white">смт. Овідіополь, вул. Шевченка, 1</strong>.
-                  </p>
-                </div>
-              )}
-
-              {/* Contact Details */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <User className="w-4 h-4 text-amber-400" />
-                  <span>Контактні дані:</span>
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-zinc-400">Ваше ім'я *</label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={50}
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-zinc-400">Номер телефону *</label>
-                    <input
-                      type="tel"
-                      required
-                      maxLength={20}
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Delivery Address */}
-              {orderType === 'delivery' && (
-                <div className="space-y-3 p-4 rounded-3xl bg-white/[0.02] border border-white/[0.06]">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-crab-400" />
-                      <span>Зона та адреса доставки:</span>
-                    </h3>
-                    <span className="text-[11px] text-emerald-400 font-semibold">
-                      {zoneDetails.isFree ? 'Безкоштовна доставка ✓' : `Доставка: ${zoneDetails.fee} ₴`}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-zinc-400">Оберіть вашу зону доставки:</label>
-                      <select
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className="w-full bg-[#181826] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 cursor-pointer shadow-inner"
-                      >
-                        <option value="смт. Овідіополь (Центр)">Центр (Овідіополь) — 50 ₴ (безкоштовно від 500 ₴)</option>
-                        <option value="смт. Овідіополь (інші райони)">Овідіополь (інші райони) — 100 ₴ (безкоштовно від 1000 ₴)</option>
-                        <option value="Масив Росток">Росток — 200 ₴ (безкоштовно від 1700 ₴)</option>
-                        <option value="Сусідні села (Роксолани, Калаглія, Миколаївка...)">Сусідні села (Роксолани, Калаглія, Миколаївка...) — 300 ₴ (безкоштовно від 2700 ₴)</option>
-                        <option value="За межами сусідніх сел">За межами сусідніх сел — 500 ₴ (безкоштовно від 3700 ₴)</option>
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="col-span-2 space-y-1">
-                        <label className="text-[11px] text-zinc-400">Вулиця *</label>
-                        <input
-                          type="text"
-                          required
-                          maxLength={100}
-                          value={street}
-                          onChange={(e) => setStreet(e.target.value)}
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-zinc-400">Будинок *</label>
-                        <input
-                          type="text"
-                          required
-                          maxLength={20}
-                          value={house}
-                          onChange={(e) => setHouse(e.target.value)}
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-zinc-400">Квартира</label>
-                        <input
-                          type="text"
-                          maxLength={10}
-                          value={apartment}
-                          onChange={(e) => setApartment(e.target.value)}
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-sm text-white focus:outline-none"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-zinc-400">Поверх</label>
-                        <input
-                          type="text"
-                          maxLength={10}
-                          value={floor}
-                          onChange={(e) => setFloor(e.target.value)}
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-sm text-white focus:outline-none"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-zinc-400">Домофон</label>
-                        <input
-                          type="text"
-                          maxLength={10}
-                          value={doorphone}
-                          onChange={(e) => setDoorphone(e.target.value)}
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-sm text-white focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Time Picker */}
+              {/* Contact Inputs */}
               <div className="space-y-2">
-                <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-amber-400" />
-                  <span>Час доставки / приготування:</span>
-                </h3>
-
-                {!scheduleStatus.isOpen && (
-                  <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-200 text-xs flex items-start gap-2.5">
-                    <span className="text-sm shrink-0">🌙</span>
-                    <div className="leading-relaxed">
-                      <span className="font-bold text-white">Ресторан зараз відпочиває (графік: 10:00–22:00).</span>
-                      <p className="text-[11px] text-purple-300 mt-0.5">
-                        Ваше передзамовлення буде передано на кухню та приготовлено першим {scheduleStatus.nextOpenTimeText.toLowerCase()}!
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <motion.button
-                    whileTap={{ scale: 0.96 }}
-                    type="button"
-                    disabled={!scheduleStatus.isOpen}
-                    onClick={() => setDeliveryTimeType('asap')}
-                    className={`p-3 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
-                      deliveryTimeType === 'asap'
-                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-md'
-                        : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white disabled:opacity-40 disabled:pointer-events-none'
-                    }`}
-                  >
-                    <span>🚀 Якнайшвидше (~45-60 хв)</span>
-                  </motion.button>
-
-                  <motion.button
-                    whileTap={{ scale: 0.96 }}
-                    type="button"
-                    onClick={() => setDeliveryTimeType('scheduled')}
-                    className={`p-3 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
-                      deliveryTimeType === 'scheduled'
-                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-md'
-                        : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <span>🕒 {scheduleStatus.isOpen ? 'На точний час' : 'Передзамовлення на час'}</span>
-                  </motion.button>
-                </div>
-
-                {deliveryTimeType === 'scheduled' && (
-                  <div className="pt-2 space-y-2">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[11px] text-zinc-400">Швидкий вибір:</span>
-                      {['13:00', '15:00', '17:00', '18:30', '19:30', '20:30'].map(t => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setScheduledTime(t)}
-                          className={`px-2.5 py-1 rounded-xl text-xs font-semibold transition-all ${
-                            scheduledTime === t
-                              ? 'bg-amber-400 text-slate-950 font-bold shadow-sm'
-                              : 'bg-white/5 text-zinc-300 hover:text-white border border-white/10'
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-3 pt-1">
-                      <label className="text-xs text-zinc-400">Або вкажіть вручну:</label>
-                      <input
-                        type="time"
-                        value={scheduledTime}
-                        min="10:00"
-                        max="22:00"
-                        onChange={(e) => setScheduledTime(e.target.value)}
-                        className="bg-[#181826] border border-white/15 rounded-2xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Payment Method */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <CreditCard className="w-4 h-4 text-emerald-400" />
-                  <span>Спосіб оплати:</span>
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <motion.button
-                    whileTap={{ scale: 0.96 }}
-                    type="button"
-                    onClick={() => setPaymentMethod('card_online')}
-                    className={`p-3 rounded-2xl border text-xs font-semibold flex flex-col items-center gap-1.5 transition-all text-center ${
-                      paymentMethod === 'card_online'
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-md'
-                        : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <Smartphone className="w-5 h-5 text-emerald-400" />
-                    <span>Оплата онлайн</span>
-                    <span className="text-[10px] text-zinc-400 font-normal">Apple Pay / Monobank / Картка</span>
-                  </motion.button>
-
-                  <motion.button
-                    whileTap={{ scale: 0.96 }}
-                    type="button"
-                    onClick={() => setPaymentMethod('card_courier')}
-                    className={`p-3 rounded-2xl border text-xs font-semibold flex flex-col items-center gap-1.5 transition-all text-center ${
-                      paymentMethod === 'card_courier'
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-md'
-                        : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <CreditCard className="w-5 h-5 text-amber-400" />
-                    <span>{orderType === 'takeaway' ? 'Карткою на касі' : 'Терміналом кур\'єру'}</span>
-                    <span className="text-[10px] text-zinc-400 font-normal">При отриманні</span>
-                  </motion.button>
-
-                  <motion.button
-                    whileTap={{ scale: 0.96 }}
-                    type="button"
-                    onClick={() => setPaymentMethod('cash')}
-                    className={`p-3 rounded-2xl border text-xs font-semibold flex flex-col items-center gap-1.5 transition-all text-center ${
-                      paymentMethod === 'cash'
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-md'
-                        : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <Banknote className="w-5 h-5 text-purple-400" />
-                    <span>{orderType === 'takeaway' ? 'Готівкою на касі' : 'Готівкою кур\'єру'}</span>
-                    <span className="text-[10px] text-zinc-400 font-normal">При отриманні</span>
-                  </motion.button>
-                </div>
-
-                {paymentMethod === 'cash' && (
-                  <div className="pt-2">
-                    <label className="text-[11px] text-zinc-400">Потрібна решта з купюри:</label>
-                    <input
-                      type="text"
-                      maxLength={50}
-                      value={cashChangeFrom}
-                      onChange={(e) => setCashChangeFrom(e.target.value)}
-                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2 text-xs text-white focus:outline-none"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Cutlery Count & Comments */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-white/[0.06]">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-1">
-                    <UtensilsCrossed className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Кількість приборів:</span>
-                  </label>
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3, 4, 5, 6].map(num => (
-                      <motion.button
-                        key={num}
-                        whileTap={{ scale: 0.85 }}
-                        type="button"
-                        onClick={() => setCutleryCount(num)}
-                        className={`w-8 h-8 rounded-2xl text-xs font-bold transition-all ${
-                          cutleryCount === num
-                            ? 'apple-button-primary text-white shadow-md'
-                            : 'bg-white/5 text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                        {num}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-zinc-400">Коментар до замовлення:</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    maxLength={250}
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none"
+                    required
+                    maxLength={50}
+                    placeholder="Ваше ім'я"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full bg-[#181824] border border-white/[0.08] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-700"
+                  />
+                </div>
+
+                <div className="relative">
+                  <span className="text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 text-sm">📞</span>
+                  <input
+                    type="tel"
+                    required
+                    maxLength={20}
+                    placeholder="Номер телефону"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full bg-[#181824] border border-white/[0.08] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-700"
                   />
                 </div>
               </div>
 
-              {/* Bonus / Cashback Points Section */}
-              {availableBonuses > 0 && (
-                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400">
-                      <Sparkles className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <span>Бонусний рахунок:</span>
-                        <span className="text-amber-400 font-extrabold">{availableBonuses} ₴</span>
-                      </div>
-                      <p className="text-[11px] text-zinc-400">
-                        {useBonuses ? `Списано ${bonusDeductible} ₴ на це замовлення` : 'Ви можете списати бонуси для оплати'}
-                      </p>
-                    </div>
-                  </div>
+              {/* Delivery Section */}
+              <div className="space-y-2.5 pt-1">
+                <label className="text-xs font-bold text-zinc-300">Доставлення</label>
+                
+                {/* Delivery Type Segmented Tabs */}
+                <div className="grid grid-cols-3 gap-1 bg-[#181824] p-1 rounded-xl border border-white/[0.06]">
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('delivery')}
+                    className={`py-2 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      orderType === 'delivery'
+                        ? 'bg-[#9f1239] text-white shadow-md'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <Truck className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Доставлення</span>
+                  </button>
 
                   <button
                     type="button"
-                    onClick={() => setUseBonuses(!useBonuses)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      useBonuses
-                        ? 'bg-amber-500 text-slate-950 shadow-md'
-                        : 'bg-white/10 text-zinc-300 hover:text-white border border-white/10'
+                    onClick={() => setOrderType('takeaway')}
+                    className={`py-2 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      orderType === 'takeaway'
+                        ? 'bg-[#9f1239] text-white shadow-md'
+                        : 'text-zinc-400 hover:text-white'
                     }`}
                   >
-                    {useBonuses ? 'Списано ✓' : 'Списати'}
+                    <Store className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Самовивіз</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('dinein')}
+                    className={`py-2 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      orderType === 'dinein'
+                        ? 'bg-[#9f1239] text-white shadow-md'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <UtensilsCrossed className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">В закладі</span>
+                  </button>
+                </div>
+
+                {/* Delivery Address Card & Selector */}
+                {orderType === 'delivery' && (
+                  <div className="space-y-2">
+                    {hasSavedProfileAddress && useSavedAddress ? (
+                      /* Saved Address Card (Matching Target Screenshot) */
+                      <div className="p-3.5 rounded-xl bg-[#181824] border border-white/[0.08] flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <MapPin className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-white truncate">
+                              {userProfile.street ? `${userProfile.street} вулиця, ${userProfile.house}` : 'Збережена адреса'}
+                            </div>
+                            <div className="text-xs text-zinc-400 mt-0.5 truncate">
+                              {[
+                                userProfile.apartment ? `${userProfile.apartment} під'їзд/кв` : '',
+                                userProfile.floor ? `${userProfile.floor} поверх` : '',
+                                userProfile.city || city
+                              ].filter(Boolean).join(' • ')}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setUseSavedAddress(false)}
+                          className="text-xs text-rose-400 hover:text-rose-300 font-medium shrink-0 pt-0.5"
+                        >
+                          Інша адреса
+                        </button>
+                      </div>
+                    ) : (
+                      /* Manual / Custom Address Fields */
+                      <div className="p-3.5 rounded-xl bg-[#181824] border border-white/[0.08] space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-zinc-300">Вкажіть адресу доставки:</span>
+                          {hasSavedProfileAddress && (
+                            <button
+                              type="button"
+                              onClick={() => setUseSavedAddress(true)}
+                              className="text-xs text-rose-400 hover:text-rose-300 font-medium"
+                            >
+                              Збережена адреса
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[11px] text-zinc-400">Зона доставки:</label>
+                          <select
+                            value={city}
+                            onChange={(e) => setCity(e.target.value)}
+                            className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-700 cursor-pointer"
+                          >
+                            <option value="смт. Овідіополь (Центр)">Центр (Овідіополь) — 50 ₴ (безкоштовно від 500 ₴)</option>
+                            <option value="смт. Овідіополь (інші райони)">Овідіополь (інші райони) — 100 ₴ (безкоштовно від 1000 ₴)</option>
+                            <option value="Масив Росток">Росток — 200 ₴ (безкоштовно від 1700 ₴)</option>
+                            <option value="Сусідні села (Роксолани, Калаглія, Миколаївка...)">Сусідні села — 300 ₴ (безкоштовно від 2700 ₴)</option>
+                            <option value="За межами сусідніх сел">За межами сусідніх сел — 500 ₴ (безкоштовно від 3700 ₴)</option>
+                          </select>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="col-span-2 space-y-1">
+                            <input
+                              type="text"
+                              required
+                              placeholder="Вулиця *"
+                              maxLength={100}
+                              value={street}
+                              onChange={(e) => setStreet(e.target.value)}
+                              className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-700"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <input
+                              type="text"
+                              required
+                              placeholder="Будинок *"
+                              maxLength={20}
+                              value={house}
+                              onChange={(e) => setHouse(e.target.value)}
+                              className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Під'їзд/Кв"
+                            maxLength={10}
+                            value={apartment}
+                            onChange={(e) => setApartment(e.target.value)}
+                            className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Поверх"
+                            maxLength={10}
+                            value={floor}
+                            onChange={(e) => setFloor(e.target.value)}
+                            className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Домофон"
+                            maxLength={10}
+                            value={doorphone}
+                            onChange={(e) => setDoorphone(e.target.value)}
+                            className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Delivery Time Select */}
+                    <div className="p-3 rounded-xl bg-[#181824] border border-white/[0.08] flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 text-xs text-zinc-300 min-w-0">
+                        <Clock className="w-4 h-4 text-zinc-400 shrink-0" />
+                        <select
+                          value={deliveryTimeType === 'asap' ? 'asap' : scheduledTime}
+                          onChange={(e) => {
+                            if (e.target.value === 'asap') {
+                              setDeliveryTimeType('asap');
+                            } else {
+                              setDeliveryTimeType('scheduled');
+                              setScheduledTime(e.target.value);
+                            }
+                          }}
+                          className="bg-transparent text-white text-xs font-medium focus:outline-none cursor-pointer truncate"
+                        >
+                          <option value="asap" className="bg-[#181824] text-white">Доставити швидше (~ 40-50 хв)</option>
+                          <option value="12:00" className="bg-[#181824] text-white">На час: 12:00</option>
+                          <option value="13:00" className="bg-[#181824] text-white">На час: 13:00</option>
+                          <option value="14:00" className="bg-[#181824] text-white">На час: 14:00</option>
+                          <option value="15:00" className="bg-[#181824] text-white">На час: 15:00</option>
+                          <option value="16:00" className="bg-[#181824] text-white">На час: 16:00</option>
+                          <option value="17:00" className="bg-[#181824] text-white">На час: 17:00</option>
+                          <option value="18:00" className="bg-[#181824] text-white">На час: 18:00</option>
+                          <option value="19:00" className="bg-[#181824] text-white">На час: 19:00</option>
+                          <option value="20:00" className="bg-[#181824] text-white">На час: 20:00</option>
+                          <option value="21:00" className="bg-[#181824] text-white">На час: 21:00</option>
+                        </select>
+                      </div>
+                      <span className="text-zinc-500 text-xs shrink-0">▼</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Takeaway / Dine-in Address Cards */}
+                {orderType === 'takeaway' && (
+                  <div className="p-3.5 rounded-xl bg-[#181824] border border-white/[0.08] flex items-center gap-3">
+                    <Store className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <div className="text-xs font-semibold text-white">Самовивіз з ресторану</div>
+                      <div className="text-[11px] text-zinc-400">смт. Овідіополь, вул. Шевченка, 1</div>
+                    </div>
+                  </div>
+                )}
+
+                {orderType === 'dinein' && (
+                  <div className="p-3.5 rounded-xl bg-[#181824] border border-white/[0.08] flex items-center gap-3">
+                    <UtensilsCrossed className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <div className="text-xs font-semibold text-white">Обслуговування у закладі</div>
+                      <div className="text-[11px] text-zinc-400">смт. Овідіополь, вул. Шевченка, 1</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Payment Section */}
+              <div className="space-y-2 pt-1">
+                <label className="text-xs font-bold text-zinc-300">Оплата</label>
+                
+                <div className="p-3 rounded-xl bg-[#181824] border border-white/[0.08] flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 text-xs text-zinc-300 min-w-0">
+                    <CreditCard className="w-4 h-4 text-zinc-400 shrink-0" />
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value as any)}
+                      className="bg-transparent text-white text-xs font-medium focus:outline-none cursor-pointer truncate"
+                    >
+                      <option value="card_courier" className="bg-[#181824] text-white">Карткою під час отримання (термінал)</option>
+                      <option value="cash" className="bg-[#181824] text-white">Готівкою під час отримання</option>
+                      <option value="card_online" className="bg-[#181824] text-white">Оплата онлайн (Apple Pay / Картка)</option>
+                    </select>
+                  </div>
+                  <span className="text-zinc-500 text-xs shrink-0">▼</span>
+                </div>
+
+                {paymentMethod === 'cash' && (
+                  <div className="pt-1">
+                    <input
+                      type="text"
+                      maxLength={50}
+                      placeholder="Потрібна решта з купюри (наприклад, 500 грн)"
+                      value={cashChangeFrom}
+                      onChange={(e) => setCashChangeFrom(e.target.value)}
+                      className="w-full bg-[#181824] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Optional Cutlery & Comment */}
+              <div className="pt-2 border-t border-white/[0.06] flex items-center gap-3">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-xs text-zinc-400">Прибори:</span>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4].map(num => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setCutleryCount(num)}
+                        className={`w-6 h-6 rounded-lg text-xs font-bold transition-all ${
+                          cutleryCount === num
+                            ? 'bg-[#9f1239] text-white'
+                            : 'bg-white/5 text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <input
+                  type="text"
+                  maxLength={150}
+                  placeholder="Коментар до замовлення..."
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  className="flex-1 bg-[#181824] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                />
+              </div>
+
+              {/* Bonus / Cashback Toggle if Available */}
+              {availableBonuses > 0 && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between gap-3">
+                  <div className="text-xs text-white">
+                    <span>Бонусів на рахунку: </span>
+                    <strong className="text-amber-400">{availableBonuses} ₴</strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUseBonuses(!useBonuses)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      useBonuses
+                        ? 'bg-amber-500 text-slate-950'
+                        : 'bg-white/10 text-zinc-300'
+                    }`}
+                  >
+                    {useBonuses ? `Списано ${bonusDeductible} ₴ ✓` : 'Списати'}
                   </button>
                 </div>
               )}
 
-              {/* Quick Upsell Section */}
-              {catalogProducts.filter(p => 
-                (p.category_url.includes('napoyi') || p.category_url.includes('deserti') || p.category_name.toLowerCase().includes('напо') || p.category_name.toLowerCase().includes('випіч')) &&
-                !cart.some(item => item.product.id === p.id)
-              ).slice(0, 3).length > 0 && (
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-2.5">
-                  <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Додати напій або десерт до замовлення?</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {catalogProducts.filter(p => 
-                      (p.category_url.includes('napoyi') || p.category_url.includes('deserti') || p.category_name.toLowerCase().includes('напо') || p.category_name.toLowerCase().includes('випіч')) &&
-                      !cart.some(item => item.product.id === p.id)
-                    ).slice(0, 3).map(item => (
-                      <div key={item.id} className="p-2 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-semibold text-white truncate">{item.name}</div>
-                          <div className="text-[11px] font-bold text-amber-400">{item.price} ₴</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            addToCart(item, 1);
-                            showToast(`Додано: ${item.name}`, item.image, 'success');
-                          }}
-                          className="px-2.5 py-1 rounded-lg apple-button-primary text-white text-xs font-bold shrink-0 shadow-sm"
-                        >
-                          + Додати
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+              {/* Price Breakdown */}
+              <div className="pt-2 space-y-1.5 text-xs text-zinc-400">
+                <div className="flex justify-between items-center">
+                  <span>Сума замовлення:</span>
+                  <span className="font-bold text-white text-sm">{subtotal - discount - bonusDeductible} грн</span>
                 </div>
-              )}
-
-              {/* Order Breakdown Summary */}
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2 text-xs text-zinc-400">
-                <div className="flex justify-between">
-                  <span>Сума товарів:</span>
-                  <span className="font-semibold text-white">{subtotal} ₴</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-emerald-400">
-                    <span>Знижка:</span>
-                    <span className="font-bold">-{discount} ₴</span>
-                  </div>
-                )}
-                {bonusDeductible > 0 && (
-                  <div className="flex justify-between text-amber-400 font-semibold">
-                    <span>Списано бонусів:</span>
-                    <span>-{bonusDeductible} ₴</span>
-                  </div>
-                )}
-                {orderType === 'delivery' ? (
+                {orderType === 'delivery' && (
                   <div className="flex justify-between items-center">
-                    <span>Доставка ({zoneDetails.zoneName}):</span>
-                    <span className="font-semibold text-white">
+                    <span>Доставлення:</span>
+                    <span className="font-bold text-white text-sm">
                       {finalDeliveryFee === 0 ? (
-                        <span className="text-emerald-400 font-bold">Безкоштовно</span>
+                        <span className="text-emerald-400">Безкоштовно</span>
                       ) : (
-                        `${finalDeliveryFee} ₴`
+                        `${finalDeliveryFee} грн`
                       )}
                     </span>
                   </div>
-                ) : orderType === 'takeaway' ? (
-                  <div className="flex justify-between items-center text-zinc-300">
-                    <span>Отримання замовлення:</span>
-                    <span className="font-semibold text-emerald-400">Самовивіз з каси (0 ₴)</span>
-                  </div>
-                ) : (
-                  <div className="flex justify-between items-center text-zinc-300">
-                    <span>Отримання замовлення:</span>
-                    <span className="font-semibold text-amber-400">В закладі / За столик (0 ₴)</span>
-                  </div>
                 )}
-                <div className="flex justify-between items-center pt-2 border-t border-white/[0.06] text-amber-300/90 text-[11px]">
-                  <span className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Кешбек за це замовлення (+5%):</span>
-                  </span>
-                  <span className="font-bold text-amber-400">+{cashbackEarned} ₴</span>
-                </div>
               </div>
 
-            </form>
-
-            {/* Modal Footer */}
-            <div className="p-4 sm:p-6 bg-[#0D0D15] border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-left w-full sm:w-auto">
-                <div className="text-xs text-zinc-400">До сплати:</div>
-                <div className="font-display font-extrabold text-2xl text-amber-300 tracking-tight">
-                  {finalTotal} ₴
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 w-full sm:w-auto">
+              {/* Big Dark Red CTA Button (Matching Target Image) */}
+              <div className="pt-2">
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  type="button"
-                  onClick={() => setIsCheckoutOpen(false)}
-                  className="px-5 py-3 rounded-2xl apple-button-secondary text-zinc-300 text-sm font-semibold"
-                >
-                  Назад
-                </motion.button>
-
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   disabled={isSubmitting}
                   onClick={handleSubmitOrder}
-                  className="flex-1 sm:flex-none px-8 py-3.5 rounded-2xl apple-button-primary text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-crab-600/30 transition-all disabled:opacity-50"
+                  className="w-full py-3.5 px-6 rounded-2xl bg-[#9f1239] hover:bg-[#881337] active:bg-[#700f2b] text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <span>Оформлення...</span>
                   ) : (
-                    <>
-                      <span>{scheduleStatus.isOpen ? 'Підтвердити замовлення' : 'Підтвердити передзамовлення'}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
+                    <span>Оформити за {finalTotal} грн</span>
                   )}
                 </motion.button>
               </div>
-            </div>
 
+            </form>
           </motion.div>
         </div>
       )}
