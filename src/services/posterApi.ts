@@ -257,7 +257,8 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
   }
 
   // Format products list with full group & simple modifier fidelity for Poster POS
-  const products: PosterIncomingProduct[] = [];
+  // Automatically merges items with identical product_id and identical modifiers to prevent Poster POS Error 99
+  const productEntriesMap = new Map<string, PosterIncomingProduct>();
 
   order.items.forEach(item => {
     const qty = Number(item.quantity) || 1;
@@ -333,12 +334,20 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
         });
       }
 
-      products.push({
-        product_id: resolvedProductId || 1,
-        count: qty,
-        price: Math.round(unitPrice * 100),
-        modification: groupModArray.length > 0 ? groupModArray : undefined
-      });
+      // Sort modifier IDs to create a deterministic deduplication key
+      const modKey = groupModArray.map(m => m.m).sort((a, b) => a - b).join('-');
+      const itemKey = `${resolvedProductId}_gmod_${modKey || 'none'}`;
+
+      if (productEntriesMap.has(itemKey)) {
+        productEntriesMap.get(itemKey)!.count += qty;
+      } else {
+        productEntriesMap.set(itemKey, {
+          product_id: resolvedProductId || 1,
+          count: qty,
+          price: Math.round(unitPrice * 100),
+          modification: groupModArray.length > 0 ? groupModArray : undefined
+        });
+      }
     } else if (hasSimpleMods) {
       // Simple Modifications (Variant products): pass single modificator_id
       let chosenModId: number | undefined = undefined;
@@ -369,26 +378,40 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
         });
       }
 
-      const prodEntry: PosterIncomingProduct = {
-        product_id: resolvedProductId || 1,
-        count: qty,
-        price: Math.round(unitPrice * 100)
-      };
+      const itemKey = `${resolvedProductId}_smod_${chosenModId || 0}`;
 
-      if (chosenModId !== undefined && chosenModId > 0) {
-        prodEntry.modificator_id = chosenModId;
+      if (productEntriesMap.has(itemKey)) {
+        productEntriesMap.get(itemKey)!.count += qty;
+      } else {
+        const prodEntry: PosterIncomingProduct = {
+          product_id: resolvedProductId || 1,
+          count: qty,
+          price: Math.round(unitPrice * 100)
+        };
+
+        if (chosenModId !== undefined && chosenModId > 0) {
+          prodEntry.modificator_id = chosenModId;
+        }
+
+        productEntriesMap.set(itemKey, prodEntry);
       }
-
-      products.push(prodEntry);
     } else {
       // Standard product without modifications
-      products.push({
-        product_id: resolvedProductId || 1,
-        count: qty,
-        price: Math.round(unitPrice * 100)
-      });
+      const itemKey = `${resolvedProductId}_base`;
+
+      if (productEntriesMap.has(itemKey)) {
+        productEntriesMap.get(itemKey)!.count += qty;
+      } else {
+        productEntriesMap.set(itemKey, {
+          product_id: resolvedProductId || 1,
+          count: qty,
+          price: Math.round(unitPrice * 100)
+        });
+      }
     }
   });
+
+  const products = Array.from(productEntriesMap.values());
 
   // Clean numeric cash change (only for delivery with cash)
   const rawChange = String(order.cashChangeFrom || '').replace(/[^\d]/g, '');
