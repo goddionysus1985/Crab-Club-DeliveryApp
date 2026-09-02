@@ -95,9 +95,7 @@ export const App: React.FC = () => {
     return cleanupHaptics;
   }, []);
 
-  const isScrollingToCategoryRef = useRef(false);
-
-  // Instant Tab-Filter Category Handler with accurate smooth scroll & URL Hash update
+  // Category selection handler: filters dishes to the selected category and scrolls smoothly to the top of the menu
   const handleSelectCategory = (slug: string) => {
     setActiveCategory(slug);
     setActiveSubcategory('all');
@@ -108,76 +106,17 @@ export const App: React.FC = () => {
       window.history.replaceState(null, '', newHash);
     } catch {}
 
-    isScrollingToCategoryRef.current = true;
-
-    // Ensure page scrolls cleanly to the start of the category
+    // Ensure page scrolls cleanly to the start of the selected category
     requestAnimationFrame(() => {
-      const headerEl = document.querySelector('header');
-      const navEl = document.getElementById('menu-nav');
-      const headerH = (headerEl ? headerEl.offsetHeight : 52) + (navEl ? navEl.offsetHeight : 50);
-
-      if (slug === 'all') {
-        const anchor = document.getElementById('menu-top-anchor') || document.getElementById('menu-nav');
-        if (anchor) {
-          const targetY = anchor.getBoundingClientRect().top + window.pageYOffset - (headerEl ? headerEl.offsetHeight : 52);
-          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-        }
-      } else {
-        const targetEl = document.getElementById(`category-${slug}`);
-        if (targetEl) {
-          const targetY = targetEl.getBoundingClientRect().top + window.pageYOffset - headerH - 12;
-          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-        }
+      const anchor = document.getElementById('menu-top-anchor') || document.getElementById('menu-nav');
+      if (anchor) {
+        const headerEl = document.querySelector('header');
+        const headerH = headerEl ? headerEl.offsetHeight : 52;
+        const targetY = anchor.getBoundingClientRect().top + window.pageYOffset - headerH;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
       }
-
-      setTimeout(() => {
-        isScrollingToCategoryRef.current = false;
-      }, 700);
     });
   };
-
-  // Sticky Category Scrollspy: dynamically highlights and auto-centers the active category pill during scrolling
-  useEffect(() => {
-    const handleScrollspy = () => {
-      if (isScrollingToCategoryRef.current) return;
-
-      const headerEl = document.querySelector('header');
-      const navEl = document.getElementById('menu-nav');
-      const triggerY = (headerEl ? headerEl.offsetHeight : 52) + (navEl ? navEl.offsetHeight : 50) + 60;
-
-      // Check if user is scrolled above the menu catalog
-      const menuSection = document.getElementById('menu');
-      if (menuSection) {
-        const menuRect = menuSection.getBoundingClientRect();
-        if (menuRect.top > triggerY + 20) {
-          if (activeCategory !== 'all') setActiveCategory('all');
-          return;
-        }
-      }
-
-      const sections = Array.from(document.querySelectorAll<HTMLElement>('section[data-category-slug]'));
-      if (sections.length === 0) return;
-
-      let activeSectionSlug = 'all';
-
-      for (let i = 0; i < sections.length; i++) {
-        const section = sections[i];
-        const rect = section.getBoundingClientRect();
-
-        if (rect.top <= triggerY + 40 && rect.bottom > triggerY - 40) {
-          activeSectionSlug = section.getAttribute('data-category-slug') || 'all';
-          break;
-        }
-      }
-
-      if (activeSectionSlug && activeSectionSlug !== activeCategory) {
-        setActiveCategory(activeSectionSlug);
-      }
-    };
-
-    window.addEventListener('scroll', handleScrollspy, { passive: true });
-    return () => window.removeEventListener('scroll', handleScrollspy);
-  }, [activeCategory, catalogCategories]);
 
   const handleSelectSubcategory = (subSlug: string) => {
     setActiveSubcategory(subSlug);
@@ -281,7 +220,9 @@ export const App: React.FC = () => {
 
         {/* Categories Catalog */}
         <div className="space-y-16">
-          {catalogCategories.map(category => {
+          {catalogCategories
+            .filter(category => activeCategory === 'all' || category.slug === activeCategory)
+            .map(category => {
             let catProducts = catalogProducts.filter(p => 
               p.category_url === category.slug || 
               p.parent_category_url === category.slug || 
