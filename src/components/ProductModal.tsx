@@ -17,6 +17,9 @@ export const ProductModal: React.FC = () => {
   const { 
     activeProductModal, 
     setActiveProductModal, 
+    editingCartItem,
+    setEditingCartItem,
+    updateCartItem,
     addToCart, 
     toggleFavorite, 
     isFavorite,
@@ -30,15 +33,31 @@ export const ProductModal: React.FC = () => {
   const product = activeProductModal;
   const isFav = product ? isFavorite(product.id) : false;
   const isStopped = product && isProductStopped ? isProductStopped(product.id) : false;
+  const isEditMode = Boolean(editingCartItem && product && editingCartItem.product.id === product.id);
 
-  // Reset modifiers & quantity when opening a new product
+  // Initialize modifiers & quantity when opening product modal
   useEffect(() => {
     if (activeProductModal) {
-      setQuantity(1);
-      setSelectedOptions({});
-      setComment('');
+      if (editingCartItem && editingCartItem.product.id === activeProductModal.id) {
+        // Pre-populate with current modifiers from cart item
+        const initialOpts: Record<string, { group: string; name: string; price: number }> = {};
+        editingCartItem.selectedOptions?.forEach(opt => {
+          initialOpts[`${opt.group_name}__${opt.option_name}`] = {
+            group: opt.group_name,
+            name: opt.option_name,
+            price: opt.price
+          };
+        });
+        setSelectedOptions(initialOpts);
+        setQuantity(editingCartItem.quantity || 1);
+        setComment(editingCartItem.comment || '');
+      } else {
+        setQuantity(1);
+        setSelectedOptions({});
+        setComment('');
+      }
     }
-  }, [activeProductModal]);
+  }, [activeProductModal, editingCartItem]);
 
   // Calculate extra cost from modifiers
   const extraCost = Object.values(selectedOptions).reduce((sum, opt) => sum + opt.price, 0);
@@ -64,7 +83,12 @@ export const ProductModal: React.FC = () => {
     });
   };
 
-  const handleAddToCart = () => {
+  const handleClose = () => {
+    setActiveProductModal(null);
+    setEditingCartItem(null);
+  };
+
+  const handleSaveOrAddToCart = () => {
     if (!product) return;
     const formattedOptions = Object.values(selectedOptions).map(opt => ({
       group_name: opt.group,
@@ -72,21 +96,25 @@ export const ProductModal: React.FC = () => {
       price: opt.price
     }));
 
-    addToCart(product, quantity, formattedOptions, comment);
-    setActiveProductModal(null);
+    if (isEditMode && editingCartItem) {
+      updateCartItem(editingCartItem.id, formattedOptions, comment, quantity);
+    } else {
+      addToCart(product, quantity, formattedOptions, comment);
+    }
+    handleClose();
   };
 
   return (
     <AnimatePresence>
       {product && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
           {/* Backdrop with smooth blur */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            onClick={() => setActiveProductModal(null)}
+            onClick={handleClose}
             className="fixed inset-0 bg-black/80 backdrop-blur-md"
           />
 
@@ -104,7 +132,7 @@ export const ProductModal: React.FC = () => {
             {/* Close Button with Spring Tap */}
             <motion.button
               whileTap={{ scale: 0.85 }}
-              onClick={() => setActiveProductModal(null)}
+              onClick={handleClose}
               aria-label="Закрити"
               className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-xl border border-white/10 transition-colors shadow-md"
             >
@@ -170,9 +198,17 @@ export const ProductModal: React.FC = () => {
               {/* Details */}
               <div className="p-6 sm:p-8 space-y-6">
                 <div>
-                  <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
-                    {product.category_name}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
+                      {product.category_name}
+                    </span>
+                    {isEditMode && (
+                      <span className="px-2 py-0.5 rounded-lg bg-rose-600/30 border border-rose-500/40 text-rose-200 text-[10px] font-bold flex items-center gap-1">
+                        <span>✏️</span>
+                        <span>Редагування модифікаторів</span>
+                      </span>
+                    )}
+                  </div>
                   <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white mt-1 tracking-tight">
                     {product.name}
                   </h2>
@@ -290,12 +326,21 @@ export const ProductModal: React.FC = () => {
               ) : (
                 <motion.button
                   whileTap={{ scale: 0.97 }}
-                  onClick={handleAddToCart}
+                  onClick={handleSaveOrAddToCart}
                   className="flex-1 py-3 sm:py-3.5 px-4 sm:px-6 rounded-2xl apple-button-primary text-white font-bold text-xs sm:text-base flex items-center justify-between gap-2 shadow-xl shadow-crab-600/30 shrink-0"
                 >
-                  <span className="truncate">
-                    <span>Додати</span>
-                    <span className="hidden xs:inline"> до замовлення</span>
+                  <span className="truncate flex items-center gap-1.5">
+                    {isEditMode ? (
+                      <>
+                        <span>Зберегти зміни</span>
+                        <span className="hidden xs:inline text-rose-200 text-xs font-normal">у страві</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Додати</span>
+                        <span className="hidden xs:inline"> до замовлення</span>
+                      </>
+                    )}
                   </span>
                   <span className="font-display font-black text-amber-300 shrink-0">
                     {totalPrice} ₴

@@ -76,6 +76,15 @@ interface CartContextType {
   openProfileModal: (tab?: 'profile' | 'history' | 'favorites') => void;
   activeProductModal: Product | null;
   setActiveProductModal: (p: Product | null) => void;
+  editingCartItem: CartItem | null;
+  setEditingCartItem: (item: CartItem | null) => void;
+  openEditCartItem: (item: CartItem) => void;
+  updateCartItem: (
+    cartItemId: string,
+    updatedOptions: { group_name: string; option_name: string; price: number }[],
+    comment?: string,
+    quantity?: number
+  ) => void;
 
   // User Profile & Account
   userProfile: UserProfile;
@@ -440,8 +449,61 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   });
 
+  const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
+
+  const openEditCartItem = (item: CartItem) => {
+    const fullProd = catalogProducts.find(p => p.id === item.product.id) || 
+                     PRODUCTS.find(p => p.id === item.product.id) || 
+                     item.product;
+    setEditingCartItem(item);
+    setActiveProductModalState(fullProd);
+  };
+
+  const updateCartItem = (
+    cartItemId: string,
+    updatedOptions: { group_name: string; option_name: string; price: number }[],
+    comment?: string,
+    quantity?: number
+  ) => {
+    setCart(prevCart => {
+      const updated = prevCart.map(item => {
+        if (item.id === cartItemId) {
+          const originalProd = catalogProducts.find(p => p.id === item.product.id) || 
+                               PRODUCTS.find(p => p.id === item.product.id) || 
+                               item.product;
+          const basePrice = originalProd ? Number(originalProd.price) || 0 : item.product.price;
+          const safeOptions = updatedOptions.map(opt => ({
+            group_name: cleanRawText(opt.group_name, 50),
+            option_name: cleanRawText(opt.option_name, 50),
+            price: Math.max(0, Number(opt.price) || 0)
+          }));
+          const extraPrice = safeOptions.reduce((sum, opt) => sum + opt.price, 0);
+          const unitPrice = basePrice + extraPrice;
+          const qty = quantity !== undefined ? Math.max(1, Math.min(50, Math.floor(quantity))) : item.quantity;
+          return {
+            ...item,
+            product: { ...originalProd, price: basePrice },
+            selectedOptions: safeOptions,
+            comment: comment !== undefined ? (comment ? cleanRawText(comment, 150) : undefined) : item.comment,
+            quantity: qty,
+            totalPrice: unitPrice * qty
+          };
+        }
+        return item;
+      });
+      localStorage.setItem('crabclub_cart', JSON.stringify(updated));
+      return updated;
+    });
+
+    setEditingCartItem(null);
+    showToast('Модифікатори страви оновлено', undefined, 'success');
+  };
+
   const setActiveProductModal = (product: Product | null) => {
     setActiveProductModalState(product);
+    if (!product) {
+      setEditingCartItem(null);
+    }
     try {
       if (product) {
         window.history.replaceState(null, '', `#/product/${product.id}`);
@@ -739,6 +801,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         openProfileModal,
         activeProductModal,
         setActiveProductModal,
+        editingCartItem,
+        setEditingCartItem,
+        openEditCartItem,
+        updateCartItem,
         userProfile,
         updateUserProfile,
         currentOrder,

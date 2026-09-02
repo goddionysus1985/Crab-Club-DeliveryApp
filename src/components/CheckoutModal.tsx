@@ -16,7 +16,9 @@ import {
   Info,
   Moon,
   ChevronDown,
-  Check
+  Check,
+  ShoppingBag,
+  SlidersHorizontal
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
@@ -50,7 +52,8 @@ export const CheckoutModal: React.FC = () => {
     userProfile,
     updateUserProfile,
     showToast,
-    catalogProducts
+    catalogProducts,
+    openEditCartItem
   } = useCart();
 
   const scheduleStatus = getRestaurantScheduleStatus();
@@ -806,6 +809,79 @@ export const CheckoutModal: React.FC = () => {
                   onChange={(e) => setComment(e.target.value)}
                   className="flex-1 bg-[#181824] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
                 />
+              </div>
+
+              {/* Order Items Summary with Modifier Editing */}
+              <div className="pt-2 border-t border-white/[0.08] space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                    <ShoppingBag className="w-3.5 h-3.5 text-rose-500" />
+                    <span>Склад замовлення ({cart.reduce((s, i) => s + i.quantity, 0)} шт)</span>
+                  </label>
+                  <span className="text-[11px] text-zinc-400 font-medium">
+                    {subtotal} грн
+                  </span>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {cart.map((item) => {
+                    const fullProd = catalogProducts.find(p => p.id === item.product.id) || PRODUCTS.find(p => p.id === item.product.id) || item.product;
+                    const hasMods = fullProd.modifications && fullProd.modifications.length > 0;
+                    const hasSelected = item.selectedOptions && item.selectedOptions.length > 0;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-2.5 rounded-xl bg-[#181824] border border-white/[0.06] flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img
+                            src={item.product.image}
+                            alt={item.product.name}
+                            className="w-10 h-10 rounded-lg object-cover bg-black/40 shrink-0 border border-white/10"
+                          />
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-white truncate">
+                              {item.product.name} <span className="text-zinc-400 font-normal">× {item.quantity}</span>
+                            </div>
+                            {/* Modifiers chips */}
+                            {hasSelected ? (
+                              <div className="flex flex-wrap gap-1 mt-0.5">
+                                {item.selectedOptions!.map((opt, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="text-[9px] px-1.5 py-0.2 rounded bg-white/5 border border-white/10 text-zinc-300 font-light truncate"
+                                  >
+                                    {opt.option_name} {opt.price > 0 ? `(+${opt.price} ₴)` : ''}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-zinc-500">Стандартна порція</div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right font-extrabold text-xs text-white">
+                            {item.totalPrice} ₴
+                          </div>
+                          {hasMods && (
+                            <button
+                              type="button"
+                              onClick={() => openEditCartItem(item)}
+                              className="px-2 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 hover:text-white border border-rose-500/30 transition-all flex items-center gap-1 text-[10px] font-semibold shadow-sm"
+                              title="Змінити модифікатори"
+                            >
+                              <SlidersHorizontal className="w-3 h-3 text-rose-400" />
+                              <span>{hasSelected ? 'Змінити' : '+ Модифікатори'}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Bonus / Cashback Toggle if Available */}

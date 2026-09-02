@@ -7,7 +7,8 @@ import {
   Minus, 
   Trash2, 
   Sparkles, 
-  ArrowRight
+  ArrowRight,
+  SlidersHorizontal
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { getRestaurantScheduleStatus } from '../utils/workHours';
@@ -27,7 +28,8 @@ export const CartDrawer: React.FC = () => {
     isMinOrderReached,
     minOrderRemaining,
     showToast,
-    catalogProducts
+    catalogProducts,
+    openEditCartItem
   } = useCart();
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -167,6 +169,24 @@ export const CartDrawer: React.FC = () => {
                               ))}
                             </div>
                           )}
+
+                          {/* Modifiers edit button if product supports modifications */}
+                          {(() => {
+                            const fullProd = catalogProducts.find(p => p.id === item.product.id) || item.product;
+                            const hasMods = fullProd.modifications && fullProd.modifications.length > 0;
+                            if (!hasMods) return null;
+                            const hasSelected = item.selectedOptions && item.selectedOptions.length > 0;
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => openEditCartItem(item)}
+                                className="mt-1.5 px-2 py-0.5 rounded-lg bg-rose-600/15 hover:bg-rose-600/25 text-rose-300 hover:text-rose-200 text-[11px] font-semibold border border-rose-500/25 flex items-center gap-1 transition-colors w-fit"
+                              >
+                                <SlidersHorizontal className="w-3 h-3 text-rose-400" />
+                                <span>{hasSelected ? 'Змінити модифікатори' : '+ Додати модифікатори'}</span>
+                              </button>
+                            );
+                          })()}
 
                           <div className="flex items-center justify-between mt-2">
                             <span className="font-display font-extrabold text-sm sm:text-base text-white">

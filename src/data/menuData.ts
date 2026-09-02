@@ -1,5 +1,5 @@
 // Auto-generated & Live Synchronized from Poster POS API
-// Generated at: 2026-09-02T18:45:40.724Z
+// Generated at: 2026-09-02T19:32:17.894Z
 import { Category, Product, RestaurantInfo, Banner, Review } from '../types';
 
 export const RESTAURANT_INFO: RestaurantInfo = {
