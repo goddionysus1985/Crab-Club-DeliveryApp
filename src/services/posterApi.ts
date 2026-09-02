@@ -413,12 +413,23 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
 
   const products = Array.from(productEntriesMap.values());
 
+  // Payment method note for cashier/courier comment
+  let paymentText = 'Оплата: Готівкою';
+  if (order.paymentMethod === 'card_online') {
+    paymentText = 'Оплата: Онлайн на сайті (Сплачено)';
+  } else if (order.paymentMethod === 'card_courier') {
+    paymentText = isDelivery ? "Оплата: Терміналом кур'єру" : 'Оплата: Карткою на касі';
+  } else if (order.paymentMethod === 'cash') {
+    paymentText = isDelivery ? "Оплата: Готівкою кур'єру" : 'Оплата: Готівкою на касі';
+  }
+
   // Clean numeric cash change (only for delivery with cash)
   const rawChange = String(order.cashChangeFrom || '').replace(/[^\d]/g, '');
   const changeNote = (isDelivery && rawChange) ? `Решта з: ${rawChange} ₴` : '';
 
-  // Order general comments (Clean, concise - no redundant dish list)
+  // Order general comments (Clean, concise)
   const commentParts = [
+    paymentText,
     order.comment ? `Побажання: ${order.comment}` : '',
     changeNote,
     order.cutleryCount ? `Приборів: ${order.cutleryCount} шт` : '',
