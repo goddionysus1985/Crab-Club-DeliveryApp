@@ -813,26 +813,40 @@ export interface PosterOrderStatusResult {
 }
 
 /**
- * Query real-time kitchen status of an incoming order from Poster POS
+ * Query real-time kitchen and delivery status of an order from Poster POS
+ * Checks both incomingOrders and live POS transactions (dash.getTransaction & dash.getTransactionHistory)
  */
 export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<PosterOrderStatusResult | null> {
   if (!incomingOrderId) return null;
 
   if (POSTER_CONFIG.isLiveMode && POSTER_CONFIG.apiToken) {
     try {
-      const endpoint = getPosterApiUrl('incomingOrders.getIncomingOrder', { incoming_order_id: incomingOrderId });
-      const data = await fetchPosterApiJson<any>(endpoint, {
-        headers: { 'Accept': 'application/json' }
-      });
-      if (data.response) {
-        const orderData = data.response;
-        const status = Number(orderData.status);
-        const mode = Number(orderData.service_mode || orderData.type);
-        const isDineIn = mode === 1;
-        const isTakeaway = mode === 2;
-        let stepIndex = 1;
-        let statusName = 'Прийнято рестораном';
+      let orderData: any = null;
+      let mode = 3;
 
+      // 1. Query incoming order record
+      try {
+        const endpoint = getPosterApiUrl('incomingOrders.getIncomingOrder', { incoming_order_id: incomingOrderId });
+        const data = await fetchPosterApiJson<any>(endpoint, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (data.response) {
+          orderData = data.response;
+          mode = Number(orderData.service_mode || orderData.type || 3);
+        }
+      } catch {
+        // Safe fallback if not found under incomingOrders
+      }
+
+      const isDineIn = mode === 1;
+      const isTakeaway = mode === 2;
+      let stepIndex = 1;
+      let statusName = 'Прийнято рестораном';
+      let updatedAt = orderData?.updated_at;
+
+      // Initial mapping from incoming order status
+      if (orderData) {
+        const status = Number(orderData.status);
         if (status === 0) {
           stepIndex = 1;
           statusName = 'Очікує підтвердження на касі';
@@ -841,7 +855,7 @@ export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<P
           statusName = 'Шеф-кухар готує на кухні';
         } else if (status === 2 || status === 3) {
           stepIndex = 3;
-          statusName = isDineIn ? 'Готово, подається за столик' : isTakeaway ? 'Готово до видачі на касі' : 'Кур\'єр у дорозі';
+          statusName = isDineIn ? 'Готово, подається за столик' : isTakeaway ? 'Готово до видачі на касі' : 'Кур\'єр у дорозі (Везет кур\'єр)';
         } else if (status === 7) {
           stepIndex = 4;
           statusName = isDineIn ? 'Подано за столик' : isTakeaway ? 'Замовлення видано' : 'Успішно доставлено';
@@ -849,16 +863,69 @@ export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<P
           stepIndex = 1;
           statusName = 'Замовлення скасовано';
         }
-
-        return {
-          incoming_order_id: incomingOrderId,
-          status,
-          statusName,
-          stepIndex,
-          service_mode: mode,
-          updatedAt: orderData.updated_at
-        };
       }
+
+      // 2. Query live POS transaction for active courier dispatch & check closed states
+      const txId = orderData?.transaction_id || incomingOrderId;
+      if (txId) {
+        try {
+          const tEndpoint = getPosterApiUrl('dash.getTransaction', { transaction_id: txId });
+          const tData = await fetchPosterApiJson<any>(tEndpoint);
+          const t = tData.response?.[0];
+
+          if (t) {
+            if (t.service_mode) {
+              mode = Number(t.service_mode);
+            }
+            if (t.date_close_date) {
+              updatedAt = t.date_close_date;
+            }
+
+            const isTxClosed = t.status === '2' || Number(t.processing_status) >= 60 || (t.date_close && t.date_close !== '0');
+            const isTxInDelivery = Number(t.processing_status) >= 30 && Number(t.processing_status) < 60;
+
+            if (isTxClosed) {
+              stepIndex = 4;
+              statusName = isDineIn ? 'Подано за столик (Чек закрито)' : isTakeaway ? 'Замовлення видано (Чек закрито)' : 'Успішно доставлено (Чек закрито)';
+            } else if (isTxInDelivery) {
+              stepIndex = 3;
+              statusName = isDineIn ? 'Готово, подається за столик' : isTakeaway ? 'Готово до видачі на касі' : 'Кур\'єр у дорозі (Везет кур\'єр)';
+            } else {
+              // 3. Inspect deep transaction history for courier assignment or delivery dispatch
+              try {
+                const hEndpoint = getPosterApiUrl('dash.getTransactionHistory', { transaction_id: txId });
+                const hData = await fetchPosterApiJson<any>(hEndpoint);
+                const history = hData.response || [];
+
+                const hasClose = history.some((h: any) => h.type_history === 'close');
+                const hasCourier = history.some((h: any) => 
+                  h.type_history === 'changecourier' || 
+                  (h.type_history === 'changeprocessingstatus' && Number(h.value) >= 30)
+                );
+
+                if (hasClose) {
+                  stepIndex = 4;
+                  statusName = isDineIn ? 'Подано за столик (Чек закрито)' : isTakeaway ? 'Замовлення видано (Чек закрито)' : 'Успішно доставлено (Чек закрито)';
+                } else if (hasCourier) {
+                  stepIndex = 3;
+                  statusName = isDineIn ? 'Готово, подається за столик' : isTakeaway ? 'Готово до видачі на касі' : 'Кур\'єр у дорозі (Везет кур\'єр)';
+                }
+              } catch {}
+            }
+          }
+        } catch (tErr) {
+          console.warn('[Poster POS Live Radar] Error polling transaction status:', tErr);
+        }
+      }
+
+      return {
+        incoming_order_id: incomingOrderId,
+        status: stepIndex === 4 ? 7 : stepIndex === 3 ? 3 : stepIndex === 2 ? 1 : 0,
+        statusName,
+        stepIndex,
+        service_mode: mode,
+        updatedAt
+      };
     } catch (err) {
       console.warn('[Poster POS Live Radar] Error polling status:', err);
     }
