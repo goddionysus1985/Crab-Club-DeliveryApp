@@ -1,5 +1,5 @@
 // Auto-generated & Live Synchronized from Poster POS API
-// Generated at: 2026-09-02T18:31:54.627Z
+// Generated at: 2026-09-02T18:38:58.530Z
 import { Category, Product, RestaurantInfo, Banner, Review } from '../types';
 
 export const RESTAURANT_INFO: RestaurantInfo = {
@@ -299,7 +299,7 @@ export const PRODUCTS: Product[] = [
     "category_pos_id": 11,
     "category_name": "Свіжі салати",
     "category_url": "salati",
-    "price": 170,
+    "price": 250,
     "weight": "1 порція",
     "ingredients": "Томати, огірки, болгарський перець, оливки каламата, оливкова олія",
     "description_raw": "Томати, огірки, болгарський перець, оливки каламата, оливкова олія",
