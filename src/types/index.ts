@@ -125,6 +125,7 @@ export interface OrderDetails {
   orderId: string;
   orderNumber: string;
   posterIncomingOrderId?: number;
+  posterTransactionId?: number;
   date: string;
   customerName: string;
   phone: string;

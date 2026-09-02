@@ -73,6 +73,7 @@ export const OrderTrackerModal: React.FC = () => {
   const { currentOrder, isOrderTrackerOpen, setIsOrderTrackerOpen, showToast, updateUserProfile } = useCart();
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [liveServiceMode, setLiveServiceMode] = useState<number | null>(null);
+  const [liveTransactionId, setLiveTransactionId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isOrderTrackerOpen || !currentOrder) return;
@@ -102,10 +103,14 @@ export const OrderTrackerModal: React.FC = () => {
           if (liveStatus.service_mode) {
             setLiveServiceMode(liveStatus.service_mode);
           }
+          if (liveStatus.transaction_id) {
+            setLiveTransactionId(liveStatus.transaction_id);
+          }
           if (liveStatus.stepIndex > previousStep) {
             playOrderSuccessChime();
             showToast(`Статус оновлено: ${liveStatus.statusName}`, undefined, 'success');
-            sendBrowserNotification('🦀 Crab Club Delivery', `Замовлення #${currentOrder.orderNumber}: ${liveStatus.statusName}`);
+            const receiptNumber = liveStatus.transaction_id || currentOrder.posterTransactionId || currentOrder.orderNumber;
+            sendBrowserNotification('🦀 Crab Club Delivery', `Замовлення #${receiptNumber}: ${liveStatus.statusName}`);
             
             // If order completed and paid in Poster, refresh real bonus balance from Poster CRM
             if (liveStatus.stepIndex === 4 && currentOrder.phone) {
@@ -145,6 +150,8 @@ export const OrderTrackerModal: React.FC = () => {
   }, [isOrderTrackerOpen, currentOrder]);
 
   if (!currentOrder) return null;
+
+  const displayOrderNumber = liveTransactionId || currentOrder.posterTransactionId || currentOrder.orderNumber;
 
   // Resolve exact delivery mode from live Poster API (1=dinein, 2=takeaway, 3=delivery) or local order details
   const resolvedOrderType: 'delivery' | 'takeaway' | 'dinein' = 
@@ -263,7 +270,7 @@ export const OrderTrackerModal: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                    Замовлення #{currentOrder.orderNumber}
+                    Замовлення #{displayOrderNumber}
                   </h2>
                   <p className="text-xs text-zinc-400">
                     Оформлено о {currentOrder.date}
@@ -372,7 +379,7 @@ export const OrderTrackerModal: React.FC = () => {
                   <div>
                     <div className="font-bold text-white">Пункт видачі замовлення:</div>
                     <div className="text-zinc-300">вулиця Миру, 2, Овідіополь, Одеська область, 67800</div>
-                    <div className="text-[10px] text-amber-400/80 pt-0.5">Назвіть касиру номер замовлення: <span className="font-bold text-white">#{currentOrder.orderNumber}</span></div>
+                    <div className="text-[10px] text-amber-400/80 pt-0.5">Назвіть касиру номер замовлення: <span className="font-bold text-white">#{displayOrderNumber}</span></div>
                   </div>
                 </div>
               )}
@@ -386,7 +393,7 @@ export const OrderTrackerModal: React.FC = () => {
                   <div>
                     <div className="font-bold text-white">Обслуговування у закладі:</div>
                     <div className="text-zinc-300">вулиця Миру, 2, Овідіополь, Одеська область, 67800</div>
-                    <div className="text-[10px] text-emerald-400/80 pt-0.5">Назвіть офіціанту або на касі номер замовлення: <span className="font-bold text-white">#{currentOrder.orderNumber}</span></div>
+                    <div className="text-[10px] text-emerald-400/80 pt-0.5">Назвіть офіціанту або на касі номер замовлення: <span className="font-bold text-white">#{displayOrderNumber}</span></div>
                   </div>
                 </div>
               )}

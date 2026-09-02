@@ -572,10 +572,12 @@ function setIdempotencyOrder(key: string, incomingOrderId: number): void {
   }
 }
 
-/**
- * Send order to Poster POS API with strict Idempotency, 7s Timeout & Audit Logging
- */
-export async function sendOrderToPoster(order: OrderDetails): Promise<{ success: boolean; posterIncomingOrderId?: number; message?: string }> {
+export async function sendOrderToPoster(order: OrderDetails): Promise<{
+  success: boolean;
+  posterIncomingOrderId?: number;
+  posterTransactionId?: number;
+  message?: string;
+}> {
   const idempotencyKey = `ORDER_${order.orderNumber}_${order.phone.replace(/\D/g, '')}`;
   
   // 1. Idempotency Check: if submitted within last 2 minutes, return cached confirmation
@@ -640,11 +642,26 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{ success:
       if (result.response && result.response.incoming_order_id) {
         const orderId = result.response.incoming_order_id;
         setIdempotencyOrder(idempotencyKey, orderId);
-        console.info(`[Poster POS] ✅ Замовлення успішно створено! ID: #${orderId}`);
+
+        // Fetch POS transaction_id immediately so customer sees matching receipt number (e.g. Чек №93)
+        let transactionId: number | undefined;
+        try {
+          const detailRes = await fetchPosterApiJson<any>(
+            getPosterApiUrl('incomingOrders.getIncomingOrder', { incoming_order_id: orderId })
+          );
+          if (detailRes.response?.transaction_id) {
+            transactionId = Number(detailRes.response.transaction_id);
+          }
+        } catch {}
+
+        const finalNumber = transactionId ? String(transactionId) : String(orderId);
+        console.info(`[Poster POS] ✅ Замовлення успішно створено! Чек: #${finalNumber} (Вхідне: #${orderId})`);
+
         return {
           success: true,
           posterIncomingOrderId: orderId,
-          message: `Замовлення надіслано в Poster POS (#${orderId})`
+          posterTransactionId: transactionId,
+          message: `Замовлення надіслано в Poster POS (#${finalNumber})`
         };
       } else if (result.error) {
         console.warn(`[Poster POS] ⚠️ Помилка від Poster API (${result.error}):`, result.message);
@@ -805,6 +822,7 @@ export async function deductPosterClientBonus(clientId: number, bonusToSpend: nu
 
 export interface PosterOrderStatusResult {
   incoming_order_id: number;
+  transaction_id?: number;
   status: number; // 10: New, 20: Cooking, 30: Delivering, 40: Completed
   statusName: string;
   stepIndex: number; // 1 to 4
@@ -920,6 +938,7 @@ export async function fetchPosterOrderStatus(incomingOrderId: number): Promise<P
 
       return {
         incoming_order_id: incomingOrderId,
+        transaction_id: txId ? Number(txId) : undefined,
         status: stepIndex === 4 ? 7 : stepIndex === 3 ? 3 : stepIndex === 2 ? 1 : 0,
         statusName,
         stepIndex,
