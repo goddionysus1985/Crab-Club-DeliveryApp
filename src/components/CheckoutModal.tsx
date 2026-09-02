@@ -41,6 +41,7 @@ export const CheckoutModal: React.FC = () => {
     addToCart,
     isCheckoutOpen,
     setIsCheckoutOpen,
+    setIsCartOpen,
     clearCart,
     subtotal,
     discount,
@@ -347,6 +348,11 @@ export const CheckoutModal: React.FC = () => {
     }
   };
 
+  const handleBackToCart = () => {
+    setIsCheckoutOpen(false);
+    setIsCartOpen(true);
+  };
+
   return (
     <AnimatePresence>
       {isCheckoutOpen && (
@@ -357,7 +363,7 @@ export const CheckoutModal: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            onClick={() => setIsCheckoutOpen(false)}
+            onClick={handleBackToCart}
             className="fixed inset-0 bg-black/85 backdrop-blur-md"
           />
 
@@ -375,11 +381,12 @@ export const CheckoutModal: React.FC = () => {
             <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#151522]/90 backdrop-blur-xl">
               <button
                 type="button"
-                onClick={() => setIsCheckoutOpen(false)}
-                className="p-1.5 -ml-1 text-zinc-400 hover:text-white transition-colors"
-                title="Назад"
+                onClick={handleBackToCart}
+                className="p-1.5 -ml-1 text-zinc-400 hover:text-white transition-colors flex items-center gap-1 group"
+                title="Назад до кошика"
               >
-                <span className="text-xl leading-none text-rose-500 font-bold">←</span>
+                <span className="text-xl leading-none text-rose-500 font-bold group-hover:-translate-x-0.5 transition-transform">←</span>
+                <span className="text-xs text-zinc-400 font-medium hidden sm:inline">Кошик</span>
               </button>
 
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight text-center">
@@ -388,8 +395,9 @@ export const CheckoutModal: React.FC = () => {
 
               <motion.button
                 whileTap={{ scale: 0.9 }}
-                onClick={() => setIsCheckoutOpen(false)}
+                onClick={handleBackToCart}
                 className="p-1.5 -mr-1 text-zinc-400 hover:text-white transition-colors"
+                title="Повернутися до кошика"
               >
                 <X className="w-5 h-5" />
               </motion.button>

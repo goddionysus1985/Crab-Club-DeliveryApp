@@ -400,9 +400,6 @@ export const ProfileModal: React.FC = () => {
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="font-bold text-base text-white">{userProfile.name || 'Гість'}</span>
-                              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
-                                Gold
-                              </span>
                             </div>
                             <div className="text-xs text-zinc-400 font-mono">{userProfile.phone}</div>
                           </div>
