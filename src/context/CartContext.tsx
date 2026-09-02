@@ -5,6 +5,7 @@ import { fetchPosterStopList, fetchLivePosterCatalog, fetchPosterOrderStatus, ge
 import { 
   getHighestNotifiedStep, 
   setHighestNotifiedStep, 
+  notifyStepChange,
   playOrderSuccessChime, 
   sendBrowserNotification 
 } from '../services/orderNotificationService';
@@ -287,11 +288,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             setOrderTrackingStep(newStep);
 
-            // Play melodic chime & show notifications
-            playOrderSuccessChime();
-            showToast(`Статус оновлено: ${liveStatus.statusName}`, undefined, 'success');
+            // Play melodic chime & show notifications using deduplicated service
             const receiptNumber = liveStatus.transaction_id || currentOrder.posterTransactionId || currentOrder.orderNumber;
-            sendBrowserNotification('🦀 Crab Club Delivery', `Замовлення #${receiptNumber}: ${liveStatus.statusName}`);
+            notifyStepChange(orderId, newStep, liveStatus.statusName, receiptNumber, showToast);
 
             // If order completed and paid in Poster, refresh CRM bonuses & update order status
             if (newStep === 4) {

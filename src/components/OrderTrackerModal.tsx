@@ -55,6 +55,7 @@ export const OrderTrackerModal: React.FC = () => {
     }
   }, [orderTrackingStep]);
 
+  // When modal is open, request notification permission and fetch live metadata (service mode & transaction ID)
   useEffect(() => {
     if (!isOrderTrackerOpen || !currentOrder) return;
 
@@ -64,27 +65,14 @@ export const OrderTrackerModal: React.FC = () => {
     const isOrderAlreadyCompleted = currentOrder.status === 'completed';
     const orderId = currentOrder.posterIncomingOrderId || parseInt(currentOrder.orderNumber, 10);
     
-    const notifiedByNumber = getHighestNotifiedStep(currentOrder.orderNumber);
-    const notifiedById = orderId ? getHighestNotifiedStep(orderId) : 0;
-    let highestNotified = Math.max(notifiedByNumber, notifiedById, isOrderAlreadyCompleted ? 4 : 0);
-
-    // If order was already completed, immediately show step 4 and do not poll or notify
-    if (isOrderAlreadyCompleted || highestNotified >= 4) {
+    if (isOrderAlreadyCompleted) {
       setCurrentStep(4);
       return;
     }
 
-    let isCompleted = false;
-    let pollCount = 0;
-    let timeoutId: any = null;
-
-    // Check live Poster POS status when modal is open
-    const pollStatus = async () => {
-      if (isCompleted) return;
-
-      if (orderId) {
-        pollCount++;
-        const liveStatus = await fetchPosterOrderStatus(orderId);
+    // One-shot metadata refresh for current modal view (polling is managed centrally by CartContext)
+    if (orderId) {
+      fetchPosterOrderStatus(orderId).then(liveStatus => {
         if (liveStatus) {
           if (liveStatus.service_mode) {
             setLiveServiceMode(liveStatus.service_mode);
@@ -92,56 +80,16 @@ export const OrderTrackerModal: React.FC = () => {
           if (liveStatus.transaction_id) {
             setLiveTransactionId(liveStatus.transaction_id);
           }
-
-          // Strictly prevent duplicate notifications: only alert if step advanced past highest recorded step
-          if (liveStatus.stepIndex > highestNotified) {
-            highestNotified = liveStatus.stepIndex;
-            setHighestNotifiedStep(currentOrder.orderNumber, liveStatus.stepIndex);
-            setHighestNotifiedStep(orderId, liveStatus.stepIndex);
-            if (liveStatus.transaction_id) {
-              setHighestNotifiedStep(liveStatus.transaction_id, liveStatus.stepIndex);
-            }
-
-            playOrderSuccessChime();
-            showToast(`Статус оновлено: ${liveStatus.statusName}`, undefined, 'success');
-            const receiptNumber = liveStatus.transaction_id || currentOrder.posterTransactionId || currentOrder.orderNumber;
-            sendBrowserNotification('🦀 Crab Club Delivery', `Замовлення #${receiptNumber}: ${liveStatus.statusName}`);
-            
-            // If order completed and paid in Poster, refresh real bonus balance from Poster CRM
-            if (liveStatus.stepIndex === 4 && currentOrder.phone) {
-              const cleanPhone = currentOrder.phone.replace(/\D/g, '');
-              getPosterClientByPhone(cleanPhone).then(client => {
-                if (client && client.bonus !== undefined) {
-                  updateUserProfile({ bonusBalance: client.bonus });
-                }
-              });
-            }
-          }
-
-          setCurrentStep(liveStatus.stepIndex);
-          setOrderTrackingStep(liveStatus.stepIndex);
-
-          if (liveStatus.stepIndex === 4) {
-            isCompleted = true; // Terminate polling
-            return;
+          if (liveStatus.stepIndex >= 4) {
+            setCurrentStep(4);
+            setOrderTrackingStep(4);
+          } else if (liveStatus.stepIndex > currentStep) {
+            setCurrentStep(liveStatus.stepIndex);
+            setOrderTrackingStep(liveStatus.stepIndex);
           }
         }
-      }
-
-      scheduleNextPoll();
-    };
-
-    const scheduleNextPoll = () => {
-      if (isCompleted) return;
-      const delay = pollCount < 12 ? 5000 : pollCount < 30 ? 10000 : 15000;
-      timeoutId = setTimeout(pollStatus, delay);
-    };
-
-    pollStatus();
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
+      }).catch(() => {});
+    }
   }, [isOrderTrackerOpen, currentOrder?.orderId, currentOrder?.orderNumber]);
 
   if (!currentOrder) return null;

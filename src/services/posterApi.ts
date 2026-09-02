@@ -164,19 +164,31 @@ export function getPosterApiUrl(method: string, extraParams?: Record<string, str
 export function formatPosterDeliveryTime(scheduledTime?: string): string | undefined {
   if (!scheduledTime) return undefined;
   
+  // If ASAP, never send delivery_time to Poster POS (treat as immediate kitchen order)
+  const lower = scheduledTime.toLowerCase();
+  if (lower.includes('якнайшвидше') || lower.includes('asap')) {
+    return undefined;
+  }
+
   const timeMatch = scheduledTime.match(/(\d{1,2}):(\d{2})/);
   if (!timeMatch) return undefined;
 
   const now = new Date();
   const targetDate = new Date(now);
 
-  if (scheduledTime.toLowerCase().includes('завтра')) {
-    targetDate.setDate(targetDate.getDate() + 1);
-  }
-
   const hours = parseInt(timeMatch[1], 10);
   const minutes = parseInt(timeMatch[2], 10);
   targetDate.setHours(hours, minutes, 0, 0);
+
+  // If time has already passed today or is within 5 minutes of now, target tomorrow
+  if (lower.includes('завтра') || targetDate.getTime() <= (now.getTime() + 5 * 60 * 1000)) {
+    targetDate.setDate(targetDate.getDate() + 1);
+  }
+
+  // Safety: must be at least 2 minutes in the future to avoid Poster clock skew
+  if (targetDate.getTime() <= (now.getTime() + 2 * 60 * 1000)) {
+    return undefined;
+  }
 
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())} ${pad(hours)}:${pad(minutes)}:00`;
@@ -458,9 +470,11 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     payment
   };
 
-  const formattedDeliveryTime = formatPosterDeliveryTime(order.scheduledTime);
-  if (formattedDeliveryTime) {
-    payload.delivery_time = formattedDeliveryTime;
+  if (order.deliveryTimeType === 'scheduled' && order.scheduledTime) {
+    const formattedDeliveryTime = formatPosterDeliveryTime(order.scheduledTime);
+    if (formattedDeliveryTime) {
+      payload.delivery_time = formattedDeliveryTime;
+    }
   }
 
   return payload;
@@ -665,6 +679,48 @@ export async function sendOrderToPoster(order: OrderDetails): Promise<{
         };
       } else if (result.error) {
         console.warn(`[Poster POS] ⚠️ Помилка від Poster API (${result.error}):`, result.message);
+
+        // Auto-recovery for Error 185 (dateNotInTheFuture):
+        // If scheduled time was in the past or close to current server time, retry immediately without delivery_time as immediate order
+        if (result.error === 185 && payload.delivery_time) {
+          console.info('[Poster POS Recovery] 🔄 Повторне надсилання замовлення без delivery_time (якнайшвидше)...');
+          delete payload.delivery_time;
+          try {
+            const retryRes = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(payload),
+              signal: controller.signal
+            });
+            const retryResult: PosterApiResponse<{ incoming_order_id: number }> = await retryRes.json();
+            if (retryResult.response && retryResult.response.incoming_order_id) {
+              const orderId = retryResult.response.incoming_order_id;
+              setIdempotencyOrder(idempotencyKey, orderId);
+              let transactionId: number | undefined;
+              try {
+                const detailRes = await fetchPosterApiJson<any>(
+                  getPosterApiUrl('incomingOrders.getIncomingOrder', { incoming_order_id: orderId })
+                );
+                if (detailRes.response?.transaction_id) {
+                  transactionId = Number(detailRes.response.transaction_id);
+                }
+              } catch {}
+              const finalNumber = transactionId ? String(transactionId) : String(orderId);
+              console.info(`[Poster POS Recovery] ✅ Замовлення успішно створено після автокорекції! Чек: #${finalNumber}`);
+              return {
+                success: true,
+                posterIncomingOrderId: orderId,
+                posterTransactionId: transactionId,
+                message: `Замовлення надіслано в Poster POS (#${finalNumber})`
+              };
+            }
+          } catch (retryErr) {
+            console.warn('[Poster POS Recovery] Не вдалося повторити запит:', retryErr);
+          }
+        }
       }
     } catch (error: any) {
       if (error?.name === 'AbortError') {

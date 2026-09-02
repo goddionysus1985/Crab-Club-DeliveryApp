@@ -1,4 +1,4 @@
-﻿// Order Notification & Status Audio/Push Service
+// Order Notification & Status Audio/Push Service
 
 const NOTIFIED_STEP_PREFIX = 'crabclub_notified_step_';
 
@@ -105,4 +105,47 @@ export function requestNotificationPermission() {
       Notification.requestPermission().catch(() => {});
     }
   } catch {}
+}
+
+let lastAlertTimestamp = 0;
+let lastAlertStep = 0;
+let lastAlertOrderId = '';
+
+/**
+ * Thread-safe, deduplicated notifier for order status step changes
+ * Ensures audio chime, toast, and push notifications fire exactly once
+ */
+export function notifyStepChange(
+  orderId: string | number,
+  step: number,
+  statusName: string,
+  receiptNumber: string | number,
+  showToastFn?: (text: string, image?: string, type?: 'success' | 'info' | 'error') => void
+): boolean {
+  const now = Date.now();
+  const idStr = String(orderId);
+
+  // Debounce lock: block any identical notification within 3 seconds
+  if (lastAlertOrderId === idStr && lastAlertStep === step && (now - lastAlertTimestamp) < 3000) {
+    return false;
+  }
+
+  const highest = getHighestNotifiedStep(orderId);
+  if (step <= highest) {
+    return false;
+  }
+
+  // Update timestamps and records
+  lastAlertTimestamp = now;
+  lastAlertStep = step;
+  lastAlertOrderId = idStr;
+  setHighestNotifiedStep(orderId, step);
+
+  // Sound + Push + Toast
+  playOrderSuccessChime();
+  if (showToastFn) {
+    showToastFn(`Статус оновлено: ${statusName}`, undefined, 'success');
+  }
+  sendBrowserNotification('🦀 Crab Club Delivery', `Замовлення #${receiptNumber}: ${statusName}`);
+  return true;
 }
