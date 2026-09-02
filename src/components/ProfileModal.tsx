@@ -27,6 +27,7 @@ import { useCart } from '../context/CartContext';
 import { PRODUCTS } from '../data/menuData';
 import { getPosterClientByPhone, syncUserProfileToPoster } from '../services/posterApi';
 import { validateAndFormatPhone, validateCustomerName } from '../utils/security';
+import { setHighestNotifiedStep } from '../services/orderNotificationService';
 
 export const ProfileModal: React.FC = () => {
   const { 
@@ -670,7 +671,14 @@ export const ProfileModal: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => {
-                                setCurrentOrder(histOrder);
+                                setHighestNotifiedStep(histOrder.orderNumber, 4);
+                                if (histOrder.posterIncomingOrderId) {
+                                  setHighestNotifiedStep(histOrder.posterIncomingOrderId, 4);
+                                }
+                                if (histOrder.posterTransactionId) {
+                                  setHighestNotifiedStep(histOrder.posterTransactionId, 4);
+                                }
+                                setCurrentOrder({ ...histOrder, status: 'completed' });
                                 setIsProfileOpen(false);
                                 setIsOrderTrackerOpen(true);
                               }}

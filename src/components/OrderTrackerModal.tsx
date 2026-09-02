@@ -16,86 +16,72 @@ import {
 import { useCart } from '../context/CartContext';
 import { RESTAURANT_INFO } from '../data/menuData';
 import { fetchPosterOrderStatus, getPosterClientByPhone } from '../services/posterApi';
-
-// Pleasant Web Audio API melodic chime for status changes
-function playOrderSuccessChime() {
-  try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const now = ctx.currentTime;
-
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(523.25, now); // C5
-    osc1.frequency.exponentialRampToValueAtTime(1046.5, now + 0.15); // C6
-    gain1.gain.setValueAtTime(0.15, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.45);
-
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(659.25, now + 0.1); // E5
-    osc2.frequency.exponentialRampToValueAtTime(1318.5, now + 0.25); // E6
-    gain2.gain.setValueAtTime(0.12, now + 0.1);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now + 0.1);
-    osc2.stop(now + 0.6);
-
-    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
-      navigator.vibrate([100, 50, 150]);
-    }
-  } catch {}
-}
-
-// Native Web Browser Push / Desktop Notification
-function sendBrowserNotification(title: string, body: string) {
-  try {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'granted') {
-        new Notification(title, {
-          body,
-          icon: 'https://img.postershop.me/21253/48ff3a5a-f1f0-4892-8331-602d1b6620bb_image.png'
-        });
-      }
-    }
-  } catch {}
-}
+import { 
+  getHighestNotifiedStep, 
+  setHighestNotifiedStep, 
+  playOrderSuccessChime, 
+  sendBrowserNotification,
+  requestNotificationPermission 
+} from '../services/orderNotificationService';
 
 export const OrderTrackerModal: React.FC = () => {
-  const { currentOrder, isOrderTrackerOpen, setIsOrderTrackerOpen, showToast, updateUserProfile } = useCart();
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const { 
+    currentOrder, 
+    isOrderTrackerOpen, 
+    setIsOrderTrackerOpen, 
+    showToast, 
+    updateUserProfile,
+    orderTrackingStep,
+    setOrderTrackingStep
+  } = useCart();
+
+  const [currentStep, setCurrentStep] = useState<number>(() => {
+    if (currentOrder) {
+      if (currentOrder.status === 'completed') return 4;
+      const n1 = getHighestNotifiedStep(currentOrder.orderNumber);
+      const n2 = currentOrder.posterIncomingOrderId ? getHighestNotifiedStep(currentOrder.posterIncomingOrderId) : 0;
+      return Math.max(n1, n2, orderTrackingStep || 1);
+    }
+    return orderTrackingStep || 1;
+  });
+
   const [liveServiceMode, setLiveServiceMode] = useState<number | null>(null);
   const [liveTransactionId, setLiveTransactionId] = useState<number | null>(null);
+
+  // Sync state if global background tracker advanced
+  useEffect(() => {
+    if (orderTrackingStep && orderTrackingStep > currentStep) {
+      setCurrentStep(orderTrackingStep);
+    }
+  }, [orderTrackingStep]);
 
   useEffect(() => {
     if (!isOrderTrackerOpen || !currentOrder) return;
 
-    // Request notification permissions for background order updates
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-      try {
-        Notification.requestPermission();
-      } catch {}
+    // Request notification permissions for order updates
+    requestNotificationPermission();
+
+    const isOrderAlreadyCompleted = currentOrder.status === 'completed';
+    const orderId = currentOrder.posterIncomingOrderId || parseInt(currentOrder.orderNumber, 10);
+    
+    const notifiedByNumber = getHighestNotifiedStep(currentOrder.orderNumber);
+    const notifiedById = orderId ? getHighestNotifiedStep(orderId) : 0;
+    let highestNotified = Math.max(notifiedByNumber, notifiedById, isOrderAlreadyCompleted ? 4 : 0);
+
+    // If order was already completed, immediately show step 4 and do not poll or notify
+    if (isOrderAlreadyCompleted || highestNotified >= 4) {
+      setCurrentStep(4);
+      return;
     }
 
-    let previousStep = currentStep;
     let isCompleted = false;
     let pollCount = 0;
     let timeoutId: any = null;
 
-    // Check live Poster POS status
+    // Check live Poster POS status when modal is open
     const pollStatus = async () => {
-      // Don't poll if order is already completed
       if (isCompleted) return;
 
-      const orderId = currentOrder.posterIncomingOrderId || parseInt(currentOrder.orderNumber, 10);
       if (orderId) {
         pollCount++;
         const liveStatus = await fetchPosterOrderStatus(orderId);
@@ -106,7 +92,16 @@ export const OrderTrackerModal: React.FC = () => {
           if (liveStatus.transaction_id) {
             setLiveTransactionId(liveStatus.transaction_id);
           }
-          if (liveStatus.stepIndex > previousStep) {
+
+          // Strictly prevent duplicate notifications: only alert if step advanced past highest recorded step
+          if (liveStatus.stepIndex > highestNotified) {
+            highestNotified = liveStatus.stepIndex;
+            setHighestNotifiedStep(currentOrder.orderNumber, liveStatus.stepIndex);
+            setHighestNotifiedStep(orderId, liveStatus.stepIndex);
+            if (liveStatus.transaction_id) {
+              setHighestNotifiedStep(liveStatus.transaction_id, liveStatus.stepIndex);
+            }
+
             playOrderSuccessChime();
             showToast(`Статус оновлено: ${liveStatus.statusName}`, undefined, 'success');
             const receiptNumber = liveStatus.transaction_id || currentOrder.posterTransactionId || currentOrder.orderNumber;
@@ -121,10 +116,11 @@ export const OrderTrackerModal: React.FC = () => {
                 }
               });
             }
-
-            previousStep = liveStatus.stepIndex;
           }
+
           setCurrentStep(liveStatus.stepIndex);
+          setOrderTrackingStep(liveStatus.stepIndex);
+
           if (liveStatus.stepIndex === 4) {
             isCompleted = true; // Terminate polling
             return;
@@ -137,7 +133,6 @@ export const OrderTrackerModal: React.FC = () => {
 
     const scheduleNextPoll = () => {
       if (isCompleted) return;
-      // Gentle progressive interval: 5s initially, 10s after 1 min, 15s after 3 mins
       const delay = pollCount < 12 ? 5000 : pollCount < 30 ? 10000 : 15000;
       timeoutId = setTimeout(pollStatus, delay);
     };
@@ -147,7 +142,7 @@ export const OrderTrackerModal: React.FC = () => {
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isOrderTrackerOpen, currentOrder]);
+  }, [isOrderTrackerOpen, currentOrder?.orderId, currentOrder?.orderNumber]);
 
   if (!currentOrder) return null;
 

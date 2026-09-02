@@ -1,7 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem, Product, Category, OrderDetails, UserProfile } from '../types';
 import { RESTAURANT_INFO, PROMO_CODES, PRODUCTS, CATEGORIES } from '../data/menuData';
-import { fetchPosterStopList, fetchLivePosterCatalog } from '../services/posterApi';
+import { fetchPosterStopList, fetchLivePosterCatalog, fetchPosterOrderStatus, getPosterClientByPhone } from '../services/posterApi';
+import { 
+  getHighestNotifiedStep, 
+  setHighestNotifiedStep, 
+  playOrderSuccessChime, 
+  sendBrowserNotification 
+} from '../services/orderNotificationService';
 import { 
   verifyAndSanitizeCart, 
   sanitizePromoCode, 
@@ -79,6 +85,8 @@ interface CartContextType {
   currentOrder: OrderDetails | null;
   setCurrentOrder: (order: OrderDetails | null) => void;
   orderHistory: OrderDetails[];
+  orderTrackingStep: number;
+  setOrderTrackingStep: (step: number) => void;
 
   // Wishlist
   favorites: number[];
@@ -213,6 +221,106 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setBonusToUse(0);
     }
   };
+
+  const [orderTrackingStep, setOrderTrackingStep] = useState<number>(() => {
+    if (currentOrder) {
+      if (currentOrder.status === 'completed') return 4;
+      const n1 = getHighestNotifiedStep(currentOrder.orderNumber);
+      const n2 = currentOrder.posterIncomingOrderId ? getHighestNotifiedStep(currentOrder.posterIncomingOrderId) : 0;
+      return Math.max(n1, n2, 1);
+    }
+    return 1;
+  });
+
+  // Global background order status tracking (runs continuously, even when OrderTrackerModal is closed!)
+  useEffect(() => {
+    if (!currentOrder) return;
+
+    const orderId = currentOrder.posterIncomingOrderId || parseInt(currentOrder.orderNumber, 10);
+    if (!orderId) return;
+
+    // Check if this order is already known to be completed or was loaded from past history
+    const notifiedByNumber = getHighestNotifiedStep(currentOrder.orderNumber);
+    const notifiedById = getHighestNotifiedStep(orderId);
+    let highestNotified = Math.max(notifiedByNumber, notifiedById, currentOrder.status === 'completed' ? 4 : 0);
+
+    // If order is completed, sync step 4 and do not poll or notify
+    if (highestNotified >= 4 || currentOrder.status === 'completed') {
+      setOrderTrackingStep(4);
+      return;
+    }
+
+    let isTerminated = false;
+    let pollCount = 0;
+    let timerId: any = null;
+
+    const pollBackgroundStatus = async () => {
+      if (isTerminated) return;
+
+      try {
+        pollCount++;
+        const liveStatus = await fetchPosterOrderStatus(orderId);
+        if (liveStatus && !isTerminated) {
+          const newStep = liveStatus.stepIndex;
+
+          if (liveStatus.transaction_id && !currentOrder.posterTransactionId) {
+            setCurrentOrderState(prev => prev ? { ...prev, posterTransactionId: liveStatus.transaction_id } : prev);
+          }
+
+          if (newStep > highestNotified) {
+            // New forward step reached!
+            highestNotified = newStep;
+            setHighestNotifiedStep(currentOrder.orderNumber, newStep);
+            setHighestNotifiedStep(orderId, newStep);
+            if (liveStatus.transaction_id) {
+              setHighestNotifiedStep(liveStatus.transaction_id, newStep);
+            }
+
+            setOrderTrackingStep(newStep);
+
+            // Play melodic chime & show notifications
+            playOrderSuccessChime();
+            showToast(`Статус оновлено: ${liveStatus.statusName}`, undefined, 'success');
+            const receiptNumber = liveStatus.transaction_id || currentOrder.posterTransactionId || currentOrder.orderNumber;
+            sendBrowserNotification('🦀 Crab Club Delivery', `Замовлення #${receiptNumber}: ${liveStatus.statusName}`);
+
+            // If order completed and paid in Poster, refresh CRM bonuses & update order status
+            if (newStep === 4) {
+              setCurrentOrderState(prev => prev ? { ...prev, status: 'completed' } : prev);
+              if (currentOrder.phone) {
+                const cleanPhone = currentOrder.phone.replace(/\D/g, '');
+                getPosterClientByPhone(cleanPhone).then(client => {
+                  if (client && client.bonus !== undefined) {
+                    updateUserProfile({ bonusBalance: client.bonus });
+                  }
+                });
+              }
+              isTerminated = true;
+              return;
+            }
+          } else {
+            setOrderTrackingStep(Math.max(newStep, highestNotified));
+          }
+        }
+      } catch (err) {
+        console.warn('[Background Order Radar]', err);
+      }
+
+      if (!isTerminated) {
+        // Poll every 7s initially, 12s after 2 minutes
+        const interval = pollCount < 15 ? 7000 : 12000;
+        timerId = setTimeout(pollBackgroundStatus, interval);
+      }
+    };
+
+    // Kickoff background polling after brief delay
+    timerId = setTimeout(pollBackgroundStatus, 2000);
+
+    return () => {
+      isTerminated = true;
+      if (timerId) clearTimeout(timerId);
+    };
+  }, [currentOrder?.orderId, currentOrder?.orderNumber]);
 
   const addOrderItemsToCart = (historicOrder: OrderDetails) => {
     if (!historicOrder.items || historicOrder.items.length === 0) return;
@@ -636,6 +744,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentOrder,
         setCurrentOrder,
         orderHistory,
+        orderTrackingStep,
+        setOrderTrackingStep,
         favorites,
         toggleFavorite,
         isFavorite,
