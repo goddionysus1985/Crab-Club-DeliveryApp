@@ -27,6 +27,7 @@ export const Header: React.FC = () => {
     setIsSearchOpen, 
     favorites, 
     currentOrder, 
+    setCurrentOrder,
     activeOrders,
     setIsOrderTrackerOpen,
     orderHistory,

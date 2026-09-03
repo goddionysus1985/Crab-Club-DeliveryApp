@@ -139,6 +139,17 @@ const DEFAULT_PROFILE: UserProfile = {
   totalSpent: 0
 };
 
+export const isOrderCompleted = (order: OrderDetails | null | undefined): boolean => {
+  if (!order) return true;
+  if (order.status === 'completed') return true;
+  if (order.orderTrackingStep && order.orderTrackingStep >= 4) return true;
+  const numStep = getHighestNotifiedStep(order.orderNumber);
+  if (numStep >= 4) return true;
+  if (order.posterIncomingOrderId && getHighestNotifiedStep(order.posterIncomingOrderId) >= 4) return true;
+  if (order.posterTransactionId && getHighestNotifiedStep(order.posterTransactionId) >= 4) return true;
+  return false;
+};
+
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load from localStorage with cryptographic-level integrity validation
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -188,17 +199,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return newProfile;
     });
   };
-
-export const isOrderCompleted = (order: OrderDetails | null | undefined): boolean => {
-  if (!order) return true;
-  if (order.status === 'completed') return true;
-  if (order.orderTrackingStep && order.orderTrackingStep >= 4) return true;
-  const numStep = getHighestNotifiedStep(order.orderNumber);
-  if (numStep >= 4) return true;
-  if (order.posterIncomingOrderId && getHighestNotifiedStep(order.posterIncomingOrderId) >= 4) return true;
-  if (order.posterTransactionId && getHighestNotifiedStep(order.posterTransactionId) >= 4) return true;
-  return false;
-};
 
   const [currentOrder, setCurrentOrderState] = useState<OrderDetails | null>(() => {
     try {
