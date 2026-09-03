@@ -28,7 +28,6 @@ export const ProductModal: React.FC = () => {
 
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, { group: string; name: string; price: number }>>({});
-  const [comment, setComment] = useState('');
 
   const product = activeProductModal;
   const isFav = product ? isFavorite(product.id) : false;
@@ -50,11 +49,9 @@ export const ProductModal: React.FC = () => {
         });
         setSelectedOptions(initialOpts);
         setQuantity(editingCartItem.quantity || 1);
-        setComment(editingCartItem.comment || '');
       } else {
         setQuantity(1);
         setSelectedOptions({});
-        setComment('');
       }
     }
   }, [activeProductModal, editingCartItem]);
@@ -97,9 +94,9 @@ export const ProductModal: React.FC = () => {
     }));
 
     if (isEditMode && editingCartItem) {
-      updateCartItem(editingCartItem.id, formattedOptions, comment, quantity);
+      updateCartItem(editingCartItem.id, formattedOptions, undefined, quantity);
     } else {
-      addToCart(product, quantity, formattedOptions, comment);
+      addToCart(product, quantity, formattedOptions);
     }
     handleClose();
   };
@@ -272,22 +269,6 @@ export const ProductModal: React.FC = () => {
                     ))}
                   </div>
                 )}
-
-                <div className="space-y-1.5">
-                  <label htmlFor={`product-chef-comment-${product.id}`} className="text-xs font-medium text-zinc-400">
-                    Побажання для шеф-кухаря (опціонально):
-                  </label>
-                  <input
-                    id={`product-chef-comment-${product.id}`}
-                    name="chef_comment"
-                    aria-label="Побажання для шеф-кухаря"
-                    type="text"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Наприклад: без цибулі, додатковий соус окремо..."
-                    className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
-                  />
-                </div>
               </div>
             </div>
 
