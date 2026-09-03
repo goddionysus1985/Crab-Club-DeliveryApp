@@ -273,8 +273,11 @@ export const OrderTrackerModal: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                   {steps.map((step) => {
                     const Icon = step.icon;
+                    const isCompletedOrder = currentStep >= 4;
+                    const isFinalStep = step.id === 4;
                     const isPassed = step.id <= currentStep;
-                    const isCurrent = step.id === currentStep;
+                    const isCurrent = !isCompletedOrder && step.id === currentStep;
+                    const isFinishedFinal = isCompletedOrder && isFinalStep;
                     const stepTime = stepTimestamps?.[step.id];
 
                     return (
@@ -282,7 +285,9 @@ export const OrderTrackerModal: React.FC = () => {
                         key={step.id}
                         layout
                         className={`p-3.5 rounded-2xl border transition-all ${
-                          isCurrent
+                          isFinishedFinal
+                            ? 'bg-emerald-500/20 border-emerald-500 text-white ring-1 ring-emerald-500/40 shadow-lg shadow-emerald-500/20'
+                            : isCurrent
                             ? 'bg-crab-600/20 border-crab-500 text-white ring-1 ring-crab-500/50 shadow-lg shadow-crab-600/20'
                             : isPassed
                             ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
@@ -291,13 +296,15 @@ export const OrderTrackerModal: React.FC = () => {
                       >
                         <div className="mb-2">
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                            isCurrent
+                            isFinishedFinal
+                              ? 'bg-emerald-500 text-slate-950 shadow-md font-black'
+                              : isCurrent
                               ? 'apple-button-primary text-white shadow-md'
                               : isPassed
                               ? 'bg-emerald-500/20 text-emerald-400'
                               : 'bg-white/5 text-zinc-500'
                           }`}>
-                            <Icon className="w-4 h-4" />
+                            {isFinishedFinal ? <CheckCircle2 className="w-4 h-4 text-slate-950" /> : <Icon className="w-4 h-4" />}
                           </div>
                         </div>
 
@@ -311,7 +318,7 @@ export const OrderTrackerModal: React.FC = () => {
                         {/* Time label when step was reached */}
                         {isPassed && stepTime && (
                           <div className={`flex items-center gap-1 mt-1.5 text-[10px] font-semibold ${
-                            isCurrent ? 'text-crab-300' : 'text-emerald-400/80'
+                            isFinishedFinal ? 'text-emerald-300' : isCurrent ? 'text-crab-300' : 'text-emerald-400/80'
                           }`}>
                             <Clock className="w-2.5 h-2.5" />
                             <span>о {stepTime}</span>
@@ -457,7 +464,7 @@ export const OrderTrackerModal: React.FC = () => {
                   )}
 
                   {/* Discount */}
-                  {currentOrder.discount > 0 && (
+                  {Boolean(currentOrder.discount && currentOrder.discount > 0) && (
                     <div className="flex justify-between text-xs">
                       <span className="text-zinc-400">Знижка:</span>
                       <span className="text-emerald-400">−{currentOrder.discount} ₴</span>
@@ -465,7 +472,7 @@ export const OrderTrackerModal: React.FC = () => {
                   )}
 
                   {/* Bonuses used */}
-                  {currentOrder.bonusUsed && currentOrder.bonusUsed > 0 && (
+                  {Boolean(currentOrder.bonusUsed && currentOrder.bonusUsed > 0) && (
                     <div className="flex justify-between text-xs">
                       <span className="text-zinc-400">Бонуси списано:</span>
                       <span className="text-amber-400">−{currentOrder.bonusUsed} ₴</span>
@@ -473,10 +480,14 @@ export const OrderTrackerModal: React.FC = () => {
                   )}
 
                   {/* Bonus earned */}
-                  {currentOrder.bonusEarned && currentOrder.bonusEarned > 0 && (
+                  {Boolean(currentOrder.bonusEarned && currentOrder.bonusEarned > 0) && (
                     <div className="flex justify-between text-xs">
-                      <span className="text-zinc-400">Кешбек нараховано:</span>
-                      <span className="text-amber-300">+{currentOrder.bonusEarned} ₴</span>
+                      <span className="text-zinc-400">
+                        {currentStep >= 4 ? 'Кешбек нараховано:' : 'Кешбек (після отримання):'}
+                      </span>
+                      <span className={currentStep >= 4 ? 'text-amber-300 font-bold' : 'text-amber-400/80 font-medium'}>
+                        +{currentOrder.bonusEarned} ₴ {currentStep >= 4 ? '✓' : '(очікує)'}
+                      </span>
                     </div>
                   )}
 

@@ -253,15 +253,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setStepTimestamps(initial);
       }
 
-      // Update cashback and bonus balance without overwriting permanent profile address
-      const newBonusBalance = Math.max(0, userProfile.bonusBalance - (order.bonusUsed || 0) + (order.bonusEarned || 0));
-      const newTotalSpent = (userProfile.totalSpent || 0) + order.total;
+      // Only deduct spent bonuses if order used bonuses.
+      // In Poster POS, bonuses earned and total spent are officially credited only AFTER the check is closed (step 4).
+      const newBonusBalance = Math.max(0, userProfile.bonusBalance - (order.bonusUsed || 0));
 
       updateUserProfile({
         name: userProfile.name || order.customerName,
         phone: userProfile.phone || order.phone,
-        bonusBalance: newBonusBalance,
-        totalSpent: newTotalSpent
+        bonusBalance: newBonusBalance
       });
 
       setBonusToUse(0);
@@ -369,14 +368,29 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const receiptNumber = liveStatus.transaction_id || targetOrder.posterTransactionId || targetOrder.orderNumber;
             notifyStepChange(orderId, newStep, liveStatus.statusName, receiptNumber, showToast);
 
-            // If order completed and paid in Poster, refresh CRM bonuses
-            if (newStep === 4 && targetOrder.phone) {
-              const cleanPhone = targetOrder.phone.replace(/\D/g, '');
-              getPosterClientByPhone(cleanPhone).then(client => {
-                if (client && client.bonus !== undefined) {
-                  updateUserProfile({ bonusBalance: client.bonus });
-                }
-              });
+            // If order completed and paid in Poster, credit bonuses and refresh CRM
+            if (newStep === 4) {
+              if (targetOrder.phone) {
+                const cleanPhone = targetOrder.phone.replace(/\D/g, '');
+                getPosterClientByPhone(cleanPhone).then(client => {
+                  if (client && client.bonus !== undefined) {
+                    updateUserProfile({
+                      bonusBalance: client.bonus,
+                      totalSpent: (userProfile.totalSpent || 0) + targetOrder.total
+                    });
+                  } else if (targetOrder.bonusEarned) {
+                    updateUserProfile({
+                      bonusBalance: (userProfile.bonusBalance || 0) + targetOrder.bonusEarned,
+                      totalSpent: (userProfile.totalSpent || 0) + targetOrder.total
+                    });
+                  }
+                });
+              } else if (targetOrder.bonusEarned) {
+                updateUserProfile({
+                  bonusBalance: (userProfile.bonusBalance || 0) + targetOrder.bonusEarned,
+                  totalSpent: (userProfile.totalSpent || 0) + targetOrder.total
+                });
+              }
             }
           } else {
             // Keep transaction ID if resolved
