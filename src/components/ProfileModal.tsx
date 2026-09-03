@@ -23,7 +23,7 @@ import {
   UtensilsCrossed
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { useCart, isOrderCompleted } from '../context/CartContext';
+import { useCart } from '../context/CartContext';
 import { PRODUCTS } from '../data/menuData';
 import { searchOvidiopolStreets } from '../data/ovidiopolStreets';
 import { getPosterClientByPhone, syncUserProfileToPoster } from '../services/posterApi';
@@ -731,39 +731,6 @@ export const ProfileModal: React.FC = () => {
                                     </>
                                   )}
                                 </span>
-
-                                {/* Live Status Badge in History */}
-                                {(() => {
-                                  const isCompleted = isOrderCompleted(histOrder);
-                                  const step = histOrder.orderTrackingStep || (isCompleted ? 4 : 1);
-                                  const isDelivering = step === 3 || histOrder.status === 'delivering';
-                                  const isCooking = step === 2 || histOrder.status === 'cooking';
-
-                                  return (
-                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                      isCompleted
-                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
-                                        : isDelivering
-                                        ? 'bg-sky-500/15 text-sky-300 border-sky-500/30 animate-pulse'
-                                        : isCooking
-                                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 animate-pulse'
-                                        : 'bg-zinc-500/10 text-zinc-300 border-zinc-500/25'
-                                    }`}>
-                                      <span className={`w-1.5 h-1.5 rounded-full ${
-                                        isCompleted ? 'bg-emerald-400' : isDelivering ? 'bg-sky-400' : isCooking ? 'bg-amber-400' : 'bg-zinc-400'
-                                      }`} />
-                                      <span>
-                                        {isCompleted
-                                          ? (histOrder.orderType === 'dinein' ? 'Подано ✓' : histOrder.orderType === 'takeaway' ? 'Видано ✓' : 'Доставлено ✓')
-                                          : isDelivering
-                                          ? (histOrder.orderType === 'takeaway' ? 'Готово до видачі' : histOrder.orderType === 'dinein' ? 'Подача за стіл' : 'Кур\'єр у дорозі')
-                                          : isCooking
-                                          ? 'Шеф готує'
-                                          : 'Прийнято'}
-                                      </span>
-                                    </span>
-                                  );
-                                })()}
                               </div>
                               <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 font-light">
                                 <Clock className="w-3 h-3 text-zinc-500" />
