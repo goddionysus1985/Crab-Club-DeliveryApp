@@ -195,7 +195,7 @@ export function formatPosterDeliveryTime(scheduledTime?: string): string | undef
 }
 
 // Live product cache from Poster with 5-minute TTL
-let livePosterProductsCache: Array<{ product_id: string | number; product_name: string; price: any }> = [];
+let livePosterProductsCache: any[] = [];
 let productsCacheExpiry = 0;
 const PRODUCTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
@@ -285,9 +285,23 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     let livePosterItem: any = undefined;
 
     if (livePosterProductsCache.length > 0) {
-      livePosterItem = livePosterProductsCache.find(p => Number(p.product_id) === resolvedProductId) ||
-                       livePosterProductsCache.find(p => p.product_name.toLowerCase().trim() === itemNameNorm) ||
-                       livePosterProductsCache.find(p => p.product_name.toLowerCase().includes(itemNameNorm) || itemNameNorm.includes(p.product_name.toLowerCase()));
+      const hasOptions = Boolean(item.selectedOptions && item.selectedOptions.length > 0);
+      
+      const exactMatches = livePosterProductsCache.filter(p => 
+        Number(p.product_id) === resolvedProductId || 
+        p.product_name.toLowerCase().trim() === itemNameNorm
+      );
+
+      if (exactMatches.length > 1 && !hasOptions) {
+        // If multiple matches exist (e.g. Бургер id:6 type:2 vs Бургер id:11 type:3) and user did not choose options,
+        // prefer the type:2 product which does not require a modificator_id!
+        livePosterItem = exactMatches.find(p => Number(p.type) === 2) || exactMatches[0];
+      } else if (exactMatches.length > 0) {
+        livePosterItem = exactMatches[0];
+      } else {
+        livePosterItem = livePosterProductsCache.find(p => p.product_name.toLowerCase().includes(itemNameNorm) || itemNameNorm.includes(p.product_name.toLowerCase()));
+      }
+
       if (livePosterItem) {
         resolvedProductId = Number(livePosterItem.product_id);
         isDirectPosterProduct = true;
@@ -300,11 +314,13 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     }
 
     // Check if this product uses Group Modifications (e.g. Type 2 with group_modifications) or Simple Modifications (Type 3 with modifications)
-    const hasGroupMods = (livePosterItem && Array.isArray(livePosterItem.group_modifications) && livePosterItem.group_modifications.length > 0) ||
-                         (item.product.modifications && item.product.modifications.some(g => g.type === 2 || (g.max && g.max > 1) || g.group_name?.includes('Додатки')));
+    const isPosterType3 = Boolean(livePosterItem && (Number(livePosterItem.type) === 3 || (Array.isArray(livePosterItem.modifications) && livePosterItem.modifications.length > 0)));
+    const hasGroupMods = Boolean((livePosterItem && Array.isArray(livePosterItem.group_modifications) && livePosterItem.group_modifications.length > 0) ||
+                         (item.product.modifications && item.product.modifications.some(g => g.type === 2 || (g.max && g.max > 1) || g.group_name?.includes('Додатки'))));
 
-    const hasSimpleMods = (livePosterItem && Array.isArray(livePosterItem.modifications) && livePosterItem.modifications.length > 0) ||
-                          (item.product.modifications && item.product.modifications.some(g => g.type === 1 && (!g.max || g.max <= 1)));
+    const hasSimpleMods = isPosterType3 ||
+                          Boolean((livePosterItem && Array.isArray(livePosterItem.modifications) && livePosterItem.modifications.length > 0) ||
+                          (item.product.modifications && item.product.modifications.some(g => g.type === 1 && (!g.max || g.max <= 1))));
 
     if (hasGroupMods) {
       // Group Modifications: attach modification array [{ m, a }] to the dish
@@ -390,6 +406,17 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
         });
       }
 
+      // CRITICAL FOR POSTER POS ERROR 32 ("modificatorId is undefined"):
+      // If product has modifications in Poster or is type 3, Poster STRICTLY rejects orders without modificator_id!
+      // If customer did not select an option or added directly to cart, default to the first valid modificator_id!
+      if (!chosenModId) {
+        if (livePosterItem && Array.isArray(livePosterItem.modifications) && livePosterItem.modifications.length > 0) {
+          chosenModId = Number(livePosterItem.modifications[0].modificator_id);
+        } else if (item.product.modifications?.[0]?.options?.[0]?.id) {
+          chosenModId = Number(item.product.modifications[0].options[0].id);
+        }
+      }
+
       const itemKey = `${resolvedProductId}_smod_${chosenModId || 0}`;
 
       if (productEntriesMap.has(itemKey)) {
@@ -423,7 +450,19 @@ export function buildPosterOrderPayload(order: OrderDetails): PosterIncomingOrde
     }
   });
 
-  const products = Array.from(productEntriesMap.values());
+  // Final safeguard: ensure NO type 3 product or product with modifications ever has an undefined modificator_id sent to Poster POS
+  const products: PosterIncomingProduct[] = Array.from(productEntriesMap.values()).map(entry => {
+    const matchedPoster = livePosterProductsCache.find(p => Number(p.product_id) === entry.product_id);
+    if (matchedPoster && (Number(matchedPoster.type) === 3 || (Array.isArray(matchedPoster.modifications) && matchedPoster.modifications.length > 0))) {
+      if (!entry.modificator_id && matchedPoster.modifications && matchedPoster.modifications.length > 0) {
+        return {
+          ...entry,
+          modificator_id: Number(matchedPoster.modifications[0].modificator_id)
+        };
+      }
+    }
+    return entry;
+  });
 
   // Payment method note for cashier/courier comment
   let paymentText = 'Оплата: Готівкою';
