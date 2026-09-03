@@ -34,7 +34,8 @@ export const FloatingContacts: React.FC = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setShowScrollControls(window.scrollY > 450);
+      const show = window.scrollY > 450;
+      setShowScrollControls(prev => (prev !== show ? show : prev));
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
