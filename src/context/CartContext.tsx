@@ -189,10 +189,23 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+export const isOrderCompleted = (order: OrderDetails | null | undefined): boolean => {
+  if (!order) return true;
+  if (order.status === 'completed') return true;
+  if (order.orderTrackingStep && order.orderTrackingStep >= 4) return true;
+  const numStep = getHighestNotifiedStep(order.orderNumber);
+  if (numStep >= 4) return true;
+  if (order.posterIncomingOrderId && getHighestNotifiedStep(order.posterIncomingOrderId) >= 4) return true;
+  if (order.posterTransactionId && getHighestNotifiedStep(order.posterTransactionId) >= 4) return true;
+  return false;
+};
+
   const [currentOrder, setCurrentOrderState] = useState<OrderDetails | null>(() => {
     try {
       const saved = localStorage.getItem('crabclub_last_order');
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const order: OrderDetails = JSON.parse(saved);
+      return isOrderCompleted(order) ? { ...order, status: 'completed', orderTrackingStep: 4 } : order;
     } catch {
       return null;
     }
@@ -201,7 +214,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [orderHistory, setOrderHistory] = useState<OrderDetails[]>(() => {
     try {
       const saved = localStorage.getItem('crabclub_order_history');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const list: OrderDetails[] = JSON.parse(saved);
+      return list.map(o => isOrderCompleted(o) ? { ...o, status: 'completed', orderTrackingStep: 4 } : o);
     } catch {
       return [];
     }
@@ -209,18 +224,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [bonusToUse, setBonusToUse] = useState<number>(0);
 
-  // Synchronize active orders (orders in history or currentOrder that are not completed)
+  // Synchronize active orders (strictly in-progress, non-completed orders)
   const activeOrders = React.useMemo(() => {
     const list: OrderDetails[] = [];
     const seenIds = new Set<string>();
 
-    if (currentOrder && currentOrder.status !== 'completed') {
+    if (currentOrder && !isOrderCompleted(currentOrder)) {
       list.push(currentOrder);
       seenIds.add(currentOrder.orderId);
     }
 
     orderHistory.forEach(o => {
-      if (!seenIds.has(o.orderId) && o.status !== 'completed') {
+      if (!seenIds.has(o.orderId) && !isOrderCompleted(o)) {
         list.push(o);
         seenIds.add(o.orderId);
       }

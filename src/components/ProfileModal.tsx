@@ -23,7 +23,7 @@ import {
   UtensilsCrossed
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { useCart } from '../context/CartContext';
+import { useCart, isOrderCompleted } from '../context/CartContext';
 import { PRODUCTS } from '../data/menuData';
 import { searchOvidiopolStreets } from '../data/ovidiopolStreets';
 import { getPosterClientByPhone, syncUserProfileToPoster } from '../services/posterApi';
@@ -698,8 +698,8 @@ export const ProfileModal: React.FC = () => {
 
                                 {/* Live Status Badge in History */}
                                 {(() => {
-                                  const step = histOrder.orderTrackingStep || (histOrder.status === 'completed' ? 4 : 1);
-                                  const isCompleted = step === 4 || histOrder.status === 'completed';
+                                  const isCompleted = isOrderCompleted(histOrder);
+                                  const step = histOrder.orderTrackingStep || (isCompleted ? 4 : 1);
                                   const isDelivering = step === 3 || histOrder.status === 'delivering';
                                   const isCooking = step === 2 || histOrder.status === 'cooking';
 

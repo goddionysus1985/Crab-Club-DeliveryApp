@@ -239,8 +239,8 @@ export const OrderTrackerModal: React.FC = () => {
                 {activeOrders.map((ord) => {
                   const isSelected = ord.orderId === currentOrder.orderId;
                   const num = ord.posterTransactionId || ord.orderNumber;
-                  const step = ord.orderTrackingStep || (ord.status === 'completed' ? 4 : 1);
-                  const stepLabel = step === 4 ? 'Готово' : step === 3 ? (ord.orderType === 'delivery' ? 'У дорозі' : 'Готово') : step === 2 ? 'Кухня' : 'Прийнято';
+                  const step = ord.orderTrackingStep || 1;
+                  const stepLabel = step === 3 ? (ord.orderType === 'delivery' ? 'У дорозі' : 'Готово') : step === 2 ? 'Кухня' : 'Прийнято';
 
                   return (
                     <button

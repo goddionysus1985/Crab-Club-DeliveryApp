@@ -185,18 +185,23 @@ export const Header: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2.5">
-            {/* Active order tracker pill if order exists */}
-            {(activeOrders?.length > 0 || currentOrder) && (
+            {/* Active order tracker pill — strictly shown only when there is at least 1 ACTIVE in-progress order */}
+            {activeOrders && activeOrders.length > 0 && (
               <button
-                onClick={() => setIsOrderTrackerOpen(true)}
+                onClick={() => {
+                  if (activeOrders[0] && currentOrder?.orderId !== activeOrders[0].orderId) {
+                    setCurrentOrder(activeOrders[0]);
+                  }
+                  setIsOrderTrackerOpen(true);
+                }}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition-all animate-pulse"
-                title="Відстежити замовлення"
+                title="Відстежити активне замовлення"
               >
                 <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
                 <span>
-                  {activeOrders?.length > 1 
+                  {activeOrders.length > 1 
                     ? `Активні замовлення (${activeOrders.length})` 
-                    : `Замовлення #${currentOrder?.orderNumber || activeOrders?.[0]?.orderNumber}`}
+                    : `Замовлення #${activeOrders[0].posterTransactionId || activeOrders[0].orderNumber}`}
                 </span>
               </button>
             )}
