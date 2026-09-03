@@ -269,7 +269,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <form onSubmit={handlePay} className="space-y-3">
                   <div className="space-y-1">
                     <div className="flex justify-between items-center">
-                      <label className="text-[11px] text-zinc-400 font-medium">Номер картки:</label>
+                      <label htmlFor="payment-card-number" className="text-[11px] text-zinc-400 font-medium">Номер картки:</label>
                       <span className="text-[10px] uppercase font-bold text-amber-400">
                         {cardType === 'visa' && '💳 Visa'}
                         {cardType === 'mastercard' && '💳 Mastercard'}
@@ -279,6 +279,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     <div className="relative">
                       <CreditCard className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
+                        id="payment-card-number"
+                        name="cardnumber"
+                        autoComplete="cc-number"
+                        aria-label="Номер банківської картки"
                         type="text"
                         required
                         maxLength={19}
@@ -292,8 +296,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[11px] text-zinc-400 font-medium">Термін дії:</label>
+                      <label htmlFor="payment-card-exp" className="text-[11px] text-zinc-400 font-medium">Термін дії:</label>
                       <input
+                        id="payment-card-exp"
+                        name="cc-exp"
+                        autoComplete="cc-exp"
+                        aria-label="Термін дії картки"
                         type="text"
                         required
                         maxLength={5}
@@ -305,8 +313,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[11px] text-zinc-400 font-medium">CVV / CVC:</label>
+                      <label htmlFor="payment-card-cvv" className="text-[11px] text-zinc-400 font-medium">CVV / CVC:</label>
                       <input
+                        id="payment-card-cvv"
+                        name="cc-csc"
+                        autoComplete="cc-csc"
+                        aria-label="Код безпеки CVV"
                         type="password"
                         required
                         maxLength={3}

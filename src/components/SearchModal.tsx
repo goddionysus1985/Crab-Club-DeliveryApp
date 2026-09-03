@@ -75,9 +75,13 @@ export const SearchModal: React.FC = () => {
             {/* Search Header */}
             <div className="p-4 sm:p-6 border-b border-white/[0.08] flex items-center gap-3 bg-[#13131F]/80 backdrop-blur-xl">
               <Search className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 shrink-0" />
+              <label htmlFor="global-search-input" className="sr-only">Пошук по меню</label>
               <input
+                id="global-search-input"
+                name="search"
+                type="search"
+                aria-label="Пошук страви, напою чи інгредієнта"
                 ref={inputRef}
-                type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Пошук страви, напою чи інгредієнта..."

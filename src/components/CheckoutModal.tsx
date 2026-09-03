@@ -410,7 +410,12 @@ export const CheckoutModal: React.FC = () => {
               <div className="space-y-2">
                 <div className="relative">
                   <User className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <label htmlFor="checkout-name" className="sr-only">Ваше ім'я</label>
                   <input
+                    id="checkout-name"
+                    name="name"
+                    autoComplete="name"
+                    aria-label="Ваше ім'я"
                     type="text"
                     required
                     maxLength={50}
@@ -423,7 +428,12 @@ export const CheckoutModal: React.FC = () => {
 
                 <div className="relative">
                   <span className="text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 text-sm">📞</span>
+                  <label htmlFor="checkout-phone" className="sr-only">Номер телефону</label>
                   <input
+                    id="checkout-phone"
+                    name="tel"
+                    autoComplete="tel"
+                    aria-label="Номер телефону"
                     type="tel"
                     required
                     maxLength={20}
@@ -527,8 +537,11 @@ export const CheckoutModal: React.FC = () => {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[11px] text-zinc-400">Зона доставки:</label>
+                          <label htmlFor="checkout-delivery-zone" className="text-[11px] text-zinc-400">Зона доставки:</label>
                           <select
+                            id="checkout-delivery-zone"
+                            name="delivery_zone"
+                            aria-label="Зона доставки"
                             value={city}
                             onChange={(e) => setCity(e.target.value)}
                             className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-700 cursor-pointer"
@@ -543,7 +556,12 @@ export const CheckoutModal: React.FC = () => {
 
                         <div className="grid grid-cols-3 gap-2">
                           <div ref={streetContainerRef} className="col-span-2 space-y-1 relative">
+                            <label htmlFor="checkout-street" className="sr-only">Вулиця</label>
                             <input
+                              id="checkout-street"
+                              name="street"
+                              autoComplete="address-line1"
+                              aria-label="Вулиця"
                               type="text"
                               required
                               placeholder="Вулиця *"
@@ -593,7 +611,12 @@ export const CheckoutModal: React.FC = () => {
                           </div>
 
                           <div className="space-y-1">
+                            <label htmlFor="checkout-house" className="sr-only">Будинок</label>
                             <input
+                              id="checkout-house"
+                              name="house"
+                              autoComplete="address-line2"
+                              aria-label="Номер будинку"
                               ref={houseInputRef}
                               type="text"
                               required
@@ -636,30 +659,48 @@ export const CheckoutModal: React.FC = () => {
                               </button>
                             </div>
                             <div className="grid grid-cols-3 gap-2">
-                              <input
-                                type="text"
-                                placeholder="Під'їзд/Кв"
-                                maxLength={10}
-                                value={apartment}
-                                onChange={(e) => setApartment(e.target.value)}
-                                className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                              />
-                              <input
-                                type="text"
-                                placeholder="Поверх"
-                                maxLength={10}
-                                value={floor}
-                                onChange={(e) => setFloor(e.target.value)}
-                                className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                              />
-                              <input
-                                type="text"
-                                placeholder="Домофон"
-                                maxLength={10}
-                                value={doorphone}
-                                onChange={(e) => setDoorphone(e.target.value)}
-                                className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                              />
+                              <div>
+                                <label htmlFor="checkout-apartment" className="sr-only">Квартира або під'їзд</label>
+                                <input
+                                  id="checkout-apartment"
+                                  name="apartment"
+                                  aria-label="Квартира або під'їзд"
+                                  type="text"
+                                  placeholder="Під'їзд/Кв"
+                                  maxLength={10}
+                                  value={apartment}
+                                  onChange={(e) => setApartment(e.target.value)}
+                                  className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label htmlFor="checkout-floor" className="sr-only">Поверх</label>
+                                <input
+                                  id="checkout-floor"
+                                  name="floor"
+                                  aria-label="Поверх"
+                                  type="text"
+                                  placeholder="Поверх"
+                                  maxLength={10}
+                                  value={floor}
+                                  onChange={(e) => setFloor(e.target.value)}
+                                  className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label htmlFor="checkout-doorphone" className="sr-only">Домофон</label>
+                                <input
+                                  id="checkout-doorphone"
+                                  name="doorphone"
+                                  aria-label="Домофон"
+                                  type="text"
+                                  placeholder="Домофон"
+                                  maxLength={10}
+                                  value={doorphone}
+                                  onChange={(e) => setDoorphone(e.target.value)}
+                                  className="w-full bg-[#12121A] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                                />
+                              </div>
                             </div>
                           </motion.div>
                         )}
@@ -871,7 +912,11 @@ export const CheckoutModal: React.FC = () => {
 
                 {paymentMethod === 'cash' && (
                   <div className="pt-1">
+                    <label htmlFor="checkout-cash-change" className="sr-only">Потрібна решта з купюри</label>
                     <input
+                      id="checkout-cash-change"
+                      name="cash_change"
+                      aria-label="Потрібна решта з купюри"
                       type="text"
                       maxLength={50}
                       placeholder="Потрібна решта з купюри (наприклад, 500 грн)"
@@ -905,14 +950,20 @@ export const CheckoutModal: React.FC = () => {
                   </div>
                 </div>
 
-                <input
-                  type="text"
-                  maxLength={150}
-                  placeholder="Коментар до замовлення..."
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  className="flex-1 bg-[#181824] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
-                />
+                <div className="flex-1">
+                  <label htmlFor="checkout-comment" className="sr-only">Коментар до замовлення</label>
+                  <input
+                    id="checkout-comment"
+                    name="comment"
+                    aria-label="Коментар до замовлення"
+                    type="text"
+                    maxLength={150}
+                    placeholder="Коментар до замовлення..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    className="w-full bg-[#181824] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  />
+                </div>
               </div>
 
               {/* Order Items Summary with Modifier Editing */}

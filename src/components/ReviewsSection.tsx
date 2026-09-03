@@ -199,8 +199,12 @@ export const ReviewsSection: React.FC = () => {
 
               <form onSubmit={handleAddReview} className="space-y-3">
                 <div>
-                  <label className="text-xs text-zinc-300 font-medium">Ваше ім'я:</label>
+                  <label htmlFor="review-name" className="text-xs text-zinc-300 font-medium">Ваше ім'я:</label>
                   <input
+                    id="review-name"
+                    name="name"
+                    autoComplete="name"
+                    aria-label="Ваше ім'я"
                     type="text"
                     required
                     maxLength={50}
@@ -212,8 +216,11 @@ export const ReviewsSection: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs text-zinc-300 font-medium">Яку страву замовляли?</label>
+                  <label htmlFor="review-dish" className="text-xs text-zinc-300 font-medium">Яку страву замовляли?</label>
                   <input
+                    id="review-dish"
+                    name="dish"
+                    aria-label="Назва замовленої страви"
                     type="text"
                     maxLength={60}
                     value={dish}
@@ -243,8 +250,11 @@ export const ReviewsSection: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs text-zinc-300 font-medium">Ваш коментар:</label>
+                  <label htmlFor="review-comment" className="text-xs text-zinc-300 font-medium">Ваш коментар:</label>
                   <textarea
+                    id="review-comment"
+                    name="comment"
+                    aria-label="Ваш коментар та відгук"
                     rows={3}
                     required
                     maxLength={400}

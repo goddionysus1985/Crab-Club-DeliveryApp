@@ -273,12 +273,14 @@ export const ProductModal: React.FC = () => {
                   </div>
                 )}
 
-                {/* Order Comment for chef */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-400">
+                  <label htmlFor={`product-chef-comment-${product.id}`} className="text-xs font-medium text-zinc-400">
                     Побажання для шеф-кухаря (опціонально):
                   </label>
                   <input
+                    id={`product-chef-comment-${product.id}`}
+                    name="chef_comment"
+                    aria-label="Побажання для шеф-кухаря"
                     type="text"
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}

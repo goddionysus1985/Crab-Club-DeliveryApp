@@ -340,11 +340,15 @@ export const ProfileModal: React.FC = () => {
                     {/* Login / Registration Form */}
                     <form onSubmit={handleLogin} className="space-y-3.5">
                       <div>
-                        <label className="text-xs text-zinc-300 font-semibold flex items-center gap-1.5">
+                        <label htmlFor="profile-login-phone" className="text-xs text-zinc-300 font-semibold flex items-center gap-1.5">
                           <Phone className="w-3.5 h-3.5 text-amber-400" />
                           <span>Ваш номер телефону:</span>
                         </label>
                         <input
+                          id="profile-login-phone"
+                          name="tel"
+                          autoComplete="tel"
+                          aria-label="Ваш номер телефону"
                           type="tel"
                           required
                           placeholder="+380 (__) ___-__-__"
@@ -355,11 +359,15 @@ export const ProfileModal: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="text-xs text-zinc-300 font-semibold flex items-center gap-1.5">
+                        <label htmlFor="profile-login-name" className="text-xs text-zinc-300 font-semibold flex items-center gap-1.5">
                           <User className="w-3.5 h-3.5 text-amber-400" />
                           <span>Як до вас звертатися (ім'я):</span>
                         </label>
                         <input
+                          id="profile-login-name"
+                          name="name"
+                          autoComplete="name"
+                          aria-label="Ваше ім'я"
                           type="text"
                           placeholder="Наприклад: Олена або Михайло"
                           value={loginName}
@@ -457,8 +465,12 @@ export const ProfileModal: React.FC = () => {
 
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[11px] text-zinc-300 font-medium">Ваше ім'я:</label>
+                          <label htmlFor="profile-saved-name" className="text-[11px] text-zinc-300 font-medium">Ваше ім'я:</label>
                           <input
+                            id="profile-saved-name"
+                            name="name"
+                            autoComplete="name"
+                            aria-label="Ваше ім'я"
                             type="text"
                             required
                             value={name}
@@ -468,8 +480,12 @@ export const ProfileModal: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="text-[11px] text-zinc-300 font-medium">Телефон:</label>
+                          <label htmlFor="profile-saved-phone" className="text-[11px] text-zinc-300 font-medium">Телефон:</label>
                           <input
+                            id="profile-saved-phone"
+                            name="tel"
+                            autoComplete="tel"
+                            aria-label="Номер телефону"
                             type="tel"
                             required
                             value={phone}
@@ -480,8 +496,11 @@ export const ProfileModal: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="text-[11px] text-zinc-300 font-medium">Населений пункт / Зона доставки:</label>
+                        <label htmlFor="profile-saved-city" className="text-[11px] text-zinc-300 font-medium">Населений пункт / Зона доставки:</label>
                         <select
+                          id="profile-saved-city"
+                          name="city"
+                          aria-label="Населений пункт або зона доставки"
                           value={city}
                           onChange={(e) => setCity(e.target.value)}
                           className="w-full mt-1 bg-[#161622] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
@@ -496,8 +515,12 @@ export const ProfileModal: React.FC = () => {
 
                       <div className="grid grid-cols-3 gap-2">
                         <div ref={profileStreetContainerRef} className="col-span-2 relative">
-                          <label className="text-[11px] text-zinc-300 font-medium">Вулиця:</label>
+                          <label htmlFor="profile-saved-street" className="text-[11px] text-zinc-300 font-medium">Вулиця:</label>
                           <input
+                            id="profile-saved-street"
+                            name="street"
+                            autoComplete="address-line1"
+                            aria-label="Вулиця"
                             type="text"
                             value={street}
                             onChange={(e) => {
@@ -544,8 +567,12 @@ export const ProfileModal: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="text-[11px] text-zinc-300 font-medium">Будинок:</label>
+                          <label htmlFor="profile-saved-house" className="text-[11px] text-zinc-300 font-medium">Будинок:</label>
                           <input
+                            id="profile-saved-house"
+                            name="house"
+                            autoComplete="address-line2"
+                            aria-label="Номер будинку"
                             ref={profileHouseInputRef}
                             type="text"
                             value={house}
@@ -586,8 +613,11 @@ export const ProfileModal: React.FC = () => {
                           </div>
                           <div className="grid grid-cols-3 gap-2">
                             <div>
-                              <label className="text-[11px] text-zinc-300 font-medium">Кв.:</label>
+                              <label htmlFor="profile-saved-apartment" className="text-[11px] text-zinc-300 font-medium">Кв.:</label>
                               <input
+                                id="profile-saved-apartment"
+                                name="apartment"
+                                aria-label="Квартира"
                                 type="text"
                                 value={apartment}
                                 onChange={(e) => setApartment(e.target.value)}
@@ -595,8 +625,11 @@ export const ProfileModal: React.FC = () => {
                               />
                             </div>
                             <div>
-                              <label className="text-[11px] text-zinc-300 font-medium">Поверх:</label>
+                              <label htmlFor="profile-saved-floor" className="text-[11px] text-zinc-300 font-medium">Поверх:</label>
                               <input
+                                id="profile-saved-floor"
+                                name="floor"
+                                aria-label="Поверх"
                                 type="text"
                                 value={floor}
                                 onChange={(e) => setFloor(e.target.value)}
@@ -604,8 +637,11 @@ export const ProfileModal: React.FC = () => {
                               />
                             </div>
                             <div>
-                              <label className="text-[11px] text-zinc-300 font-medium">Домофон:</label>
+                              <label htmlFor="profile-saved-doorphone" className="text-[11px] text-zinc-300 font-medium">Домофон:</label>
                               <input
+                                id="profile-saved-doorphone"
+                                name="doorphone"
+                                aria-label="Домофон"
                                 type="text"
                                 value={doorphone}
                                 onChange={(e) => setDoorphone(e.target.value)}
